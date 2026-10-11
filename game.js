@@ -1,7 +1,7 @@
 /* Starfall Gambit — UI layer (touch-first). Depends on SG (engine.js) and SGAI (ai.js). */
 (function () {
   'use strict';
-  var HUMAN = SG.BLUE, AI_SIDE = SG.RED, LEVEL = 'easy', AI_DELAY = 650, OVER_DELAY = 250, LONG_PRESS = 500;
+  var HUMAN = SG.BLUE, AI_SIDE = SG.RED, LEVEL = 'easy', AI_DELAY = 650, OVER_DELAY = 250, LONG_PRESS = 500, LONG_PRESS_CAP = 900;   // hold-to-inspect; longer on a Red ship you could capture
   var GHOST_MS = 600;            // a pointer-generated click within this time of a pointer tap on the same square is its echo
   var DEBUG = /[?&]debug(=|&|$)/.test(location.search);
   var st, sel = null, insp = null, marks = null, danger = [], opts = [], exposed = [];
@@ -26,12 +26,13 @@
   // ---- Debug log (only with ?debug): every tap that did not change anything, and why.
   var dbgEl = null, dbgLines = [], stats = { taps: 0, handled: 0, ignored: 0, reasons: {}, cancelled: 0, cancelReasons: {}, moves: 0 };
   if (DEBUG) {
-    // Collapsible panel at the top of the screen (never over the warning / info area at the bottom).
+    // Collapsible panel in the status row (not over the title or the warning / info area).
     var dbgBox = document.createElement('div'); dbgBox.className = 'taplogbox collapsed';   // starts collapsed; sits below dialogs
     var dbgBtn = document.createElement('button'); dbgBtn.type = 'button'; dbgBtn.className = 'taplogbtn'; dbgBtn.textContent = 'log \u25B8';
     dbgEl = document.createElement('div'); dbgEl.id = 'tapLog'; dbgEl.className = 'taplog';
     dbgBtn.onclick = function () { var c = dbgBox.classList.toggle('collapsed'); dbgBtn.textContent = c ? 'log \u25B8' : 'log \u25BE'; };
-    dbgBox.appendChild(dbgBtn); dbgBox.appendChild(dbgEl); document.body.appendChild(dbgBox);
+    dbgBox.appendChild(dbgBtn); dbgBox.appendChild(dbgEl);
+    var stRow = document.querySelector('.status'); stRow.insertBefore(dbgBox, stRow.querySelector('.meta'));   // in the status row: never over the title
   }
   function dlog(kind, msg) {
     if (kind === 'ignored') { stats.ignored++; stats.reasons[msg] = (stats.reasons[msg] || 0) + 1; }
@@ -50,7 +51,7 @@
   // Edge drift: a press that moved less than SLOP_CELLS x cell counts on its START square even if the finger
   // crossed a border; a lift up to EDGE_PX outside the board is treated as being on the nearest edge square.
   // Between SLOP_CELLS and DRAG_CELLS the press must still end on its start square; beyond DRAG_CELLS it cancels.
-  var DRAG_CELLS = 0.6, SLOP_CELLS = 0.25, EDGE_PX = 8;
+  var DRAG_CELLS = 0.6, SLOP_CELLS = 0.25, SLOP_MIN_PX = 12, EDGE_PX = 8;   // tap tolerance = max(12px, 0.25 cell)
   var down = null, lpTimer = null, ghosts = [];
   function cellFrom(x, y) {
     var el = document.elementFromPoint(x, y);
@@ -66,10 +67,24 @@
     var c = Math.min(5, Math.max(0, Math.floor((x - a.left) / cw))), r = Math.min(5, Math.max(0, Math.floor((y - a.top) / ch)));
     return r * 6 + c;
   }
-  function clearPress() { clearTimeout(lpTimer); lpTimer = null; if (down) cells[down.i].classList.remove('press'); down = null; }
+  // Transient per-cell effect classes (press, holding, nogo, boom). They live outside render(): render rebuilds
+  // className from game state only and then re-applies whatever effects are active, so nothing gets stuck.
+  var fx = cells.map(function () { return {}; }), fxSeq = 0;
+  function fxAdd(i, name, ms) {
+    var tok = ++fxSeq; fx[i][name] = tok; cells[i].classList.add(name);
+    if (ms) setTimeout(function () { if (fx[i][name] === tok) fxDel(i, name); }, ms);
+  }
+  function fxDel(i, name) { delete fx[i][name]; cells[i].classList.remove(name); }
+  function fxClear() { for (var i = 0; i < 36; i++) for (var n in fx[i]) fxDel(i, n); }
+  cells.forEach(function (c, i) {
+    c.addEventListener('animationend', function (e) { if (e.animationName === 'boom') fxDel(i, 'boom'); if (e.animationName === 'nogo') fxDel(i, 'nogo'); });
+  });
+  function clearPress() { clearTimeout(lpTimer); lpTimer = null; if (down) { fxDel(down.i, 'press'); fxDel(down.i, 'holding'); } down = null; }
+  var NO_CUE = { 'board changed during the press': 1, 'second finger': 1 };
   function cancelPress(reason, detail) {
     if (!down) return;
     var d = down; clearPress();
+    if (!NO_CUE[reason]) { fxDel(d.i, 'nogo'); void cells[d.i].offsetWidth; fxAdd(d.i, 'nogo', 450); }   // brief faint ring: "that didn't count"
     stats.cancelled++; stats.cancelReasons[reason] = (stats.cancelReasons[reason] || 0) + 1;
     dlog('cancelled', reason + (detail ? ' (' + detail + ')' : '') + ' [' + d.type + ' from ' + SG.coord(d.i) + ']');
     return d;
@@ -83,14 +98,21 @@
     if (down) cancelPress('second finger');
     ghosts = [];                                           // a new press means any pending echo click is stale
     var size = t.getBoundingClientRect().width;
-    down = { id: e.pointerId, i: +t.dataset.i, x: e.clientX, y: e.clientY, long: false, type: e.pointerType, max: DRAG_CELLS * size, slop: SLOP_CELLS * size, ply: st.ply, gid: gameId };
+    down = { id: e.pointerId, i: +t.dataset.i, x: e.clientX, y: e.clientY, long: false, type: e.pointerType, max: DRAG_CELLS * size, slop: Math.max(SLOP_MIN_PX, SLOP_CELLS * size), ply: st.ply, gid: gameId };
     try { wrapEl.setPointerCapture(e.pointerId); } catch (err) {}   // keep getting move/up even off the board
-    t.classList.add('press');
-    var d = down;
-    lpTimer = setTimeout(function () {
-      var pc = st.board[d.i];
-      if (down === d && pc && pc.s === AI_SIDE) { d.long = true; inspect(d.i); dlog('ok', 'long-press inspect ' + SG.coord(d.i)); }
-    }, LONG_PRESS);
+    fxAdd(i0, 'press');
+    var d = down, pc0 = st.board[i0];
+    if (pc0 && pc0.s === AI_SIDE) {
+      // Hold to inspect a Red ship. If it's a capture target of your selection the hold is longer, so a slow
+      // tap still captures; a ring fills up while you hold so the inspect never comes as a surprise.
+      var capTarget = sel !== null && st.turn === HUMAN && opts.some(function (o) { return o.to === i0; });
+      var hold = capTarget ? LONG_PRESS_CAP : LONG_PRESS;
+      d.hold = hold; t.style.setProperty('--hold', (hold - 150) + 'ms'); fxAdd(i0, 'holding');
+      lpTimer = setTimeout(function () {
+        if (down !== d) return;
+        fxDel(d.i, 'holding'); d.long = true; inspect(d.i); dlog('ok', 'long-press inspect ' + SG.coord(d.i) + ' (' + hold + 'ms)');
+      }, hold);
+    }
   });
   wrapEl.addEventListener('pointermove', function (e) {
     if (!down || e.pointerId !== down.id || down.long) return;
@@ -147,7 +169,7 @@
   function firstGame() { try { return !localStorage.getItem('sg_played'); } catch (e) { return false; } }
 
   function start() {
-    clearTimeout(aiTimer); clearTimeout(overTimer); clearTimeout(flashTimer); aiTimer = overTimer = flashTimer = null; movedAt = null;
+    clearTimeout(aiTimer); clearTimeout(overTimer); aiTimer = overTimer = null; movedAt = null; flashUntil = 0; fxClear();
     gameId++;
     st = SG.newGame(); clearSel(); busy = false; overShown = false;
     hide('overModal');
@@ -194,12 +216,12 @@
   }
 
   // A brief message that falls back to the previous hint unless something else replaced it meanwhile.
-  var flashTimer = null;
+  // It is shown on top of the normal hint for FLASH_MS (>= 1.2s) even if Red moves meanwhile; the normal
+  // hint (possibly updated underneath) comes back afterwards.
+  var FLASH_MS = 1500, flashMsg = '', flashUntil = 0;
   function flashHint(msg) {
-    var prev = hintMsg === msg ? (flashHint.prev || '') : hintMsg;
-    flashHint.prev = prev; hintMsg = msg; render();
-    clearTimeout(flashTimer);
-    flashTimer = setTimeout(function () { flashTimer = null; if (hintMsg === msg) { hintMsg = prev; render(); } }, 1500);
+    flashMsg = msg; flashUntil = Date.now() + FLASH_MS; render();
+    setTimeout(render, FLASH_MS + 20);
   }
 
   // movedAt: {i, t} of the last move you made by tapping. The second tap of a quick double-tap (< ECHO_MS)
@@ -273,7 +295,8 @@
     }
   }
 
-  function flash(i) { var c = cells[i]; c.classList.remove('boom'); void c.offsetWidth; c.classList.add('boom'); cache[i].cls = null; }
+  // Capture/shot flash: a one-off animation; the class is removed on animationend (or after 700ms at the latest).
+  function flash(i) { fxDel(i, 'boom'); void cells[i].offsetWidth; fxAdd(i, 'boom', 700); }
   function has(a, i) { return a && a.indexOf(i) >= 0; }
 
   function render() {
@@ -283,8 +306,7 @@
     var lm = st.lastMove, foe = insp !== null ? ' foe' : '';
     for (var i = 0; i < 36; i++) {
       var c = cells[i], pc = st.board[i], p = SG.rc(i);
-      var cls = 'cell' + ((p[0] + p[1]) % 2 ? ' alt' : '') + (SG.isNebula(st, i) ? ' nebula' : '') +
-        (c.classList.contains('boom') ? ' boom' : '') + (c.classList.contains('press') ? ' press' : '');
+      var cls = 'cell' + ((p[0] + p[1]) % 2 ? ' alt' : '') + (SG.isNebula(st, i) ? ' nebula' : '');
       var html = '';
       if (has(danger, i)) html += '<i class="ov threat"></i>';
       if (lm && (lm.from === i || lm.to === i)) html += '<i class="ov last"></i>';
@@ -292,8 +314,9 @@
       if (sel === i || insp === i) html += '<i class="ov sel' + foe + '"></i>';
       if (pc) {
         html += shipHTML(pc.s === SG.BLUE ? 'b' : 'r', pc.t, (SG.isNebula(st, i) ? ' jam' : '') + (i === flagDanger ? ' danger' : ''));
+        if (SG.isNebula(st, i)) html += '<i class="mk lock"><svg aria-hidden="true"><use href="#i-lock"/></svg></i>';   // jammed
       }
-      var label = SG.coord(i) + (pc ? ' ' + SG.SIDE_NAMES[pc.s] + ' ' + SG.NAMES[pc.t] : '') + (SG.isNebula(st, i) ? ', nebula' : '');
+      var label = SG.coord(i) + (pc ? ' ' + SG.SIDE_NAMES[pc.s] + ' ' + SG.NAMES[pc.t] : '') + (SG.isNebula(st, i) ? (pc ? ', jammed in nebula' : ', nebula') : '');
       if (marks) {
         var mv = has(marks.moves, i), ln = has(marks.lanes, i), cp = has(marks.caps, i);
         if (ln) html += '<i class="mk lane' + (mv ? ' withmove' : '') + '"></i>';
@@ -304,7 +327,7 @@
       if (has(exposed, i)) { html += '<i class="mk expose">!</i>'; label += ', leaves your Flagship open'; }
       if (has(danger, i)) label += ', danger';
       var k = cache[i];
-      if (k.cls !== cls) { c.className = cls; k.cls = cls; }
+      if (k.cls !== cls) { c.className = cls; k.cls = cls; for (var n in fx[i]) c.classList.add(n); }
       if (k.html !== html) { c.innerHTML = html; k.html = html; }
       if (k.label !== label) { c.setAttribute('aria-label', label); k.label = label; }
     }
@@ -323,7 +346,8 @@
     var wtxt = flagDanger >= 0 && st.turn === HUMAN ? '\u26A0 Your Flagship is under attack!' : '';
     if ($('warn').textContent !== wtxt) $('warn').textContent = wtxt;
     infoEl.classList.toggle('haswarn', !!wtxt);   // short screens: hint drops to 1 line so 'what Red did' stays visible
-    if ($('hint').textContent !== hintMsg) $('hint').textContent = hintMsg;
+    var htxt = Date.now() < flashUntil ? flashMsg : hintMsg;
+    if ($('hint').textContent !== htxt) $('hint').textContent = htxt;
     tray('trayRed', st.captured[HUMAN], 'r', 'Captured:');
     tray('trayBlue', st.captured[AI_SIDE], 'b', 'Lost:');
   }
@@ -379,7 +403,7 @@
   if (DEBUG) {
     window.SGDebug = {
       state: function () { return st; },
-      setState: function (s) { clearTimeout(aiTimer); clearTimeout(overTimer); clearTimeout(flashTimer); aiTimer = overTimer = flashTimer = null; movedAt = null; busy = false; gameId++;
+      setState: function (s) { clearTimeout(aiTimer); clearTimeout(overTimer); aiTimer = overTimer = null; movedAt = null; flashUntil = 0; fxClear(); busy = false; gameId++;
         st = s; clearSel(); hintMsg = ''; overShown = false; hide('overModal'); },
       stats: function () { return JSON.parse(JSON.stringify(stats)); },
       busy: function () { return busy; }
