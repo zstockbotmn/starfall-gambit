@@ -10,7 +10,7 @@
 <meta name="theme-color" content="#060914">
 <title>Starfall Gambit</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ctext y=%22.9em%22 font-size=%2290%22%3E%E2%98%85%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="style.css?v=9">
+<link rel="stylesheet" href="style.css?v=10">
 </head>
 <body>
 <svg class="sprite" width="0" height="0" aria-hidden="true" focusable="false">
@@ -39,11 +39,12 @@
     <circle cx="50" cy="50" r="7" fill="url(#gbCore)"/>
     <g fill="#3cc9bd"><circle cx="23" cy="23" r="4"/><circle cx="77" cy="23" r="4"/><circle cx="23" cy="77" r="4"/><circle cx="77" cy="77" r="4"/></g>
   </symbol>
-  <symbol id="sb-L" viewBox="0 0 100 100"><!-- Lancer: slim needle hull + long gold lance -->
-    <rect x="46.5" y="2" width="7" height="42" rx="3.5" fill="url(#gbGold)" stroke="#a87a1e" stroke-width="1.5"/>
-    <path d="M39 68C29 75 25 86 26 95C33 88 38 86 43 86ZM61 68C71 75 75 86 74 95C67 88 62 86 57 86Z" fill="#c8f2ee" stroke="#d4a032" stroke-width="2.5" stroke-linejoin="round"/>
-    <path d="M50 22C60 34 63 52 62 72C61 82 57 90 50 96C43 90 39 82 38 72C37 52 40 34 50 22Z" fill="url(#gbHull)" stroke="#d4a032" stroke-width="3"/>
-    <circle cx="50" cy="54" r="5.5" fill="url(#gbCore)"/>
+  <symbol id="sb-L" viewBox="0 0 100 100"><!-- Lancer: thin spear (gold spearhead + shaft, slim hull) -->
+    <path d="M50 1L57 17H43Z" fill="url(#gbGold)" stroke="#a87a1e" stroke-width="1.5" stroke-linejoin="round"/>
+    <rect x="47.5" y="15" width="5" height="44" rx="1" fill="url(#gbGold)" stroke="#a87a1e" stroke-width="1"/>
+    <path d="M43 79C36 83 33 91 34 97C40 93 44 91 46 91ZM57 79C64 83 67 91 66 97C60 93 56 91 54 91Z" fill="#c8f2ee" stroke="#d4a032" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M50 44C56 54 58 68 57 80C56 88 54 93 50 97C46 93 44 88 43 80C42 68 44 54 50 44Z" fill="url(#gbHull)" stroke="#d4a032" stroke-width="2.5"/>
+    <circle cx="50" cy="71" r="3.5" fill="url(#gbCore)"/>
   </symbol>
   <symbol id="sb-S" viewBox="0 0 100 100"><!-- Shield: wide curved dome barrier + emitter -->
     <path d="M5 64C14 28 86 28 95 64L82 73C72 49 28 49 18 73Z" fill="url(#gbHull)" stroke="#d4a032" stroke-width="3" stroke-linejoin="round"/>
@@ -52,12 +53,14 @@
     <circle cx="50" cy="72" r="4.5" fill="url(#gbCore)"/>
   </symbol>
   <!-- RED (cyberpunk): dark hulls, neon magenta outlines, cyan accents, scanline fill, angular. -->
-  <symbol id="sr-F" viewBox="0 0 100 100"><!-- Flagship: angular winged dreadnought + cyan hex crown -->
+  <symbol id="sr-F" viewBox="0 0 100 100"><!-- Flagship: angular winged dreadnought + cyan hex crown  (inset from the cell edges) -->
+    <g transform="translate(8 8) scale(.84)">
     <polygon points="50,3 64,18 64,38 95,56 95,84 72,73 64,96 36,96 28,73 5,84 5,56 36,38 36,18" fill="url(#grHull)" stroke="#ff2bd6" stroke-width="3.5"/>
     <polygon points="50,3 64,18 64,38 95,56 95,84 72,73 64,96 36,96 28,73 5,84 5,56 36,38 36,18" fill="url(#grScan)"/>
     <polygon points="50,31 63,38.5 63,53.5 50,61 37,53.5 37,38.5" fill="none" stroke="#19f0ff" stroke-width="4.5"/>
     <rect x="45" y="41" width="10" height="10" fill="#19f0ff"/>
     <path d="M13 70L30 62M87 70L70 62M40 87H60" stroke="#19f0ff" stroke-width="3"/>
+    </g>
   </symbol>
   <symbol id="sr-D" viewBox="0 0 100 100"><!-- Drone: X-frame with 4 angular claws -->
     <path d="M50 50L18 18M50 50L82 18M50 50L18 82M50 50L82 82" stroke="#ff2bd6" stroke-width="7"/>
@@ -75,11 +78,16 @@
     <polygon points="50,20 62,40 60,64 74,88 58,82 50,97 42,82 26,88 40,64 38,40" fill="url(#grScan)"/>
     <path d="M44 52H56M46 64H54" stroke="#19f0ff" stroke-width="3"/>
   </symbol>
-  <symbol id="sr-S" viewBox="0 0 100 100"><!-- Shield: wide chevron wall + cyan emitter -->
-    <polygon points="3,62 24,33 76,33 97,62 82,74 66,54 34,54 18,74" fill="url(#grHull)" stroke="#ff2bd6" stroke-width="3.5"/>
-    <polygon points="3,62 24,33 76,33 97,62 82,74 66,54 34,54 18,74" fill="url(#grScan)"/>
-    <path d="M13 58L28 42H72L87 58" fill="none" stroke="#19f0ff" stroke-width="3"/>
-    <polygon points="40,62 60,62 65,76 35,76" fill="url(#grHull)" stroke="#19f0ff" stroke-width="3"/>
+  <symbol id="sr-S" viewBox="0 0 100 100"><!-- Shield: angular dome / arc wall (same dome motif as Blue) + cyan emitter -->
+    <polygon points="4,68 10,48 26,34 50,28 74,34 90,48 96,68 82,74 75,57 50,49 25,57 18,74" fill="url(#grHull)" stroke="#ff2bd6" stroke-width="3.5" stroke-linejoin="round"/>
+    <polygon points="4,68 10,48 26,34 50,28 74,34 90,48 96,68 82,74 75,57 50,49 25,57 18,74" fill="url(#grScan)"/>
+    <path d="M13 60L19 47L33 38L50 34L67 38L81 47L87 60" fill="none" stroke="#19f0ff" stroke-width="3" stroke-linejoin="round"/>
+    <polygon points="40,63 60,63 65,77 35,77" fill="url(#grHull)" stroke="#19f0ff" stroke-width="3"/>
+  </symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><!-- jammed-in-nebula lock -->
+    <circle cx="12" cy="12" r="11" fill="#0b0f1e" stroke="#e2c4ff" stroke-width="1.6"/>
+    <path d="M8.6 11V8.6a3.4 3.4 0 0 1 6.8 0V11" fill="none" stroke="#ffffff" stroke-width="2.1"/>
+    <rect x="6.6" y="10.4" width="10.8" height="8" rx="1.6" fill="#ffffff"/><rect x="11" y="13" width="2" height="3" rx=".8" fill="#0b0f1e"/>
   </symbol>
 </svg>
 <div id="app">
@@ -107,7 +115,8 @@
     <div class="collbls" aria-hidden="true"><span>a</span><span>b</span><span>c</span><span>d</span><span>e</span><span>f</span></div>
   </div>
   <div class="legend" aria-label="Marker legend">
-    <span><i class="lg move"></i>Move</span><span><i class="lg lane"></i>Fire lane</span><span><i class="lg cap"></i>Capture</span><span><i class="lg danger"></i>Danger</span>
+    <span><i class="lg move"></i>Move</span><span><i class="lg foemove"></i>Enemy<b class="lgl">&nbsp;move</b></span><span><i class="lg lane"></i><b class="lgl">Fire&nbsp;</b>lane</span><span><i class="lg cap"></i>Capture</span>
+    <span><i class="lg danger"></i>Danger</span><span><i class="lg expose">!</i>Exposes<b class="lgl">&nbsp;Flagship</b><b class="lgs">&nbsp;F</b></span><span><i class="lg lock"><svg aria-hidden="true"><use href="#i-lock"/></svg></i>Jammed</span><span><i class="lg underfire"></i>Under fire</span>
   </div>
   <div class="tray" id="trayBlue" aria-label="Your ships Red captured"></div>
 
@@ -129,12 +138,14 @@
       <li><i class="lg lane"></i><div><b>Plus = fire lane.</b> A Lancer's line of fire: up to 3 squares, stopping at the first ship or nebula.</div></li>
       <li><i class="lg cap"></i><div><b>Corner brackets = capture.</b> The ship can capture there (by moving onto it, or by a Lancer shot).</div></li>
       <li><i class="lg expose">!</i><div><b>! badge = Flagship warning.</b> Making this move would leave your currently safe Flagship open to capture. If your Flagship is already under attack, you get one warning line instead. You're still allowed to do it.</div></li>
+      <li><i class="lg lock"><svg aria-hidden="true"><use href="#i-lock"/></svg></i><div><b>Lock = jammed.</b> The ship sits in nebula: it can't move or fire (and can't be reached) until the nebula shifts.</div></li>
+      <li><i class="lg underfire"></i><div><b>Dashed red ring = Flagship under fire.</b> Red could capture your Flagship next move.</div></li>
       <li><i class="lg foemove"></i><div><b>Ring = enemy move.</b> Shown when you inspect a Red ship: where it can move.</div></li>
       <li><i class="lg danger"></i><div><b>Hatching = danger.</b> If your selected ship moves there, Red could capture it next turn. This already takes into account a nebula shift your move would trigger. A hatched square under the ship itself means it's under attack right now.</div></li>
     </ul>
     <p class="small"><b>Read enemy threats:</b> tap a Red ship, or press and hold any Red ship, to see where it can move, fire and capture. Tap anywhere else to close. The view also closes when the next move is made. You can select your own ship while Red is thinking. Your selection stays, and its markers (moves, danger stripes and ! warnings) appear once Red has moved. Tapping a destination while Red is thinking does nothing (you'll see “Wait for Red's move”), so tap it again after Red moves. A tap counts on the square where your finger went down, even if it drifts slightly; swipes and drags across the board do nothing.</p>
     <h3>The fleets (7 ships each)</h3>
-    <p class="small">Blue (you) flies the bright white-and-gold fleet; Red flies the neon cyberpunk fleet. Each type has its own shape: <b>Flagship</b> = winged hull with a ring, <b>Drone</b> = X-frame with four pods, <b>Lancer</b> = slim hull with a long barrel, <b>Shield</b> = wide curved wall.</p>
+    <p class="small">Blue (you) flies the bright white-and-gold fleet; Red flies the neon cyberpunk fleet. Each type has its own shape: <b>Flagship</b> = winged hull with a ring, <b>Drone</b> = X-frame with four pods, <b>Lancer</b> = thin spear with a long barrel, <b>Shield</b> = wide low dome.</p>
     <ul class="pieces">
       <li><span class="pair"><span class="pc mini b F"><svg class="shp"><use href="#sb-F"/></svg></span><span class="pc mini r F"><svg class="shp"><use href="#sr-F"/></svg></span></span><div><b>Flagship ×1</b>: moves 1 square in any direction and captures by moving onto an enemy. If it's destroyed, you lose.</div></li>
       <li><span class="pair"><span class="pc mini b D"><svg class="shp"><use href="#sb-D"/></svg></span><span class="pc mini r D"><svg class="shp"><use href="#sr-D"/></svg></span></span><div><b>Drone ×2</b>: jumps in an L shape like a chess knight and captures where it lands. It can jump over ships and over nebula, but it can't land on nebula.</div></li>
@@ -176,8 +187,8 @@
   </div>
 </div>
 
-<script src="engine.js?v=9"></script>
-<script src="ai.js?v=9"></script>
-<script src="game.js?v=9"></script>
+<script src="engine.js?v=10"></script>
+<script src="ai.js?v=10"></script>
+<script src="game.js?v=10"></script>
 </body>
 </html>
