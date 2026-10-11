@@ -94,7 +94,7 @@ const pick = a => a[Math.floor(Math.random() * a.length)];
                 if (u.ply === ply0 && u.turn === 1) {
                   if (u.sel !== i) drop('red-turn destination lost the selection', { i, dst, u });
                   if (ov) { R.redTurnPreviews = (R.redTurnPreviews || 0) + 1; drop('markers/hatching/! shown during Red turn', { i, dst }); }
-                  if (!/Wait for Red/.test(await page.textContent('#hint'))) drop('no Wait for Red message', { i, dst });
+                  { const hw = await page.evaluate(() => ({ h: document.getElementById('hint').textContent, ply: SGDebug.state().ply })); if (hw.ply === ply0 && !/Wait for Red/.test(hw.h)) drop('no Wait for Red message', { i, dst, hw }); }   // skip if Red moved meanwhile
                 } else if (u.ply === ply0 + 1 && (u.w !== null || (u.turn === 0 && (u.sel === i || await page.evaluate(i => { const p = SGDebug.state().board[i]; return !p || p.s !== 0; }, i))))) {
                   // Red moved in between (and maybe captured the pre-selected ship): fine, nothing of ours played
                   R.redTurnRace = (R.redTurnRace || 0) + 1;      // Red moved in between: fine, nothing of ours played
