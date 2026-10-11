@@ -1,0 +1,74 @@
+{
+ "Blue half": {
+  "bg samples": [
+   "#0b1a31"
+  ],
+  "move dot": 13.8,
+  "lane plus": 10.8,
+  "capture brackets": 17.4,
+  "enemy-move ring": 8.5,
+  "'!' badge": 12.1,
+  "selection ring": 13.8,
+  "enemy selection ring": 5.4,
+  "danger stripe": 4.3
+ },
+ "Blue half alt": {
+  "bg samples": [
+   "#10233f"
+  ],
+  "move dot": 12.4,
+  "lane plus": 9.8,
+  "capture brackets": 15.7,
+  "enemy-move ring": 7.7,
+  "'!' badge": 10.9,
+  "selection ring": 12.4,
+  "enemy selection ring": 4.9,
+  "danger stripe": 4.0
+ },
+ "Red half": {
+  "bg samples": [
+   "#170a26",
+   "#230b2f"
+  ],
+  "move dot": 14.3,
+  "lane plus": 11.2,
+  "capture brackets": 18.1,
+  "enemy-move ring": 8.8,
+  "'!' badge": 12.5,
+  "selection ring": 14.3,
+  "enemy selection ring": 5.7,
+  "danger stripe": 4.5
+ },
+ "Red half alt": {
+  "bg samples": [
+   "#200e34",
+   "#2b0f3c"
+  ],
+  "move dot": 13.4,
+  "lane plus": 10.5,
+  "capture brackets": 17.0,
+  "enemy-move ring": 8.3,
+  "'!' badge": 11.8,
+  "selection ring": 13.4,
+  "enemy selection ring": 5.3,
+  "danger stripe": 4.3
+ },
+ "Nebula": {
+  "bg samples": [
+   "#2e3c79",
+   "#414090",
+   "#414695",
+   "#522490"
+  ],
+  "move dot": 3.8,
+  "lane plus": 3.0,
+  "capture brackets": 4.8,
+  "enemy-move ring": 2.3,
+  "'!' badge": 3.3,
+  "selection ring": 3.8,
+  "enemy selection ring": 1.5,
+  "danger stripe": 1.4
+ }
+}
+MIN over all square types: {'move dot': 3.8, 'lane plus': 3.0, 'capture brackets': 4.8, 'enemy-move ring': 2.3, "'!' badge": 3.3, 'selection ring': 3.8, 'enemy selection ring': 1.5, 'danger stripe': 1.4}
+capture vs ships: white on Red hull #2e1040 = 16.6; black outline on Blue hull white = 21.0

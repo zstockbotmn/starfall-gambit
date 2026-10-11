@@ -1,6 +1,6 @@
 import json
 from PIL import Image
-im = Image.open('/tmp/sheet-full.png').convert('RGB'); S = im.width / 390
+im = Image.open('/tmp/sheet-full.png').convert('RGB'); S = im.width / 640
 pts = json.load(open('/tmp/sheet-bg.json'))
 def lum(c):
     def ch(v):
@@ -16,10 +16,12 @@ def avg(x, y, r=2):
 mk = {'move dot': hexc('#5cffc8'), 'lane plus': hexc('#ffc23d'), 'capture brackets': hexc('#ffffff'), 'enemy-move ring': hexc('#ff8fe0'), "'!' badge": hexc('#ffd23f'), 'selection ring': hexc('#5cffc8'), 'enemy selection ring': hexc('#ff2bd6')}
 rows = {}
 for name, p in pts.items():
-    bg = avg(p['x'] + 2, p['y'] + 2)
-    r = {k: round(cr(v, bg), 1) for k, v in mk.items()}
-    r['danger stripe'] = round(cr(blend((255, 90, 60), .85, bg), bg), 1)
-    rows[name] = {'bg': '#%02x%02x%02x' % bg, **r}
+    # 8 sample points around the tile (4px inset): corners and edge midpoints; report the WORST contrast
+    x0, y0, w = p['x'] - 4, p['y'] - 4, 44
+    samp = [avg(x0 + dx, y0 + dy, 1) for dx in (5, 22, 39) for dy in (5, 22, 39) if not (dx == 22 and dy == 22)]
+    r = {k: round(min(cr(v, bg) for bg in samp), 1) for k, v in mk.items()}
+    r['danger stripe'] = round(min(cr(blend((255, 90, 60), .85, bg), bg) for bg in samp), 1)
+    rows[name] = {'bg samples': sorted(set('#%02x%02x%02x' % b for b in samp))[:4], **r}
 print(json.dumps(rows, indent=1))
 mins = {k: min(rows[n][k] for n in rows) for k in list(mk) + ['danger stripe']}
 print('MIN over all square types:', mins)

@@ -70,7 +70,7 @@ const FLEET = { a1: 'L0', b1: 'D0', c1: 'S0', d1: 'F0', e1: 'D0', f1: 'L0', d2: 
     await ctx.close();
   }
   { // normal motion: animations on (sanity)
-    const { ctx, page } = await open(browser, 390, 844);
+    const { ctx, page } = await open(browser, 640, 1500);   // tall so the whole sheet is on screen for pixel sampling
     R['motion on'] = await page.evaluate(() => getComputedStyle(document.querySelector('.pc.r .shp')).animationName); assert.equal(R['motion on'], 'glitch');
     // Contact sheet: 8 ships at 38px and 57px on both halves; marker sheet on the 4 square types + nebula
     const boxes = await page.evaluate(() => {
