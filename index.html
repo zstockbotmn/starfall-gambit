@@ -7,12 +7,81 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Starfall">
-<meta name="theme-color" content="#070b1a">
+<meta name="theme-color" content="#060914">
 <title>Starfall Gambit</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ctext y=%22.9em%22 font-size=%2290%22%3E%E2%98%85%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="style.css?v=8">
+<link rel="stylesheet" href="style.css?v=9">
 </head>
 <body>
+<svg class="sprite" width="0" height="0" aria-hidden="true" focusable="false">
+  <defs>
+    <linearGradient id="gbHull" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset=".6" stop-color="#e8f7ff"/><stop offset="1" stop-color="#a6e6e1"/></linearGradient>
+    <linearGradient id="gbGold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff0b0"/><stop offset="1" stop-color="#d4a032"/></linearGradient>
+    <radialGradient id="gbCore"><stop offset="0" stop-color="#ffffff"/><stop offset=".45" stop-color="#7ff3e6"/><stop offset="1" stop-color="#1faea2"/></radialGradient>
+    <linearGradient id="grHull" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2e1040"/><stop offset="1" stop-color="#0c0313"/></linearGradient>
+    <pattern id="grScan" width="6" height="6" patternUnits="userSpaceOnUse"><rect width="6" height="2" fill="#ff2bd6" fill-opacity=".3"/></pattern>
+  </defs>
+  <!-- BLUE (utopian): white/teal hulls, gold trim, curved. All ships point up; Red is rotated 180deg in CSS. -->
+  <symbol id="sb-F" viewBox="0 0 100 100"><!-- Flagship: winged teardrop hull + gold halo ring -->
+    <path d="M31 50C15 52 5 66 6 87C15 78 24 75 37 76ZM69 50C85 52 95 66 94 87C85 78 76 75 63 76Z" fill="#c8f2ee" stroke="#d4a032" stroke-width="2.5" stroke-linejoin="round"/>
+    <path d="M50 4C63 20 71 40 71 60C71 77 62 89 50 96C38 89 29 77 29 60C29 40 37 20 50 4Z" fill="url(#gbHull)" stroke="#d4a032" stroke-width="3"/>
+    <circle cx="50" cy="45" r="14" fill="none" stroke="url(#gbGold)" stroke-width="5"/>
+    <circle cx="50" cy="45" r="6" fill="url(#gbCore)"/>
+    <path d="M43 75Q50 85 57 75" fill="none" stroke="#25b9ad" stroke-width="3.5" stroke-linecap="round"/>
+  </symbol>
+  <symbol id="sb-D" viewBox="0 0 100 100"><!-- Drone: X-frame with 4 round pods -->
+    <path d="M50 50L23 23M50 50L77 23M50 50L23 77M50 50L77 77" stroke="#bdeeed" stroke-width="9" stroke-linecap="round"/>
+    <circle cx="23" cy="23" r="13" fill="url(#gbHull)" stroke="#d4a032" stroke-width="3"/>
+    <circle cx="77" cy="23" r="13" fill="url(#gbHull)" stroke="#d4a032" stroke-width="3"/>
+    <circle cx="23" cy="77" r="13" fill="url(#gbHull)" stroke="#d4a032" stroke-width="3"/>
+    <circle cx="77" cy="77" r="13" fill="url(#gbHull)" stroke="#d4a032" stroke-width="3"/>
+    <circle cx="50" cy="50" r="16" fill="url(#gbHull)" stroke="#d4a032" stroke-width="3"/>
+    <circle cx="50" cy="50" r="7" fill="url(#gbCore)"/>
+    <g fill="#3cc9bd"><circle cx="23" cy="23" r="4"/><circle cx="77" cy="23" r="4"/><circle cx="23" cy="77" r="4"/><circle cx="77" cy="77" r="4"/></g>
+  </symbol>
+  <symbol id="sb-L" viewBox="0 0 100 100"><!-- Lancer: slim needle hull + long gold lance -->
+    <rect x="46.5" y="2" width="7" height="42" rx="3.5" fill="url(#gbGold)" stroke="#a87a1e" stroke-width="1.5"/>
+    <path d="M39 68C29 75 25 86 26 95C33 88 38 86 43 86ZM61 68C71 75 75 86 74 95C67 88 62 86 57 86Z" fill="#c8f2ee" stroke="#d4a032" stroke-width="2.5" stroke-linejoin="round"/>
+    <path d="M50 22C60 34 63 52 62 72C61 82 57 90 50 96C43 90 39 82 38 72C37 52 40 34 50 22Z" fill="url(#gbHull)" stroke="#d4a032" stroke-width="3"/>
+    <circle cx="50" cy="54" r="5.5" fill="url(#gbCore)"/>
+  </symbol>
+  <symbol id="sb-S" viewBox="0 0 100 100"><!-- Shield: wide curved dome barrier + emitter -->
+    <path d="M5 64C14 28 86 28 95 64L82 73C72 49 28 49 18 73Z" fill="url(#gbHull)" stroke="#d4a032" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M15 57C27 37 73 37 85 57" fill="none" stroke="#3cc9bd" stroke-width="3" stroke-linecap="round"/>
+    <ellipse cx="50" cy="72" rx="13" ry="10" fill="url(#gbHull)" stroke="#d4a032" stroke-width="2.5"/>
+    <circle cx="50" cy="72" r="4.5" fill="url(#gbCore)"/>
+  </symbol>
+  <!-- RED (cyberpunk): dark hulls, neon magenta outlines, cyan accents, scanline fill, angular. -->
+  <symbol id="sr-F" viewBox="0 0 100 100"><!-- Flagship: angular winged dreadnought + cyan hex crown -->
+    <polygon points="50,3 64,18 64,38 95,56 95,84 72,73 64,96 36,96 28,73 5,84 5,56 36,38 36,18" fill="url(#grHull)" stroke="#ff2bd6" stroke-width="3.5"/>
+    <polygon points="50,3 64,18 64,38 95,56 95,84 72,73 64,96 36,96 28,73 5,84 5,56 36,38 36,18" fill="url(#grScan)"/>
+    <polygon points="50,31 63,38.5 63,53.5 50,61 37,53.5 37,38.5" fill="none" stroke="#19f0ff" stroke-width="4.5"/>
+    <rect x="45" y="41" width="10" height="10" fill="#19f0ff"/>
+    <path d="M13 70L30 62M87 70L70 62M40 87H60" stroke="#19f0ff" stroke-width="3"/>
+  </symbol>
+  <symbol id="sr-D" viewBox="0 0 100 100"><!-- Drone: X-frame with 4 angular claws -->
+    <path d="M50 50L18 18M50 50L82 18M50 50L18 82M50 50L82 82" stroke="#ff2bd6" stroke-width="7"/>
+    <g fill="url(#grHull)" stroke="#ff2bd6" stroke-width="3.5" stroke-linejoin="miter">
+      <polygon points="3,3 35,10 10,35"/><polygon points="97,3 65,10 90,35"/><polygon points="3,97 35,90 10,65"/><polygon points="97,97 65,90 90,65"/>
+      <polygon points="50,29 71,50 50,71 29,50"/>
+    </g>
+    <polygon points="50,29 71,50 50,71 29,50" fill="url(#grScan)"/>
+    <rect x="44" y="44" width="12" height="12" fill="#19f0ff"/>
+    <g fill="#19f0ff"><rect x="10" y="10" width="6" height="6"/><rect x="84" y="10" width="6" height="6"/><rect x="10" y="84" width="6" height="6"/><rect x="84" y="84" width="6" height="6"/></g>
+  </symbol>
+  <symbol id="sr-L" viewBox="0 0 100 100"><!-- Lancer: jagged arrow hull + twin cyan rail barrels -->
+    <rect x="40" y="2" width="6" height="46" fill="#19f0ff"/><rect x="54" y="2" width="6" height="46" fill="#19f0ff"/>
+    <polygon points="50,20 62,40 60,64 74,88 58,82 50,97 42,82 26,88 40,64 38,40" fill="url(#grHull)" stroke="#ff2bd6" stroke-width="3.5"/>
+    <polygon points="50,20 62,40 60,64 74,88 58,82 50,97 42,82 26,88 40,64 38,40" fill="url(#grScan)"/>
+    <path d="M44 52H56M46 64H54" stroke="#19f0ff" stroke-width="3"/>
+  </symbol>
+  <symbol id="sr-S" viewBox="0 0 100 100"><!-- Shield: wide chevron wall + cyan emitter -->
+    <polygon points="3,62 24,33 76,33 97,62 82,74 66,54 34,54 18,74" fill="url(#grHull)" stroke="#ff2bd6" stroke-width="3.5"/>
+    <polygon points="3,62 24,33 76,33 97,62 82,74 66,54 34,54 18,74" fill="url(#grScan)"/>
+    <path d="M13 58L28 42H72L87 58" fill="none" stroke="#19f0ff" stroke-width="3"/>
+    <polygon points="40,62 60,62 65,76 35,76" fill="url(#grHull)" stroke="#19f0ff" stroke-width="3"/>
+  </symbol>
+</svg>
 <div id="app">
   <header class="top">
     <h1>Starfall <span>Gambit</span></h1>
@@ -44,8 +113,8 @@
 
   <section class="info">
     <div id="warn" class="warnline" role="alert"></div>
-    <div id="hint" class="hint"></div>
     <div id="lastMove" class="last"></div>
+    <div id="hint" class="hint"></div>
   </section>
 </div>
 
@@ -60,15 +129,17 @@
       <li><i class="lg lane"></i><div><b>Plus = fire lane.</b> A Lancer's line of fire: up to 3 squares, stopping at the first ship or nebula.</div></li>
       <li><i class="lg cap"></i><div><b>Corner brackets = capture.</b> The ship can capture there (by moving onto it, or by a Lancer shot).</div></li>
       <li><i class="lg expose">!</i><div><b>! badge = Flagship warning.</b> Making this move would leave your currently safe Flagship open to capture. If your Flagship is already under attack, you get one warning line instead. You're still allowed to do it.</div></li>
+      <li><i class="lg foemove"></i><div><b>Ring = enemy move.</b> Shown when you inspect a Red ship: where it can move.</div></li>
       <li><i class="lg danger"></i><div><b>Hatching = danger.</b> If your selected ship moves there, Red could capture it next turn. This already takes into account a nebula shift your move would trigger. A hatched square under the ship itself means it's under attack right now.</div></li>
     </ul>
-    <p class="small"><b>Read enemy threats:</b> tap a Red ship, or press and hold any Red ship, to see where it can move, fire and capture. Tap anywhere else to close. The view also closes when the next move is made. You can select your own ship while Red is thinking. Your selection stays, and its markers (including danger stripes and ! warnings) appear once Red has moved. Tapping a destination while Red is thinking does nothing, so tap it again after Red moves. A tap counts on the square where your finger went down, even if it drifts slightly; swipes and drags across the board do nothing.</p>
-    <h3>Your fleet (7 ships)</h3>
+    <p class="small"><b>Read enemy threats:</b> tap a Red ship, or press and hold any Red ship, to see where it can move, fire and capture. Tap anywhere else to close. The view also closes when the next move is made. You can select your own ship while Red is thinking. Your selection stays, and its markers (moves, danger stripes and ! warnings) appear once Red has moved. Tapping a destination while Red is thinking does nothing (you'll see “Wait for Red's move”), so tap it again after Red moves. A tap counts on the square where your finger went down, even if it drifts slightly; swipes and drags across the board do nothing.</p>
+    <h3>The fleets (7 ships each)</h3>
+    <p class="small">Blue (you) flies the bright white-and-gold fleet; Red flies the neon cyberpunk fleet. Each type has its own shape: <b>Flagship</b> = winged hull with a ring, <b>Drone</b> = X-frame with four pods, <b>Lancer</b> = slim hull with a long barrel, <b>Shield</b> = wide curved wall.</p>
     <ul class="pieces">
-      <li><span class="pc mini b F"><span class="ic">F</span></span><div><b>Flagship ×1</b>: moves 1 square in any direction and captures by moving onto an enemy. If it's destroyed, you lose.</div></li>
-      <li><span class="pc mini b D"><span class="ic">D</span></span><div><b>Drone ×2</b>: jumps in an L shape like a chess knight and captures where it lands. It can jump over ships and over nebula, but it can't land on nebula.</div></li>
-      <li><span class="pc mini b L"><span class="ic">L</span></span><div><b>Lancer ×2</b>: moves 1 square in any direction but <b>can't capture by moving</b>. Instead it can <b>fire</b> up, down, left or right, up to <b>3 squares</b>, and the Lancer doesn't move. The shot stops at the first ship in the line. If that ship is an enemy, it's destroyed. <b>Your own ships block your shots</b>, and so do Shields and nebula.</div></li>
-      <li><span class="pc mini b S"><span class="ic">S</span></span><div><b>Shield ×2</b>: moves 1 square up, down, left or right and captures by moving. <b>Lancer shots can't hurt a Shield</b>, and Shields block shots, so park them in front of your Flagship.</div></li>
+      <li><span class="pair"><span class="pc mini b F"><svg class="shp"><use href="#sb-F"/></svg></span><span class="pc mini r F"><svg class="shp"><use href="#sr-F"/></svg></span></span><div><b>Flagship ×1</b>: moves 1 square in any direction and captures by moving onto an enemy. If it's destroyed, you lose.</div></li>
+      <li><span class="pair"><span class="pc mini b D"><svg class="shp"><use href="#sb-D"/></svg></span><span class="pc mini r D"><svg class="shp"><use href="#sr-D"/></svg></span></span><div><b>Drone ×2</b>: jumps in an L shape like a chess knight and captures where it lands. It can jump over ships and over nebula, but it can't land on nebula.</div></li>
+      <li><span class="pair"><span class="pc mini b L"><svg class="shp"><use href="#sb-L"/></svg></span><span class="pc mini r L"><svg class="shp"><use href="#sr-L"/></svg></span></span><div><b>Lancer ×2</b>: moves 1 square in any direction but <b>can't capture by moving</b>. Instead it can <b>fire</b> up, down, left or right, up to <b>3 squares</b>, and the Lancer doesn't move. The shot stops at the first ship in the line. If that ship is an enemy, it's destroyed. <b>Your own ships block your shots</b>, and so do Shields and nebula.</div></li>
+      <li><span class="pair"><span class="pc mini b S"><svg class="shp"><use href="#sb-S"/></svg></span><span class="pc mini r S"><svg class="shp"><use href="#sr-S"/></svg></span></span><div><b>Shield ×2</b>: moves 1 square up, down, left or right and captures by moving. <b>Lancer shots can't hurt a Shield</b>, and Shields block shots, so park them in front of your Flagship.</div></li>
     </ul>
     <p class="small">Starting setup: each back row is Lancer, Drone, Shield, Flagship, Drone, Lancer, with the second Shield just in front of the Flagship. Red's setup is Blue's mirrored top-to-bottom.</p>
     <h3>The nebula</h3>
@@ -105,8 +176,8 @@
   </div>
 </div>
 
-<script src="engine.js?v=8"></script>
-<script src="ai.js?v=8"></script>
-<script src="game.js?v=8"></script>
+<script src="engine.js?v=9"></script>
+<script src="ai.js?v=9"></script>
+<script src="game.js?v=9"></script>
 </body>
 </html>

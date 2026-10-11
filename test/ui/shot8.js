@@ -1,8 +1,8 @@
 const { chromium, devices } = require('playwright-core');
 const assert = require('assert');
 const BASE = process.argv[2] || 'http://127.0.0.1:8765/';
-const out = '/workspace/starfall-gambit/screenshots/m1.6';
-require('fs').rmSync(out, { recursive: true, force: true }); require('fs').mkdirSync(out, { recursive: true });
+const out = process.env.OUT || '/workspace/starfall-gambit-m2/screenshots/m2/ui';
+require('fs').mkdirSync(out, { recursive: true });
 const sq = s => (6 - +s[1]) * 6 + 'abcdef'.indexOf(s[0]);
 const C = s => `.cell[data-i="${sq(s)}"]`;
 const setPos = (page, pos, extra) => page.evaluate(([pos, extra]) => { const s = SG.newGame(21); s.board = new Array(36).fill(null);
@@ -37,10 +37,11 @@ async function features(page, tag) {
   let m = await marks(page);
   assert.equal(await ply(page), 1, 'no move during Red turn'); assert.deepEqual(m.sel, ['b1'], 'selection kept');
   assert.deepEqual(m.threat, [], 'no hatching during Red turn'); assert.deepEqual(m.queued, [], 'no queue marker');
-  assert.ok(m.move.includes('a3'), 'move markers shown'); R.redTurnHint = await hint(page); assert.ok(!/Wait for Red|[Qq]ueue/.test(R.redTurnHint));
+  assert.deepEqual(m.move, [], 'no stale move dots during Red turn'); assert.deepEqual(m.cap, [], 'no brackets during Red turn');
+  R.redTurnHint = await hint(page); assert.ok(/Wait for Red\u2019s move/.test(R.redTurnHint), 'brief wait message: ' + R.redTurnHint);
   await page.screenshot({ path: `${out}/${tag}-redturn-preselect-no-hatching.png` });
   await page.waitForFunction(() => SGDebug.state().ply === 2, null, { timeout: 4000 }); await page.waitForTimeout(200);
-  m = await marks(page); assert.equal(await ply(page), 2, 'nothing auto-played'); assert.deepEqual(m.sel, ['b1']);
+  m = await marks(page); assert.equal(await ply(page), 2, 'nothing auto-played'); assert.deepEqual(m.sel, ['b1']); assert.ok(m.move.includes('a3'), 'move dots after Red moved');
   assert.deepEqual(m.threat.sort(), ['a3', 'c3'], 'hatching appears after Red moved');
   await page.screenshot({ path: `${out}/${tag}-after-red-markers.png` });
   await page.tap(C('a3')); assert.equal(await ply(page), 3, 'tap again after Red moves plays it');
@@ -136,12 +137,30 @@ async function features(page, tag) {
   R.logTop = (await page.textContent('#tapLog')).split('\n')[0];
   assert.ok(/cancelled: drag over 0.6 cell/.test(R.logTop));
   assert.equal(await ply(page), 0);
+  assert.ok(!(await page.isVisible('#tapLog')), 'debug log starts collapsed');
+  await page.click('.taplogbtn'); assert.ok(await page.isVisible('#tapLog'), 'log expands');
   R.logPanel = await page.evaluate(() => { const b = document.querySelector('.taplogbox').getBoundingClientRect(), w = document.getElementById('warn').getBoundingClientRect(), info = document.querySelector('.info').getBoundingClientRect();
     return { bottom: Math.round(b.bottom), warnTop: Math.round(w.top), clear: b.bottom <= info.top && b.bottom <= w.top }; });
   assert.ok(R.logPanel.clear, 'debug log clear of warning');
   await page.screenshot({ path: `${out}/${tag}-debug-cancel-log.png` });
-  await page.click('.taplogbtn'); assert.ok(!(await page.isVisible('#tapLog')), 'log collapses');
-  await page.click('.taplogbtn'); assert.ok(await page.isVisible('#tapLog'), 'log expands');
+  await page.click('.taplogbtn'); assert.ok(!(await page.isVisible('#tapLog')), 'log collapses again');
+  // Corner taps (inside the rounded corner, and up to ~6px outside the grid) fall back to the nearest cell
+  await setPos(page, { a1: 'F0', f1: 'D0', f6: 'F1', a6: 'L1' });
+  const gb = await page.evaluate(() => { const c = document.querySelectorAll('.cell'), a = c[0].getBoundingClientRect(), b = c[35].getBoundingClientRect(); return { l: a.left, t: a.top, r: b.right, b: b.bottom }; });
+  R.corner = {};
+  for (const [name, x, y, want] of [['a1 corner', gb.l + 1, gb.b - 1, 'a1'], ['a1 outside 5px', gb.l - 5, gb.b + 5, 'a1'], ['f1 corner', gb.r - 1, gb.b - 1, 'f1'], ['f1 outside 6px', gb.r + 6, gb.b + 4, 'f1']]) {
+    await touch([[x, y]]); m = await marks(page); R.corner[name] = m.sel[0] || null; assert.deepEqual(m.sel, [want], name);
+    await tapAt(want); m = await marks(page); assert.deepEqual(m.sel, []);
+  }
+  await touch([[gb.l + 1, gb.t + 1]]); R.corner['a6 corner (Red, inspect)'] = await page.evaluate(() => !!document.querySelector('.ov.sel.foe')); assert.ok(R.corner['a6 corner (Red, inspect)']);
+  // Info area order is warning > last move > hint on every screen
+  R.infoOrder = await page.evaluate(() => [...document.querySelector('.info').children].map(e => e.id).join(','));
+  assert.equal(R.infoOrder, 'warn,lastMove,hint');
+  // ?debug panel sits below dialogs
+  await page.click('#btnRules');
+  R.logUnderDialog = await page.evaluate(() => { const b = document.querySelector('.taplogbtn').getBoundingClientRect(); const el = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2); return !el.closest('.taplogbox'); });
+  assert.ok(R.logUnderDialog, 'debug panel below the rules dialog');
+  await page.click('#rulesModal [data-close]');
   return R;
 }
 

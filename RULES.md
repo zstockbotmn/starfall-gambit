@@ -12,15 +12,25 @@ When you tap one of your ships, its options appear. Each marker has its own shap
 
 | Marker | Shape | Meaning |
 |---|---|---|
-| **Move** | green dot | The ship can move to this empty square. |
+| **Move** | mint dot | The ship can move to this empty square. |
 | **Fire lane** | amber plus | A Lancer's line of fire: up to 3 squares straight, stopping at the first ship or nebula. |
-| **Capture** | red corner brackets | The ship can capture here, by moving onto the enemy or (for a Lancer) by firing. |
-| **Flagship warning** | yellow ! badge | Making this move would leave your currently safe Flagship open to capture. If your Flagship is already under attack, you get a single “Your Flagship is under attack!” warning instead. It's a warning only; you can still do it. |
-| **Danger** | red hatching | If your selected ship moves here, Red could capture it on the next turn. This already takes into account a nebula shift your move would trigger. Hatching under the ship itself means it's under attack right now. |
+| **Capture** | white corner brackets (dark outline) | The ship can capture here, by moving onto the enemy or (for a Lancer) by firing. |
+| **Flagship warning** | gold ! badge | Making this move would leave your currently safe Flagship open to capture. If your Flagship is already under attack, you get a single “Your Flagship is under attack!” warning instead. It's a warning only; you can still do it. |
+| **Enemy move** | hollow ring | Shown when you inspect a Red ship: where it can move. |
+| **Danger** | orange-red hatching | If your selected ship moves here, Red could capture it on the next turn. This already takes into account a nebula shift your move would trigger. Hatching under the ship itself means it's under attack right now. |
 
-**Reading enemy threats:** tap a Red ship, or press and hold any Red ship, to see the same markers for it (its moves, fire lanes and captures). Tap anywhere else to close. The view also closes when the next move is made. You can select your own ship while Red is thinking. Your selection stays, and its markers (including danger stripes and ! warnings) appear once Red has moved. Tapping a destination while Red is thinking does nothing, so tap it again after Red moves. A tap counts on the square where your finger went down, even if it drifts slightly; swipes and drags across the board do nothing.
+**Reading enemy threats:** tap a Red ship, or press and hold any Red ship, to see the same markers for it (its moves, fire lanes and captures). Tap anywhere else to close. The view also closes when the next move is made. You can select your own ship while Red is thinking. Your selection stays, and its markers (moves, danger stripes and ! warnings) appear once Red has moved. Tapping a destination while Red is thinking does nothing (you'll see “Wait for Red's move”), so tap it again after Red moves. A tap counts on the square where your finger went down, even if it drifts slightly; swipes and drags across the board do nothing.
 
-## Your fleet (7 ships each)
+## The fleets (7 ships each)
+Blue (you) is a bright utopian fleet in white, gold and soft teal; Red is a neon cyberpunk fleet in magenta and cyan. Each ship type has its own silhouette on both sides:
+
+- **Flagship:** the biggest ship, a winged hull with a ring around the bridge (gold halo for Blue, cyan hexagon for Red).
+- **Drone:** an X-shaped frame with four pods (round for Blue, angular claws for Red).
+- **Lancer:** a slim hull with a long barrel pointing forward (gold lance for Blue, twin cyan rails for Red).
+- **Shield:** a wide, flat curved wall (smooth dome for Blue, chevron plate for Red).
+
+Blue ships point up the board, Red ships point down.
+
 
 | Ship | Count | Moves | Captures |
 |---|---|---|---|

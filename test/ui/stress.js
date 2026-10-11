@@ -90,10 +90,11 @@ const pick = a => a[Math.floor(Math.random() * a.length)];
               if (dst >= 0) {
                 const ply0 = t.ply; await tapCell(dst, pick(['touch', 'touch', 'mouse'])); await settle();
                 const u = await S(); R.kinds.redTurnDestination = (R.kinds.redTurnDestination || 0) + 1;
-                const ov = await page.evaluate(() => document.querySelectorAll('.ov.threat, .mk.expose, .ov.queued').length);
+                const ov = await page.evaluate(() => document.querySelectorAll('.ov.threat, .mk.expose, .ov.queued, .mk.move, .mk.lane, .mk.cap').length);
                 if (u.ply === ply0 && u.turn === 1) {
                   if (u.sel !== i) drop('red-turn destination lost the selection', { i, dst, u });
-                  if (ov) { R.redTurnPreviews = (R.redTurnPreviews || 0) + 1; drop('hatching/! shown during Red turn', { i, dst }); }
+                  if (ov) { R.redTurnPreviews = (R.redTurnPreviews || 0) + 1; drop('markers/hatching/! shown during Red turn', { i, dst }); }
+                  if (!/Wait for Red/.test(await page.textContent('#hint'))) drop('no Wait for Red message', { i, dst });
                 } else if (u.ply === ply0 + 1 && (u.w !== null || (u.turn === 0 && (u.sel === i || await page.evaluate(i => { const p = SGDebug.state().board[i]; return !p || p.s !== 0; }, i))))) {
                   // Red moved in between (and maybe captured the pre-selected ship): fine, nothing of ours played
                   R.redTurnRace = (R.redTurnRace || 0) + 1;      // Red moved in between: fine, nothing of ours played
@@ -121,7 +122,7 @@ const pick = a => a[Math.floor(Math.random() * a.length)];
     }
   }
   // ---- Phase C: edge drift (< 0.25 cell across a border), lifts up to 8px outside the board, re-tap at ~160ms.
-  R.edge = { borderDrift: 0, edgeLift: 0, retap160: 0, echo60: 0 };
+  R.edge = { borderDrift: 0, edgeLift: 0, retap160: 0, echo60: 0, cornerTap: 0 };
   const EDGE = +(process.env.EDGE || 60);
   const grid = () => page.evaluate(() => { const c = document.querySelectorAll('.cell'), a = c[0].getBoundingClientRect(), b = c[35].getBoundingClientRect(); return { l: a.left, t: a.top, r: b.right, b: b.bottom }; });
   const touchPath = async pts => { await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: pts[0][0], y: pts[0][1] }] });
@@ -134,7 +135,7 @@ const pick = a => a[Math.floor(Math.random() * a.length)];
     if ((await S()).w !== null) { await page.evaluate(seed => SGDebug.setState(SG.newGame(seed)), 750 + k); }
     let s0 = await S(); if (s0.sel !== null) { await tapCell(s0.sel, 'click'); await settle(); }
     const own = await page.evaluate(() => { const s = SGDebug.state(); return s.board.map((p, i) => p && p.s === 0 && !SG.isNebula(s, i) && SG.pieceMoves(s, i).length ? i : -1).filter(i => i >= 0); });
-    const kind = pick(['borderDrift', 'borderDrift', 'edgeLift', 'retap160']);
+    const kind = pick(['borderDrift', 'borderDrift', 'edgeLift', 'retap160', 'cornerTap']);
     const type = pick(['touch', 'touch', 'mouse']);
     if (kind === 'borderDrift') {
       const i = pick(own), [x, y, w] = await geo(i), ang = pick([0, Math.PI / 2, Math.PI, -Math.PI / 2, Math.PI / 4, -3 * Math.PI / 4]);
@@ -155,6 +156,14 @@ const pick = a => a[Math.floor(Math.random() * a.length)];
       await (type === 'touch' ? touchPath([[sx, sy], [(sx + ex) / 2, (sy + ey) / 2], [ex, ey]]) : mousePath([[sx, sy], [ex, ey]])); await settle();
       const t = await S(); R.edge.edgeLift++; R.taps++;
       if (t.sel !== i) drop('lift <= 8px outside the board', { i, type, inset, out, t });
+    } else if (kind === 'cornerTap') {
+      // tap in the rounded corner of the grid, or up to 6px outside it: must hit the corner cell
+      const g = await grid(), cs = own.filter(i => [0, 5, 30, 35].includes(i));
+      if (!cs.length) continue;
+      const i = pick(cs), off = rnd(-1.5, 6), x = i % 6 === 0 ? g.l - off : g.r + off, y = i < 6 ? g.t - off : g.b + off;
+      await (type === 'touch' ? touchPath([[x, y]]) : mousePath([[x, y]])); await settle();
+      const t = await S(); R.edge.cornerTap++; R.taps++;
+      if (t.sel !== i) drop('corner tap', { i, type, off, t });
     } else {
       const mv = await page.evaluate(() => { const ms = SG.legalMoves(SGDebug.state()).filter(m => m.kind === 'move'); return ms[Math.floor(Math.random() * ms.length)]; });
       if (!mv) continue;

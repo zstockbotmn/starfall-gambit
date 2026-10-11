@@ -7,7 +7,7 @@
   var st, sel = null, insp = null, marks = null, danger = [], opts = [], exposed = [];
   var busy = false, aiTimer = null, overTimer = null, gameId = 0, hintMsg = '', overShown = false;
   var $ = function (id) { return document.getElementById(id); };
-  var boardEl = $('board'), infoEl = document.querySelector('.info'), cells = [], cache = [];
+  var boardEl = $('board'), wrapEl = $('boardWrap'), infoEl = document.querySelector('.info'), cells = [], cache = [];
   var SHIP_HINT = {
     F: 'Flagship: 1 square any direction. Keep it safe!',
     D: 'Drone: jumps in an L, even over ships and nebula.',
@@ -27,8 +27,8 @@
   var dbgEl = null, dbgLines = [], stats = { taps: 0, handled: 0, ignored: 0, reasons: {}, cancelled: 0, cancelReasons: {}, moves: 0 };
   if (DEBUG) {
     // Collapsible panel at the top of the screen (never over the warning / info area at the bottom).
-    var dbgBox = document.createElement('div'); dbgBox.className = 'taplogbox';
-    var dbgBtn = document.createElement('button'); dbgBtn.type = 'button'; dbgBtn.className = 'taplogbtn'; dbgBtn.textContent = 'log \u25BE';
+    var dbgBox = document.createElement('div'); dbgBox.className = 'taplogbox collapsed';   // starts collapsed; sits below dialogs
+    var dbgBtn = document.createElement('button'); dbgBtn.type = 'button'; dbgBtn.className = 'taplogbtn'; dbgBtn.textContent = 'log \u25B8';
     dbgEl = document.createElement('div'); dbgEl.id = 'tapLog'; dbgEl.className = 'taplog';
     dbgBtn.onclick = function () { var c = dbgBox.classList.toggle('collapsed'); dbgBtn.textContent = c ? 'log \u25B8' : 'log \u25BE'; };
     dbgBox.appendChild(dbgBtn); dbgBox.appendChild(dbgEl); document.body.appendChild(dbgBox);
@@ -74,14 +74,17 @@
     dlog('cancelled', reason + (detail ? ' (' + detail + ')' : '') + ' [' + d.type + ' from ' + SG.coord(d.i) + ']');
     return d;
   }
-  boardEl.addEventListener('pointerdown', function (e) {
+  wrapEl.addEventListener('pointerdown', function (e) {
     if (e.pointerType === 'mouse' && e.button !== 0) return;
-    var t = e.target.closest('.cell'); if (!t) return;
+    // Rounded board corners / hairline gaps: fall back to the nearest cell.
+    var t = e.target.closest('.cell'), i0 = t ? +t.dataset.i : cellNear(e.clientX, e.clientY);
+    if (i0 < 0) return;
+    t = cells[i0];
     if (down) cancelPress('second finger');
     ghosts = [];                                           // a new press means any pending echo click is stale
     var size = t.getBoundingClientRect().width;
     down = { id: e.pointerId, i: +t.dataset.i, x: e.clientX, y: e.clientY, long: false, type: e.pointerType, max: DRAG_CELLS * size, slop: SLOP_CELLS * size, ply: st.ply, gid: gameId };
-    try { boardEl.setPointerCapture(e.pointerId); } catch (err) {}   // keep getting move/up even off the board
+    try { wrapEl.setPointerCapture(e.pointerId); } catch (err) {}   // keep getting move/up even off the board
     t.classList.add('press');
     var d = down;
     lpTimer = setTimeout(function () {
@@ -89,14 +92,17 @@
       if (down === d && pc && pc.s === AI_SIDE) { d.long = true; inspect(d.i); dlog('ok', 'long-press inspect ' + SG.coord(d.i)); }
     }, LONG_PRESS);
   });
-  boardEl.addEventListener('pointermove', function (e) {
+  wrapEl.addEventListener('pointermove', function (e) {
     if (!down || e.pointerId !== down.id || down.long) return;
     var dist = Math.hypot(e.clientX - down.x, e.clientY - down.y);
     if (dist > down.max) { down.drag = true; cancelPress('drag over ' + DRAG_CELLS + ' cell', Math.round(dist) + 'px'); }
   });
-  boardEl.addEventListener('pointerup', function (e) {
+  wrapEl.addEventListener('pointerup', function (e) {
     var now = Date.now();
-    if (!down || e.pointerId !== down.id) return;          // already cancelled (drag) or unknown pointer
+    if (!down || e.pointerId !== down.id) {                // already cancelled (drag) or unknown pointer:
+      ghosts.push({ i: cellNear(e.clientX, e.clientY), j: -2, t: now });   // still swallow its echo click
+      return;
+    }
     var d = down;
     var i = cellNear(e.clientX, e.clientY);
     ghosts.push({ i: i, j: d.i, t: now });                 // swallow the browser's echo click either way
@@ -114,11 +120,13 @@
     clearPress();
     tap(d.i, d.type);
   });
-  boardEl.addEventListener('pointercancel', function (e) {
+  wrapEl.addEventListener('pointercancel', function (e) {
     if (down && e.pointerId === down.id) cancelPress('pointercancel from the browser');
   });
-  boardEl.addEventListener('contextmenu', function (e) { e.preventDefault(); });
-  boardEl.addEventListener('click', function (e) {
+  wrapEl.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+  wrapEl.addEventListener('click', function (e) {
+    // Only clicks aimed at a cell button (keyboard, VoiceOver, plain click). Pointer presses are handled above;
+    // their echo clicks land on the board/wrap (pointer capture) or are swallowed as ghosts below.
     var t = e.target.closest('.cell'); if (!t) return;
     var i = +t.dataset.i, now = Date.now();
     ghosts = ghosts.filter(function (g) { return now - g.t < GHOST_MS; });
@@ -139,7 +147,7 @@
   function firstGame() { try { return !localStorage.getItem('sg_played'); } catch (e) { return false; } }
 
   function start() {
-    clearTimeout(aiTimer); clearTimeout(overTimer); aiTimer = overTimer = null; movedAt = null;
+    clearTimeout(aiTimer); clearTimeout(overTimer); clearTimeout(flashTimer); aiTimer = overTimer = flashTimer = null; movedAt = null;
     gameId++;
     st = SG.newGame(); clearSel(); busy = false; overShown = false;
     hide('overModal');
@@ -167,7 +175,12 @@
       return;
     }
     sel = i;
-    opts = SG.pieceMoves(st, i); marks = SG.pieceMarkers(st, i);
+    opts = SG.pieceMoves(st, i);
+    if (st.turn !== HUMAN) {                        // Red's turn: ring only; dots/lanes/brackets appear after Red moves
+      hintMsg = 'Selected your ' + SG.NAMES[pc.t] + '. Its options appear after Red\u2019s move.';
+      return;
+    }
+    marks = SG.pieceMarkers(st, i);
     // Danger hatching and '!' badges depend on Red's reply, so they are only shown on your turn
     // (a pre-selection made while Red is thinking gets them once Red has moved).
     if (st.turn === HUMAN) {
@@ -178,6 +191,15 @@
     }
     hintMsg = !opts.length ? 'That ship has no moves right now.' : SHIP_HINT[pc.t] +
       (exposed.length ? ' \u26A0 ! = leaves your Flagship open.' : '');
+  }
+
+  // A brief message that falls back to the previous hint unless something else replaced it meanwhile.
+  var flashTimer = null;
+  function flashHint(msg) {
+    var prev = hintMsg === msg ? (flashHint.prev || '') : hintMsg;
+    flashHint.prev = prev; hintMsg = msg; render();
+    clearTimeout(flashTimer);
+    flashTimer = setTimeout(function () { flashTimer = null; if (hintMsg === msg) { hintMsg = prev; render(); } }, 1500);
   }
 
   // movedAt: {i, t} of the last move you made by tapping. The second tap of a quick double-tap (< ECHO_MS)
@@ -195,7 +217,7 @@
       if (m) {
         if (over) { render(); return { ignored: 'game over' }; }
         // Red's turn: nothing happens and the selection stays; markers are redrawn after Red moves.
-        if (!myTurn) return { ignored: 'destination during Red\u2019s turn (selection kept)' };
+        if (!myTurn) { flashHint('Wait for Red\u2019s move.'); return { ignored: 'destination during Red\u2019s turn (selection kept)' }; }
         clearSel(); movedAt = m.kind === 'move' ? { i: i, t: now } : null;   // shots: the Lancer stays put, nothing to guard
         commit(m);
         return { did: 'move' };
@@ -269,9 +291,7 @@
       if (warn && st.nextNebula.indexOf(i) >= 0) html += '<i class="ov forecast"></i>';
       if (sel === i || insp === i) html += '<i class="ov sel' + foe + '"></i>';
       if (pc) {
-        html += '<span class="pc ' + (pc.s === SG.BLUE ? 'b' : 'r') + ' ' + pc.t +
-          (SG.isNebula(st, i) ? ' jam' : '') + (i === flagDanger ? ' danger' : '') +
-          '"><span class="ic">' + pc.t + '</span></span>';
+        html += shipHTML(pc.s === SG.BLUE ? 'b' : 'r', pc.t, (SG.isNebula(st, i) ? ' jam' : '') + (i === flagDanger ? ' danger' : ''));
       }
       var label = SG.coord(i) + (pc ? ' ' + SG.SIDE_NAMES[pc.s] + ' ' + SG.NAMES[pc.t] : '') + (SG.isNebula(st, i) ? ', nebula' : '');
       if (marks) {
@@ -308,11 +328,16 @@
     tray('trayBlue', st.captured[AI_SIDE], 'b', 'Lost:');
   }
 
+  // Ships are inline-SVG symbols (#sb-F, #sr-L, ...) defined once in index.html.
+  function shipHTML(side, t, extra) {
+    return '<span class="pc ' + side + ' ' + t + (extra || '') + '"><svg class="shp" aria-hidden="true"><use href="#s' + side + '-' + t + '"/></svg></span>';
+  }
+
   function esc(s) { return String(s).replace(/[&<>]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]; }); }
 
   function tray(id, list, cls, label) {
     var html = list.length ? '<span class="tlabel">' + label + '</span>' + list.map(function (t) {
-      return '<span class="pc mini ' + cls + ' ' + t + '"><span class="ic">' + t + '</span></span>';
+      return shipHTML(cls, t, ' mini');
     }).join('') : '';
     var el = $(id); if (el.innerHTML !== html) el.innerHTML = html;
   }
@@ -354,7 +379,7 @@
   if (DEBUG) {
     window.SGDebug = {
       state: function () { return st; },
-      setState: function (s) { clearTimeout(aiTimer); clearTimeout(overTimer); aiTimer = overTimer = null; movedAt = null; busy = false; gameId++;
+      setState: function (s) { clearTimeout(aiTimer); clearTimeout(overTimer); clearTimeout(flashTimer); aiTimer = overTimer = flashTimer = null; movedAt = null; busy = false; gameId++;
         st = s; clearSel(); hintMsg = ''; overShown = false; hide('overModal'); },
       stats: function () { return JSON.parse(JSON.stringify(stats)); },
       busy: function () { return busy; }
