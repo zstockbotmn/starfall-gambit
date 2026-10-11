@@ -191,6 +191,16 @@ assert.ok(SG.exposesFlagship(g, SG.pieceMoves(g, sq('b1')).find(m => m.kind === 
 g = base(); g.board[sq('e4')] = {t:'D',s:0}; g.board[sq('f3')] = {t:'L',s:1}; g.board[sq('a1')] = {t:'F',s:0}; g.board[sq('a3')] = {t:'L',s:1};
 assert.ok(!SG.exposesFlagship(g, SG.pieceMoves(g, sq('e4')).find(m => m.to === sq('f6'))), 'capturing the enemy Flagship never warns');
 
+// --- M1.5 newly-exposes: no badge when the Flagship is already under attack
+g = base(); g.board[sq('a1')] = null;
+g.board[sq('d1')] = {t:'F',s:0}; g.board[sq('d2')] = {t:'S',s:0}; g.board[sq('d4')] = {t:'L',s:1}; g.board[sq('a1')] = {t:'L',s:0};
+assert.ok(SG.newlyExposesFlagship(g, mvTo('d2', 'c2')), 'safe Flagship newly exposed');
+g.board[sq('b3')] = {t:'D',s:1};       // Red Drone b3 already attacks d2? no: attacks d2, c1, a1... put it on c3 -> attacks d1
+g.board[sq('b3')] = null; g.board[sq('c3')] = {t:'D',s:1};
+assert.ok(SG.flagshipThreatened(g, 0), 'Flagship already under attack (Drone c3 -> d1)');
+assert.ok(!SG.newlyExposesFlagship(g, mvTo('d2', 'c2')), 'no newly-exposed badge when already under attack');
+assert.ok(SG.exposesFlagship(g, mvTo('d2', 'c2')), '(still exposed overall)');
+
 // --- Many AI-vs-AI games
 function play(levelB, levelR, seed) {
   let s = SG.newGame(seed);

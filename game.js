@@ -4,7 +4,7 @@
   var HUMAN = SG.BLUE, AI_SIDE = SG.RED, LEVEL = 'easy', AI_DELAY = 650, OVER_DELAY = 250, LONG_PRESS = 500;
   var GHOST_MS = 600;            // a pointer-generated click within this time of a pointer tap on the same square is its echo
   var DEBUG = /[?&]debug(=|&|$)/.test(location.search);
-  var st, sel = null, insp = null, marks = null, danger = [], opts = [], exposed = [];
+  var st, sel = null, insp = null, marks = null, danger = [], opts = [], exposed = [], queued = null;
   var busy = false, aiTimer = null, overTimer = null, gameId = 0, hintMsg = '', overShown = false;
   var $ = function (id) { return document.getElementById(id); };
   var boardEl = $('board'), cells = [], cache = [];
@@ -24,7 +24,7 @@
   }
 
   // ---- Debug log (only with ?debug): every tap that did not change anything, and why.
-  var dbgEl = null, dbgLines = [], stats = { taps: 0, handled: 0, ignored: 0, reasons: {} };
+  var dbgEl = null, dbgLines = [], stats = { taps: 0, handled: 0, ignored: 0, reasons: {}, cancelled: 0, cancelReasons: {}, moves: 0 };
   if (DEBUG) {
     dbgEl = document.createElement('div'); dbgEl.id = 'tapLog'; dbgEl.className = 'taplog';
     document.body.appendChild(dbgEl);
@@ -39,41 +39,61 @@
 
   // ---- Input. Pointer events are the single source of taps; a click is only used when no pointer tap
   // produced it (keyboard, VoiceOver, or a browser that cancelled the pointer stream).
-  // touch-action:none on the board means the browser never turns a slightly-moving finger into a pan,
-  // which is what used to fire pointercancel and swallow the tap.
+  // touch-action:none on the board means the browser never turns a slightly-moving finger into a pan
+  // (that used to fire pointercancel and swallow taps). Because of that, drags must be rejected here:
+  // a tap counts only if the press starts and ends on the same square and never travels more than
+  // DRAG_CELLS x cell size (straight-line distance from the pointerdown point).
+  var DRAG_CELLS = 0.6;
   var down = null, lpTimer = null, ghosts = [];
-  function cellFrom(x, y, fallback) {
+  function cellFrom(x, y) {
     var el = document.elementFromPoint(x, y);
     el = el && el.closest ? el.closest('.cell') : null;
-    return el && boardEl.contains(el) ? +el.dataset.i : fallback;
+    return el && boardEl.contains(el) ? +el.dataset.i : -1;
   }
   function clearPress() { clearTimeout(lpTimer); lpTimer = null; if (down) cells[down.i].classList.remove('press'); down = null; }
+  function cancelPress(reason, detail) {
+    if (!down) return;
+    var d = down; clearPress();
+    stats.cancelled++; stats.cancelReasons[reason] = (stats.cancelReasons[reason] || 0) + 1;
+    dlog('cancelled', reason + (detail ? ' (' + detail + ')' : '') + ' [' + d.type + ' from ' + SG.coord(d.i) + ']');
+    return d;
+  }
   boardEl.addEventListener('pointerdown', function (e) {
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     var t = e.target.closest('.cell'); if (!t) return;
-    if (down) dlog('note', 'second pointer while pressed; using the newest');
-    clearPress();
+    if (down) cancelPress('second finger');
     ghosts = [];                                           // a new press means any pending echo click is stale
-    down = { id: e.pointerId, i: +t.dataset.i, x: e.clientX, y: e.clientY, long: false, type: e.pointerType };
+    var size = t.getBoundingClientRect().width;
+    down = { id: e.pointerId, i: +t.dataset.i, x: e.clientX, y: e.clientY, long: false, type: e.pointerType, max: DRAG_CELLS * size };
+    try { boardEl.setPointerCapture(e.pointerId); } catch (err) {}   // keep getting move/up even off the board
     t.classList.add('press');
     var d = down;
     lpTimer = setTimeout(function () {
       var pc = st.board[d.i];
-      if (down === d && pc && pc.s === AI_SIDE) { d.long = true; inspect(d.i); dlog('handled', 'long-press inspect ' + SG.coord(d.i)); }
+      if (down === d && pc && pc.s === AI_SIDE) { d.long = true; inspect(d.i); dlog('ok', 'long-press inspect ' + SG.coord(d.i)); }
     }, LONG_PRESS);
   });
+  boardEl.addEventListener('pointermove', function (e) {
+    if (!down || e.pointerId !== down.id || down.long) return;
+    var dist = Math.hypot(e.clientX - down.x, e.clientY - down.y);
+    if (dist > down.max) { down.drag = true; cancelPress('drag over ' + DRAG_CELLS + ' cell', Math.round(dist) + 'px'); }
+  });
   boardEl.addEventListener('pointerup', function (e) {
-    if (!down || e.pointerId !== down.id) { dlog('note', 'pointerup without matching pointerdown'); return; }
-    var d = down; clearPress();
-    // Release square: where the finger lifted; if that is outside the board, the square it went down on.
-    var i = cellFrom(e.clientX, e.clientY, d.i);
-    ghosts.push({ i: i, j: d.i, t: Date.now() });
-    if (d.long) return;                                    // the long-press already acted (inspect)
+    var now = Date.now();
+    if (!down || e.pointerId !== down.id) return;          // already cancelled (drag) or unknown pointer
+    var d = down;
+    var i = cellFrom(e.clientX, e.clientY);
+    ghosts.push({ i: i, j: d.i, t: now });                 // swallow the browser's echo click either way
+    var dist = Math.hypot(e.clientX - d.x, e.clientY - d.y);
+    if (d.long) { clearPress(); return; }                  // the long-press already acted (inspect)
+    if (dist > d.max) { cancelPress('drag over ' + DRAG_CELLS + ' cell', Math.round(dist) + 'px'); return; }
+    if (i < 0) { cancelPress('lifted off the board'); return; }
+    if (i !== d.i) { cancelPress('ended on a different square', SG.coord(i)); return; }
+    clearPress();
     tap(i, d.type);
   });
   boardEl.addEventListener('pointercancel', function (e) {
-    if (down && e.pointerId === down.id) dlog('note', 'pointercancel on ' + SG.coord(down.i) + ' (a click may still follow)');
-    clearPress();
+    if (down && e.pointerId === down.id) cancelPress('pointercancel from the browser');
   });
   boardEl.addEventListener('contextmenu', function (e) { e.preventDefault(); });
   boardEl.addEventListener('click', function (e) {
@@ -82,7 +102,7 @@
     ghosts = ghosts.filter(function (g) { return now - g.t < GHOST_MS; });
     // detail === 0: keyboard, VoiceOver or programmatic activation, never an echo of a finger/mouse tap.
     if (e.detail !== 0) for (var k = 0; k < ghosts.length; k++) {
-      if (ghosts[k].i === i || ghosts[k].j === i) { ghosts.splice(k, 1); return; }   // echo of a pointer tap: already handled
+      if (ghosts[k].i === i || ghosts[k].j === i) { ghosts.splice(k, 1); return; }   // echo of a pointer press: already dealt with
     }
     tap(i, 'click');
   });
@@ -97,7 +117,7 @@
   function firstGame() { try { return !localStorage.getItem('sg_played'); } catch (e) { return false; } }
 
   function start() {
-    clearTimeout(aiTimer); clearTimeout(overTimer); aiTimer = overTimer = null;
+    clearTimeout(aiTimer); clearTimeout(overTimer); clearTimeout(queueTimer); aiTimer = overTimer = queueTimer = null; movedAt = null;
     gameId++;
     st = SG.newGame(); clearSel(); busy = false; overShown = false;
     hide('overModal');
@@ -106,7 +126,7 @@
     render();
   }
 
-  function clearSel() { sel = null; insp = null; marks = null; danger = []; opts = []; exposed = []; }
+  function clearSel() { sel = null; insp = null; marks = null; danger = []; opts = []; exposed = []; queued = null; }
 
   function inspect(i) {
     var pc = st.board[i];
@@ -126,22 +146,34 @@
     }
     sel = i;
     opts = SG.pieceMoves(st, i); marks = SG.pieceMarkers(st, i); danger = SG.dangerSquares(st, i);
-    exposed = opts.filter(function (m) { return SG.exposesFlagship(st, m); }).map(function (m) { return m.to; });
+    // '!' only for moves that NEWLY expose the Flagship; if it is already under attack, the single
+    // "Flagship under attack" warning line covers it instead of badges.
+    exposed = opts.filter(function (m) { return SG.newlyExposesFlagship(st, m); }).map(function (m) { return m.to; });
     hintMsg = !opts.length ? 'That ship has no moves right now.' : SHIP_HINT[pc.t] +
       (exposed.length ? ' \u26A0 ! = leaves your Flagship open.' : '');
   }
 
+  var QUEUE_DELAY = 350, queueTimer = null, movedAt = null;   // movedAt: {i, t} of the last move you made by tapping
+
   // Returns {did} or {ignored: reason} for the debug log / stress test.
   function onCell(i) {
-    var pc = st.board[i];
+    var pc = st.board[i], now = Date.now();
     var over = st.winner !== null, myTurn = !busy && !over && st.turn === HUMAN;
+    if (queueTimer) return { ignored: 'playing your queued move' };
+    // Second tap of a double-tap lands on the ship that just moved there: don't reselect it.
+    if (movedAt && movedAt.i === i && now - movedAt.t < 450 && pc && pc.s === HUMAN) return { ignored: 'double-tap echo on the ship that just moved' };
     if (sel !== null) {
       var m = opts.filter(function (o) { return o.to === i; })[0];
       if (m) {
-        if (!myTurn) { render(); return { ignored: over ? 'game over' : 'Red\u2019s turn: move not allowed yet (selection kept)' }; }
-        var warn = exposed.indexOf(i) >= 0;
-        clearSel(); commit(m);
-        if (warn && st.winner === null) { hintMsg = '\u26A0 That move left your Flagship open.'; render(); }
+        if (over) { render(); return { ignored: 'game over' }; }
+        if (!myTurn) {                                        // Red's turn: queue it
+          if (queued && queued.to === i) { queued = null; hintMsg = 'Queued move cancelled.'; render(); return { did: 'unqueue' }; }
+          queued = { from: sel, to: i, kind: m.kind, cap: !!m.cap };
+          hintMsg = 'Queued: plays right after Red moves, if it\u2019s still legal.';
+          render(); return { did: 'queued' };
+        }
+        clearSel(); movedAt = m.kind === 'move' ? { i: i, t: now } : null;   // shots: the Lancer stays put, nothing to guard
+        commit(m);
         return { did: 'move' };
       }
     }
@@ -159,20 +191,45 @@
   }
 
   function commit(m) {
-    var wasShot = m.kind === 'shot', target = m.to;
-    if (st.turn === HUMAN) { try { localStorage.setItem('sg_played', '1'); } catch (e) {} }
-    var keep = st.turn === AI_SIDE && sel !== null ? sel : null;   // a pre-selection survives Red's move
+    var wasShot = m.kind === 'shot', target = m.to, redMove = st.turn === AI_SIDE;
+    if (!redMove) { try { localStorage.setItem('sg_played', '1'); } catch (e) {} }
+    var keep = redMove && sel !== null ? sel : null;           // a pre-selection survives Red's move
+    var keepType = keep !== null ? st.board[keep].t : null, q = redMove ? queued : null;
     st = SG.applyMove(st, m);
-    clearSel();
-    if (keep !== null && st.board[keep] && st.board[keep].s === HUMAN && st.winner === null) selectOwn(keep);
-    else hintMsg = '';
+    clearSel(); hintMsg = '';
+    var playQueued = null;
+    if (keep !== null && st.winner === null) {
+      if (st.board[keep] && st.board[keep].s === HUMAN) {
+        selectOwn(keep);                                       // markers recomputed for the new position
+        if (q) {
+          playQueued = SG.pieceMoves(st, q.from).filter(function (x) { return x.to === q.to && x.kind === q.kind && !!x.cap === q.cap; })[0] || null;
+          hintMsg = playQueued ? 'Playing your queued move\u2026' : 'Wait for Red: your queued move isn\u2019t possible any more.';
+        }
+      } else {
+        hintMsg = 'Your selected ' + SG.NAMES[keepType] + ' was captured.' + (q ? ' Queued move cancelled.' : '');
+      }
+    }
     $('lastMove').textContent = SG.describeMove(st.lastMove) + '.';
     if (st.pulsed) hintMsg = 'The nebula shifted! ' + hintMsg;
+    if (!redMove) stats.moves++;
     render();
     if (wasShot || m.cap) flash(target);
     if (st.winner !== null) {
       var id = gameId;
       overTimer = setTimeout(function () { overTimer = null; if (id === gameId && st.winner !== null) gameOver(); }, OVER_DELAY);
+      return;
+    }
+    if (playQueued) {
+      if (playQueued) queued = { from: playQueued.from, to: playQueued.to };   // keep the queued marker visible
+      render();
+      var g0 = gameId;
+      queueTimer = setTimeout(function () {
+        queueTimer = null; queued = null;
+        if (g0 !== gameId || st.winner !== null || st.turn !== HUMAN) { render(); return; }
+        var mv = SG.pieceMoves(st, playQueued.from).filter(function (x) { return x.to === playQueued.to && x.kind === playQueued.kind; })[0];
+        clearSel();
+        if (mv) commit(mv); else render();
+      }, QUEUE_DELAY);
       return;
     }
     if (st.turn === AI_SIDE) {
@@ -205,6 +262,7 @@
       if (lm && (lm.from === i || lm.to === i)) html += '<i class="ov last"></i>';
       if (warn && st.nextNebula.indexOf(i) >= 0) html += '<i class="ov forecast"></i>';
       if (sel === i || insp === i) html += '<i class="ov sel' + foe + '"></i>';
+      if (queued && queued.to === i) html += '<i class="ov queued"></i>';
       if (pc) {
         html += '<span class="pc ' + (pc.s === SG.BLUE ? 'b' : 'r') + ' ' + pc.t +
           (SG.isNebula(st, i) ? ' jam' : '') + (i === flagDanger ? ' danger' : '') +
@@ -215,10 +273,11 @@
         var mv = has(marks.moves, i), ln = has(marks.lanes, i), cp = has(marks.caps, i);
         if (ln) html += '<i class="mk lane' + (mv ? ' withmove' : '') + '"></i>';
         if (mv) html += '<i class="mk move' + foe + '"></i>';
-        if (cp) html += '<i class="mk cap"></i>';
+        if (cp) html += '<i class="mk cap' + (has(exposed, i) ? ' withexpose' : '') + '"></i>';
         label += (mv ? ', move' : '') + (ln ? ', fire lane' : '') + (cp ? ', capture' : '');
       }
       if (has(exposed, i)) { html += '<i class="mk expose">!</i>'; label += ', leaves your Flagship open'; }
+      if (queued && queued.to === i) label += ', queued';
       if (has(danger, i)) label += ', danger';
       var k = cache[i];
       if (k.cls !== cls) { c.className = cls; k.cls = cls; }
@@ -236,11 +295,10 @@
     else if (warn) ni.textContent = '\u26A0 Shift after ' + (SG.pulseAfterSide(st) === HUMAN ? 'your move' : 'Red\u2019s move');
     else ni.textContent = 'Nebula in ' + plies + ' moves';
     ni.className = 'neb' + (warn ? ' warn' : '');
-    var parts = [];
-    if (hintMsg) parts.push(hintMsg);
-    if (flagDanger >= 0 && st.turn === HUMAN) parts.push('\u26A0 Your Flagship is under fire!');
-    var hh = parts.map(function (s) { return '<div>' + esc(s) + '</div>'; }).join('');
-    if ($('hint').innerHTML !== hh) $('hint').innerHTML = hh;
+    // Warning line has its own slot above everything else in the info area, so it is never clipped.
+    var wtxt = flagDanger >= 0 && st.turn === HUMAN ? '\u26A0 Your Flagship is under attack!' : '';
+    if ($('warn').textContent !== wtxt) $('warn').textContent = wtxt;
+    if ($('hint').textContent !== hintMsg) $('hint').textContent = hintMsg;
     tray('trayRed', st.captured[HUMAN], 'r', 'Captured:');
     tray('trayBlue', st.captured[AI_SIDE], 'b', 'Lost:');
   }
@@ -291,7 +349,7 @@
   if (DEBUG) {
     window.SGDebug = {
       state: function () { return st; },
-      setState: function (s) { clearTimeout(aiTimer); clearTimeout(overTimer); aiTimer = overTimer = null; busy = false; gameId++;
+      setState: function (s) { clearTimeout(aiTimer); clearTimeout(overTimer); clearTimeout(queueTimer); aiTimer = overTimer = queueTimer = null; movedAt = null; busy = false; gameId++;
         st = s; clearSel(); hintMsg = ''; overShown = false; hide('overModal'); },
       stats: function () { return JSON.parse(JSON.stringify(stats)); },
       busy: function () { return busy; }

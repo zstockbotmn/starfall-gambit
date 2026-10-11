@@ -258,6 +258,13 @@
     var f = findFlagship(ns, me); if (f < 0) return false;
     return legalMoves(ns, 1 - me).some(function (x) { return x.cap && x.to === f; });
   }
+  // Only moves that turn a safe Flagship into an attacked one (no warning if it is already under attack).
+  function newlyExposesFlagship(st, m) {
+    var pc = st.board[m.from]; if (!pc) return false;
+    var base = st.turn === pc.s ? st : Object.assign({}, st, { turn: pc.s });
+    if (flagshipThreatened(base, pc.s)) return false;
+    return exposesFlagship(base, m);
+  }
   function nebulaWarning(st) { return pliesToPulse(st) <= 2; }
 
   function describeMove(lm) {
@@ -274,7 +281,7 @@
     VALUE: VALUE, NAMES: NAMES, SIDE_NAMES: SIDE_NAMES,
     newGame: newGame, legalMoves: legalMoves, pieceMoves: pieceMoves, applyMove: applyMove, shotTargets: shotTargets,
     material: material, findFlagship: findFlagship, flagshipThreatened: flagshipThreatened,
-    pliesToPulse: pliesToPulse, pulseAfterSide: pulseAfterSide, displayRound: displayRound, lancerThreats: lancerThreats, pieceMarkers: pieceMarkers, dangerSquares: dangerSquares, exposesFlagship: exposesFlagship,
+    pliesToPulse: pliesToPulse, pulseAfterSide: pulseAfterSide, displayRound: displayRound, lancerThreats: lancerThreats, pieceMarkers: pieceMarkers, dangerSquares: dangerSquares, exposesFlagship: exposesFlagship, newlyExposesFlagship: newlyExposesFlagship,
     mirrorCell: mirrorCell, pulsePly: pulsePly, genNebula: genNebula, nebulaWarning: nebulaWarning, isNebula: isNebula,
     coord: coord, rc: rc, idx: idx, describeMove: describeMove, nextRand: nextRand
   };
