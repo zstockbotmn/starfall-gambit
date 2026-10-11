@@ -184,6 +184,8 @@
   // Round number for display: during play the current round; once the game is over, the round of the final move.
   function displayRound(st) { return st.winner !== null ? Math.max(1, Math.ceil(st.ply / 2)) : Math.floor(st.ply / 2) + 1; }
   // Squares enemy Lancers (of side `enemy`) could hit, treating `ignore` as empty (the square a selected ship leaves).
+  // A square holding one of the enemy's own (non-Lancer-target-proof) ships is included when a Lancer covers it:
+  // if you capture that ship, your ship lands there in the Lancer's line of fire.
   function lancerThreats(st, enemy, ignore) {
     var out = {};
     for (var i = 0; i < CELLS; i++) {
@@ -198,8 +200,8 @@
           if (isNebula(st, j)) break;
           var q = j === ignore ? null : st.board[j];
           if (!q) { out[j] = true; continue; }
-          if (q.s !== enemy && q.t !== 'S') out[j] = true;
-          break;
+          if (q.s === enemy || q.t !== 'S') out[j] = true;   // enemy-held square (capture target) or our non-Shield ship
+          break;                                            // any ship blocks the rest of the line
         }
       }
     }

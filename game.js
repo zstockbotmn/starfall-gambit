@@ -3,7 +3,7 @@
   'use strict';
   var HUMAN = SG.BLUE, AI_SIDE = SG.RED, LEVEL = 'easy', AI_DELAY = 650, OVER_DELAY = 700;
   var st, sel = null, opts = [], threats = [], busy = false, aiTimer = null, overTimer = null, gameId = 0;
-  var hintMsg = '';
+  var hintMsg = '', overShown = false;
   var $ = function (id) { return document.getElementById(id); };
   var boardEl = $('board'), cells = [];
   var SHIP_HINT = {
@@ -31,7 +31,7 @@
   function start() {
     clearTimeout(aiTimer); clearTimeout(overTimer); aiTimer = overTimer = null;
     gameId++;
-    st = SG.newGame(); sel = null; opts = []; threats = []; busy = false;
+    st = SG.newGame(); sel = null; opts = []; threats = []; busy = false; overShown = false;
     hide('overModal');
     $('lastMove').textContent = 'Tap one of your blue ships to begin.';
     hintMsg = firstGame() ? FIRST_TIP : '';
@@ -45,7 +45,7 @@
     var pc = st.board[i];
     if (pc && pc.s === HUMAN && sel !== i) {
       sel = i; opts = SG.pieceMoves(st, i);
-      threats = SG.lancerThreats(st, AI_SIDE, i);
+      threats = pc.t === 'S' ? [] : SG.lancerThreats(st, AI_SIDE, i);   // Shields are immune: no stripes
       hintMsg = SG.isNebula(st, i) ? 'That ship is jammed in the nebula until it shifts.'
               : opts.length ? SHIP_HINT[pc.t] : 'That ship has no moves right now.';
     } else { sel = null; opts = []; threats = []; hintMsg = ''; }
@@ -113,12 +113,12 @@
     if (over) { t.textContent = 'Game over'; t.className = 'turn'; }
     else if (st.turn === HUMAN) { t.textContent = 'Your turn'; t.className = 'turn you'; }
     else { t.textContent = 'Red is thinking…'; t.className = 'turn ai'; }
-    $('btnResult').classList.toggle('hidden', !over || !$('overModal').classList.contains('hidden'));
+    $('btnResult').classList.toggle('hidden', !over || !overShown || !$('overModal').classList.contains('hidden'));
     $('round').textContent = 'Round ' + Math.min(SG.displayRound(st), SG.MAX_PLY / 2) + '/' + SG.MAX_PLY / 2;
     var ni = $('nebulaInfo'), plies = SG.pliesToPulse(st), rounds = Math.ceil(plies / 2);
     if (over) ni.textContent = '';
-    else if (warn) ni.textContent = '⚠ Nebula shifts after ' + (SG.pulseAfterSide(st) === HUMAN ? 'your next move' : "Red's next move");
-    else ni.textContent = 'Nebula shifts in ' + rounds + ' round' + (rounds === 1 ? '' : 's');
+    else if (warn) ni.textContent = '⚠ Shift after ' + (SG.pulseAfterSide(st) === HUMAN ? 'your move' : "Red's move");
+    else ni.textContent = 'Nebula in ' + rounds + ' round' + (rounds === 1 ? '' : 's');
     ni.className = 'neb' + (warn ? ' warn' : '');
     // Hint line: transient message plus the Flagship warning (never overwrites it).
     var parts = [];
@@ -149,6 +149,7 @@
     else text = 'Round 40 reached. Fleet points (Flagship not counted): Blue ' + SG.material(st, SG.BLUE) +
       ', Red ' + SG.material(st, SG.RED) + '.';
     $('overIcon').textContent = icon; $('overTitle').textContent = title; $('overText').textContent = text;
+    overShown = true;
     show('overModal');
     render();
   }
@@ -172,7 +173,10 @@
   document.addEventListener('touchstart', function () {}, { passive: true });
   // Double-tap zoom is disabled via CSS touch-action: manipulation (no JS hack, so fast taps still register).
 
-  window.SGDebug = { state: function () { return st; }, setState: function (s) { st = s; sel = null; opts = []; threats = []; render(); } };
+  // Test hooks only with ?debug in the URL (not exposed in normal play).
+  if (/[?&]debug(=|&|$)/.test(location.search)) {
+    window.SGDebug = { state: function () { return st; }, setState: function (s) { st = s; sel = null; opts = []; threats = []; render(); } };
+  }
   start();
   try { if (!localStorage.getItem('sg_seen_rules')) { show('rulesModal'); localStorage.setItem('sg_seen_rules', '1'); } } catch (e) {}
 })();

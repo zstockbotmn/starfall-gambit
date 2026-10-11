@@ -28,13 +28,13 @@ Tap a ship to see its options: green dots are moves, red rings are captures, and
 - New nebula only appears in the **middle four rows (rows 2–5)**, never in the back rows. It never lands on any of the squares that just cleared.
 - The pattern is **mirrored top-to-bottom**, just like the starting setup: a nebula square in row 2 has a twin in the same column in row 5, and row 3 pairs with row 4. Neither side is favored.
 - Shifts **alternate** between happening right after Red's move (you react first) and right after your move (Red reacts first). They come after 6, 13, 18, 25, 30, 37… total moves.
-- The squares about to become nebula **flicker during the round before the shift**.
+- The squares about to become nebula **flicker during the last two moves before the shift**.
 - No ship can move into a nebula square, and Lancer shots can't pass through one.
 - A shift **can land on squares that already have ships**, and you're allowed to move onto a flickering square. A ship on a square when it becomes nebula is **jammed**: it can't move or fire, but nothing can reach it either. It's free again when the nebula shifts.
 
 ## How the game ends
 1. **Flagship destroyed:** the player who destroyed it wins.
 2. **No legal move loses:** if it's your turn and none of your ships can move or fire (for example, they're all blocked or jammed by the nebula), you're **stranded** and you lose.
-3. **Round limit:** after **40 rounds**, the side with more fleet points left wins. Points are Lancer 3, Drone 3, Shield 2. **The Flagship isn't counted.** Equal points means a draw.
+3. **Round limit:** after **40 rounds** (Red makes the last move before the count), the side with more fleet points left wins. Points are Lancer 3, Drone 3, Shield 2. **The Flagship isn't counted.** Equal points means a draw.
 
 There's no "check" rule, so you're allowed to leave your Flagship in danger. A red flashing ring warns you when your Flagship is under fire.

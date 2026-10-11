@@ -78,6 +78,7 @@ assert.ok(th.includes(SG.idx(3,0)) && !th.includes(SG.idx(4,0)), 'moving ship un
 // safeChooseMove: falls back when chooseMove throws or returns null / illegal
 st = SG.newGame(9);
 const realChoose = AI.chooseMove;
+const realErr = console.error; console.error = () => {};
 AI.chooseMove = () => { throw new Error('boom'); };
 assert.ok(AI.safeChooseMove(st, 'easy'), 'fallback on throw');
 AI.chooseMove = () => null;
@@ -85,15 +86,27 @@ assert.ok(AI.safeChooseMove(st, 'easy'), 'fallback on null');
 AI.chooseMove = () => ({ from: 0, to: 35, kind: 'move' });
 const fb = AI.safeChooseMove(st, 'easy');
 assert.ok(SG.legalMoves(st).some(m => m.from === fb.from && m.to === fb.to), 'fallback on illegal');
-AI.chooseMove = realChoose;
-// Stranded: a side with no legal move loses
-g = empty(); g.turn = 0;
+AI.chooseMove = realChoose; console.error = realErr;
+// Stranded: a side with no legal move loses (Red moves, leaving Blue with nothing: Flagship boxed in, Shields jammed)
+g = empty(); g.turn = 1;
 g.board[SG.idx(5,0)] = {t:'F',s:0}; g.board[SG.idx(4,0)] = {t:'S',s:0}; g.board[SG.idx(4,1)] = {t:'S',s:0};
 g.board[SG.idx(0,5)] = {t:'F',s:1}; g.board[SG.idx(0,4)] = {t:'L',s:1};
-g.nebula = [SG.idx(5,1)];   // flagship boxed in by own shields + nebula; shields: (4,0) can go up, so jam them
 g.nebula = [SG.idx(5,1), SG.idx(4,0), SG.idx(4,1), SG.idx(3,3)];
-const lm = SG.legalMoves(g);
-assert.equal(lm.length, 0, 'blue stranded');
+assert.equal(SG.legalMoves(g, 0).length, 0, 'blue has no legal move');
+const strandRes = SG.applyMove(g, { from: SG.idx(0,5), to: SG.idx(1,5), kind: 'move', cap: null });
+assert.equal(strandRes.winner, 1, 'stranded side loses');
+assert.equal(strandRes.reason, 'stranded');
+// Danger stripes include a Red-held capture square covered by a Red Lancer behind it:
+// Blue Drone e1 can take Red Drone d3; Red Lancer on d6 covers d3 -> d3 striped.
+g = empty();
+const sq = s => SG.idx(6 - +s[1], 'abcdef'.indexOf(s[0]));
+g.board[sq('e1')] = {t:'D',s:0}; g.board[sq('d3')] = {t:'D',s:1}; g.board[sq('d6')] = {t:'L',s:1};
+assert.ok(SG.pieceMoves(g, sq('e1')).some(m => m.to === sq('d3') && m.cap), 'drone can capture d3');
+th = SG.lancerThreats(g, 1, sq('e1'));
+assert.ok(th.includes(sq('d3')), 'd3 striped (capture square in Lancer line)');
+assert.ok(th.includes(sq('d5')) && th.includes(sq('d4')) && !th.includes(sq('d2')), 'line stops at the Red ship');
+g.board[sq('d3')] = {t:'S',s:1};
+assert.ok(SG.lancerThreats(g, 1, -1).includes(sq('d3')), 'Red Shield square also striped (capturing it puts you in line)');
 
 // --- Many AI-vs-AI games
 function play(levelB, levelR, seed) {
