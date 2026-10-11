@@ -207,6 +207,47 @@
     }
     return Object.keys(out).map(Number);
   }
+  // Markers for any ship (either side): where it can MOVE (empty squares), what it can ATTACK (squares where it
+  // would capture: melee captures, or Lancer shot targets), and for Lancers the full firing LANES (empty squares
+  // in range up to the first ship or nebula). Jammed ships have none.
+  function pieceMarkers(st, i) {
+    var pc = st.board[i], res = { moves: [], caps: [], lanes: [] };
+    if (!pc || isNebula(st, i)) return res;
+    pieceMoves(st, i).forEach(function (m) { (m.cap ? res.caps : res.moves).push(m.to); });
+    if (pc.t === 'L') {
+      var p = rc(i);
+      for (var d = 0; d < 4; d++) {
+        for (var k = 1; k <= LANCER_RANGE; k++) {
+          var r = p[0] + ORTHO[d][0] * k, c = p[1] + ORTHO[d][1] * k;
+          if (!inB(r, c)) break;
+          var j = idx(r, c);
+          if (isNebula(st, j) || st.board[j]) break;
+          res.lanes.push(j);
+        }
+      }
+    }
+    return res;
+  }
+
+  // Real danger to the ship on square i: each of its legal MOVES (incl. captures) is played out with applyMove
+  // (so a nebula shift triggered by that move uses the incoming pattern), and the destination is marked if the
+  // opponent could then capture that ship. Shots aren't included (the Lancer stays put). The ship's current
+  // square is also marked if it is under attack right now. Moves that win the game are never marked.
+  function dangerSquares(st, i) {
+    var pc = st.board[i], out = [];
+    if (!pc || st.winner !== null) return out;
+    var me = pc.s, foe = 1 - me;
+    var base = st.turn === me ? st : Object.assign({}, st, { turn: me });
+    pieceMoves(base, i).forEach(function (m) {
+      if (m.kind !== 'move') return;
+      var ns = applyMove(base, m);
+      if (ns.winner !== null) return;
+      var hit = legalMoves(ns, foe).some(function (x) { return x.cap && x.to === m.to; });
+      if (hit) out.push(m.to);
+    });
+    if (!isNebula(st, i) && legalMoves(Object.assign({}, st, { turn: foe }), foe).some(function (x) { return x.cap && x.to === i; })) out.push(i);
+    return out;
+  }
   function nebulaWarning(st) { return pliesToPulse(st) <= 2; }
 
   function describeMove(lm) {
@@ -223,7 +264,7 @@
     VALUE: VALUE, NAMES: NAMES, SIDE_NAMES: SIDE_NAMES,
     newGame: newGame, legalMoves: legalMoves, pieceMoves: pieceMoves, applyMove: applyMove, shotTargets: shotTargets,
     material: material, findFlagship: findFlagship, flagshipThreatened: flagshipThreatened,
-    pliesToPulse: pliesToPulse, pulseAfterSide: pulseAfterSide, displayRound: displayRound, lancerThreats: lancerThreats,
+    pliesToPulse: pliesToPulse, pulseAfterSide: pulseAfterSide, displayRound: displayRound, lancerThreats: lancerThreats, pieceMarkers: pieceMarkers, dangerSquares: dangerSquares,
     mirrorCell: mirrorCell, pulsePly: pulsePly, genNebula: genNebula, nebulaWarning: nebulaWarning, isNebula: isNebula,
     coord: coord, rc: rc, idx: idx, describeMove: describeMove, nextRand: nextRand
   };

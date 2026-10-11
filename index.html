@@ -10,15 +10,15 @@
 <meta name="theme-color" content="#070b1a">
 <title>Starfall Gambit</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ctext y=%22.9em%22 font-size=%2290%22%3E%E2%98%85%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="style.css?v=3">
+<link rel="stylesheet" href="style.css?v=4">
 </head>
 <body>
 <div id="app">
   <header class="top">
     <h1>Starfall <span>Gambit</span></h1>
     <div class="topbtns">
-      <button id="btnRules" class="btn ghost" type="button">Rules</button>
-      <button id="btnNew" class="btn ghost" type="button">New</button>
+      <button id="btnRules" class="btn ghost" type="button" aria-label="Rules"><span class="bi" aria-hidden="true">?</span><span class="bt">Rules</span></button>
+      <button id="btnNew" class="btn ghost" type="button" aria-label="New game"><span class="bi" aria-hidden="true">↻</span><span class="bt">New</span></button>
     </div>
   </header>
 
@@ -30,9 +30,17 @@
     </div>
   </section>
 
-  <div class="tray" id="trayRed" aria-label="Pieces you destroyed"></div>
-  <div id="boardWrap"><div id="board" role="grid" aria-label="Board"></div></div>
-  <div class="tray" id="trayBlue" aria-label="Pieces you lost"></div>
+  <div class="tray" id="trayRed" aria-label="Red ships you captured"></div>
+  <div id="boardWrap">
+    <div class="rowlbls" aria-hidden="true"><span>6</span><span>5</span><span>4</span><span>3</span><span>2</span><span>1</span></div>
+    <div id="board" role="grid" aria-label="Board"></div>
+    <div class="corner"></div>
+    <div class="collbls" aria-hidden="true"><span>a</span><span>b</span><span>c</span><span>d</span><span>e</span><span>f</span></div>
+  </div>
+  <div class="legend" aria-label="Marker legend">
+    <span><i class="lg move"></i>Move</span><span><i class="lg lane"></i>Fire lane</span><span><i class="lg cap"></i>Capture</span><span><i class="lg danger"></i>Danger</span>
+  </div>
+  <div class="tray" id="trayBlue" aria-label="Your ships Red captured"></div>
 
   <section class="info">
     <div id="lastMove" class="last">Tap one of your blue ships to begin.</div>
@@ -44,7 +52,15 @@
   <div class="card scroll">
     <h2>How to play</h2>
     <p><b>Goal:</b> destroy the enemy <b>Flagship</b>. The board is <b>6×6</b>. You are <b class="blue">Blue</b> (bottom) and move first; the computer is <b class="red">Red</b> (top).</p>
-    <p>On your turn, do one thing: <b>move one ship</b> or <b>fire one Lancer</b>. Tap a ship to see its options: <b>green dots</b> are moves, <b>red rings</b> are captures, and <b>yellow crosshairs</b> are Lancer shots. Tap one to do it. <b>Red-striped squares</b> show where enemy Lancers could hit.</p>
+    <p>On your turn, do one thing: <b>move one ship</b> or <b>fire one Lancer</b>. Tap a ship to see its options (see <b>Board markers</b> below), then tap a marked square to move, capture or fire.</p>
+    <h3>Board markers</h3>
+    <ul class="pieces legendlist">
+      <li><i class="lg move"></i><div><b>Dot = move.</b> The selected ship can move to this empty square.</div></li>
+      <li><i class="lg lane"></i><div><b>Plus = fire lane.</b> A Lancer's line of fire: up to 3 squares, stopping at the first ship or nebula.</div></li>
+      <li><i class="lg cap"></i><div><b>Corner brackets = capture.</b> The ship can capture there (by moving onto it, or by a Lancer shot).</div></li>
+      <li><i class="lg danger"></i><div><b>Hatching = danger.</b> If your selected ship moves there, Red could capture it next turn. This already takes into account a nebula shift your move would trigger. A hatched square under the ship itself means it's under attack right now.</div></li>
+    </ul>
+    <p class="small"><b>Read enemy threats:</b> tap a Red ship, or press and hold any Red ship, to see where it can move, fire and capture. Tap anywhere else to close.</p>
     <h3>Your fleet (7 ships)</h3>
     <ul class="pieces">
       <li><span class="pc mini b F"><span class="ic">F</span></span><div><b>Flagship ×1</b>: moves 1 square in any direction and captures by moving onto an enemy. If it's destroyed, you lose.</div></li>
@@ -55,7 +71,7 @@
     <p class="small">Starting setup: each back row is Lancer, Drone, Shield, Flagship, Drone, Lancer, with the second Shield just in front of the Flagship. Red's setup is Blue's mirrored top-to-bottom.</p>
     <h3>The nebula</h3>
     <ul>
-      <li>About every 3 rounds the nebula <b>shifts</b>. The old nebula fully clears, and 4 new squares in the <b>middle four rows (rows 2–5)</b> become nebula. They never overlap the squares that just cleared.</li>
+      <li>About every 3 rounds the nebula <b>shifts</b>. The counter at the top shows how many moves are left, counting both sides' moves. The old nebula fully clears, and 4 new squares in the <b>middle four rows (rows 2–5)</b> become nebula. They never overlap the squares that just cleared.</li>
       <li>The pattern is mirrored top-to-bottom, just like the starting setup: a nebula square in row 2 has a twin in the same column in row 5, and row 3 pairs with row 4. Neither side is favored.</li>
       <li>Shifts alternate between happening after Red's move and after yours, so each side takes turns being first to react.</li>
       <li>The squares about to become nebula <b>flicker during the last two moves before the shift</b>.</li>
@@ -87,8 +103,8 @@
   </div>
 </div>
 
-<script src="engine.js?v=3"></script>
-<script src="ai.js?v=3"></script>
-<script src="game.js?v=3"></script>
+<script src="engine.js?v=4"></script>
+<script src="ai.js?v=4"></script>
+<script src="game.js?v=4"></script>
 </body>
 </html>

@@ -5,7 +5,19 @@
 The board is **6×6**: columns a–f, rows 1–6. You are **Blue** (bottom, rows 1–2) and you move first. The computer is **Red** (top, rows 5–6).
 
 On your turn, do exactly one thing: **move one ship** or **fire one Lancer**.
-Tap a ship to see its options: green dots are moves, red rings are captures, and yellow crosshairs are Lancer shots. Tap one to do it. While a ship is selected, **red-striped squares** show where enemy Lancers could hit.
+Tap a ship to see its options (see **Board markers** below), then tap a marked square to move, capture or fire.
+
+## Board markers
+When you tap one of your ships, its options appear. Each marker has its own shape, so they're easy to tell apart even if you can't distinguish the colours:
+
+| Marker | Shape | Meaning |
+|---|---|---|
+| **Move** | green dot | The ship can move to this empty square. |
+| **Fire lane** | amber plus | A Lancer's line of fire: up to 3 squares straight, stopping at the first ship or nebula. |
+| **Capture** | red corner brackets | The ship can capture here, by moving onto the enemy or (for a Lancer) by firing. |
+| **Danger** | red hatching | If your selected ship moves here, Red could capture it on the next turn. This already takes into account a nebula shift your move would trigger. Hatching under the ship itself means it's under attack right now. |
+
+**Reading enemy threats:** tap a Red ship, or press and hold any Red ship, to see the same markers for it (its moves, fire lanes and captures). Tap anywhere else to close.
 
 ## Your fleet (7 ships each)
 
@@ -24,7 +36,7 @@ Tap a ship to see its options: green dots are moves, red rings are captures, and
 - **Your own ships block your Lancer's shots.** So do Shields of either side, and nebula squares.
 
 ## The nebula
-- About every **3 rounds** (one round = your move plus Red's move), the nebula **shifts**. The old nebula **fully clears**, and **4 new squares** become nebula.
+- About every **3 rounds** (one round = your move plus Red's move), the nebula **shifts**. The counter at the top shows how many moves are left, counting both sides' moves. The old nebula **fully clears**, and **4 new squares** become nebula.
 - New nebula only appears in the **middle four rows (rows 2–5)**, never in the back rows. It never lands on any of the squares that just cleared.
 - The pattern is **mirrored top-to-bottom**, just like the starting setup: a nebula square in row 2 has a twin in the same column in row 5, and row 3 pairs with row 4. Neither side is favored.
 - Shifts **alternate** between happening right after Red's move (you react first) and right after your move (Red reacts first). They come after 6, 13, 18, 25, 30, 37… total moves.

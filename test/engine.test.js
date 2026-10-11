@@ -108,6 +108,70 @@ assert.ok(th.includes(sq('d5')) && th.includes(sq('d4')) && !th.includes(sq('d2'
 g.board[sq('d3')] = {t:'S',s:1};
 assert.ok(SG.lancerThreats(g, 1, -1).includes(sq('d3')), 'Red Shield square also striped (capturing it puts you in line)');
 
+// --- M1.3 markers: move / capture / lane per piece type
+const same = (a, b, msg) => assert.deepEqual([...a].sort((x, y) => x - y), [...b].sort((x, y) => x - y), msg);
+const S = a => a.split(' ').map(sq);
+// Flagship c3: 8 neighbours; own Shield d3 blocks, Red Drone c4 capturable
+g = empty(); g.board[sq('c3')] = {t:'F',s:0}; g.board[sq('d3')] = {t:'S',s:0}; g.board[sq('c4')] = {t:'D',s:1}; g.board[sq('f6')] = {t:'F',s:1};
+let mk = SG.pieceMarkers(g, sq('c3'));
+same(mk.moves, S('b2 c2 d2 b3 b4 d4'), 'flagship moves'); same(mk.caps, S('c4'), 'flagship caps'); same(mk.lanes, [], 'no lanes');
+// Drone b1: jumps over nebula c2/b2? lands not on nebula a3; captures c3
+g = empty(); g.board[sq('b1')] = {t:'D',s:0}; g.board[sq('c3')] = {t:'L',s:1}; g.nebula = S('a3 b2');
+mk = SG.pieceMarkers(g, sq('b1'));
+same(mk.moves, S('d2'), 'drone moves (a3 is nebula, jumps over b2)'); same(mk.caps, S('c3'), 'drone caps');
+// Shield c3: orthogonal only; captures Red Lancer c4, can't step on own d3
+g = empty(); g.board[sq('c3')] = {t:'S',s:0}; g.board[sq('c4')] = {t:'L',s:1}; g.board[sq('d3')] = {t:'D',s:0};
+mk = SG.pieceMarkers(g, sq('c3'));
+same(mk.moves, S('c2 b3'), 'shield moves'); same(mk.caps, S('c4'), 'shield caps');
+// Lancer c3: lanes up to 3, stop at ships & nebula; shot target = cap; Red Shield blocks w/o cap; moves are 8 empty neighbours
+g = empty(); g.board[sq('c3')] = {t:'L',s:0};
+g.board[sq('c5')] = {t:'D',s:1};       // up: c4 lane, c5 target
+g.board[sq('e3')] = {t:'S',s:1};       // right: d3 lane, e3 shield (blocked, not capture)
+g.nebula = S('b3');                    // left: blocked immediately by nebula
+g.board[sq('c1')] = {t:'F',s:0};       // down: c2 lane, c1 own ship blocks
+mk = SG.pieceMarkers(g, sq('c3'));
+same(mk.lanes, S('c4 d3 c2'), 'lancer lanes'); same(mk.caps, S('c5'), 'lancer shot target');
+same(mk.moves, S('b2 c2 d2 d3 b4 c4 d4'), 'lancer moves (b3 nebula)');
+// long lane full range 3, stops at board edge
+g = empty(); g.board[sq('a1')] = {t:'L',s:0};
+same(SG.pieceMarkers(g, sq('a1')).lanes, S('a2 a3 a4 b1 c1 d1'), 'range 3 lanes');
+// jammed ship has no markers
+g.nebula = S('a1'); mk = SG.pieceMarkers(g, sq('a1')); assert.equal(mk.moves.length + mk.caps.length + mk.lanes.length, 0);
+
+// --- M1.3 danger: only real threats to the selected ship
+function base() { const x = empty(); x.board[sq('a1')] = {t:'F',s:0}; x.board[sq('f6')] = {t:'F',s:1}; x.turn = 0; x.ply = 0; x.nextPulse = 99; return x; }
+g = base(); g.board[sq('e1')] = {t:'D',s:0}; g.board[sq('d3')] = {t:'D',s:1}; g.board[sq('d6')] = {t:'L',s:1};
+let dz = SG.dangerSquares(g, sq('e1'));
+assert.ok(dz.includes(sq('d3')), 'capture square covered by Lancer behind it is danger');
+assert.ok(!dz.includes(sq('f3')), 'f3 not covered');
+assert.ok(!dz.includes(sq('d6')) && !dz.includes(sq('d5')), 'squares the Drone cannot reach are never marked');
+dz.forEach(d => assert.ok(SG.pieceMoves(g, sq('e1')).some(m => m.to === d) || d === sq('e1'), 'danger only on legal destinations/current square'));
+// Shield: immune to shots -> Lancer line is not danger; but a Red Drone threat is
+g = base(); g.board[sq('c2')] = {t:'S',s:0}; g.board[sq('c6')] = {t:'L',s:1};
+assert.ok(!SG.dangerSquares(g, sq('c2')).includes(sq('c3')), 'shield safe from Lancer');
+g.board[sq('a5')] = {t:'D',s:1};       // Drone a5 attacks b3 and c4
+assert.ok(SG.dangerSquares(g, sq('c2')).includes(sq('b2')) === false, 'b2 not attacked');
+g.board[sq('c2')] = null; g.board[sq('b2')] = {t:'S',s:0};
+assert.ok(SG.dangerSquares(g, sq('b2')).includes(sq('b3')), 'shield moving into Drone reach is danger');
+// current square under attack is marked
+g = base(); g.board[sq('c2')] = {t:'D',s:0}; g.board[sq('c5')] = {t:'L',s:1};
+assert.ok(SG.dangerSquares(g, sq('c2')).includes(sq('c2')), 'currently attacked square marked');
+// winning capture is never danger
+g = base(); g.board[sq('e4')] = {t:'D',s:0}; g.board[sq('f6')] = {t:'F',s:1}; g.board[sq('f3')] = {t:'L',s:1};
+assert.ok(!SG.dangerSquares(g, sq('e4')).includes(sq('f6')), 'flagship capture not danger');
+
+// --- M1.3 incoming nebula: a shift triggered by Blue's move is used for stripes
+// (1) destination becomes nebula -> ship jammed & unreachable -> not danger
+g = base(); g.board[sq('c1')] = {t:'D',s:0}; g.board[sq('b6')] = {t:'L',s:1};
+assert.ok(SG.dangerSquares(g, sq('c1')).includes(sq('b3')), 'b3 covered by Lancer b6 (no shift)');
+g.ply = 0; g.nextPulse = 1; g.nextNebula = S('b3 b4 e3 e4');
+assert.ok(!SG.dangerSquares(g, sq('c1')).includes(sq('b3')), 'b3 becomes nebula on the shift -> safe');
+// (2) current nebula blocks a lane but clears on the shift -> danger
+g = base(); g.board[sq('c1')] = {t:'D',s:0}; g.board[sq('b6')] = {t:'L',s:1};
+g.nebula = S('b4 b5 e2 e3'); g.nextNebula = S('c4 c5 d2 d3');
+g.nextPulse = 99; assert.ok(!SG.dangerSquares(g, sq('c1')).includes(sq('b3')), 'lane blocked by current nebula');
+g.nextPulse = 1;  assert.ok(SG.dangerSquares(g, sq('c1')).includes(sq('b3')), 'nebula clears on shift -> danger');
+
 // --- Many AI-vs-AI games
 function play(levelB, levelR, seed) {
   let s = SG.newGame(seed);
