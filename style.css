@@ -88,7 +88,7 @@ h1{color:#f6f8ff}
 .rowlbls{display:grid;grid-template-rows:repeat(6,var(--cell));font-size:11px;font-weight:700;color:#8a95c9;align-items:center;justify-items:center}
 .collbls{display:grid;grid-template-columns:repeat(6,var(--cell));font-size:11px;font-weight:700;color:#8a95c9;justify-items:center;align-items:center;height:var(--gut)}
 /* Nebula: violet gas cloud with teal wisps and a few stars */
-#board .cell.nebula{background:
+#board .cell.nebula,#sheet .cell.nebula{background:
   radial-gradient(circle at 26% 30%,rgba(255,255,255,.95) 0 1px,transparent 1.6px),
   radial-gradient(circle at 74% 66%,rgba(255,255,255,.8) 0 1px,transparent 1.6px),
   radial-gradient(circle at 62% 22%,rgba(127,243,230,.9) 0 1px,transparent 1.6px),
@@ -101,7 +101,9 @@ h1{color:#f6f8ff}
 .ov.threat{inset:0;z-index:0;background:repeating-linear-gradient(135deg,rgba(255,90,60,.85) 0 3px,rgba(0,0,0,.45) 3px 5px,transparent 5px 9px)}
 .ov.last{inset:0;z-index:1;box-shadow:inset 0 0 0 2px rgba(255,214,90,.75)}
 .ov.sel{inset:0;z-index:1;box-shadow:inset 0 0 0 3px var(--ok);background:rgba(88,245,195,.12)}
-.ov.sel.foe{box-shadow:inset 0 0 0 3px var(--red);background:rgba(255,43,214,.14)}
+.ov.sel.foe{box-shadow:inset 0 0 0 3px var(--red),inset 0 0 0 5px rgba(0,0,0,.65);background:rgba(255,43,214,.14)}
+/* dark inner band keeps the selection rings readable on bright nebula squares too */
+.ov.sel:not(.foe){box-shadow:inset 0 0 0 3px var(--ok),inset 0 0 0 5px rgba(0,0,0,.55)}
 .ov.forecast{inset:5px;z-index:1;border:2px dashed var(--neb);border-radius:8px;background:rgba(180,108,255,.15);animation:blink .9s infinite}
 .mk{z-index:3}
 /* Move = dot */
