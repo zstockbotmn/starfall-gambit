@@ -248,6 +248,16 @@
     if (!isNebula(st, i) && legalMoves(Object.assign({}, st, { turn: foe }), foe).some(function (x) { return x.cap && x.to === i; })) out.push(i);
     return out;
   }
+  // Would making move m leave the mover's own Flagship capturable by the opponent right after it?
+  // (Flagship-winning moves never count.) Used to warn, never to block.
+  function exposesFlagship(st, m) {
+    var pc = st.board[m.from]; if (!pc) return false;
+    var me = pc.s, base = st.turn === me ? st : Object.assign({}, st, { turn: me });
+    var ns = applyMove(base, m);
+    if (ns.winner !== null) return false;
+    var f = findFlagship(ns, me); if (f < 0) return false;
+    return legalMoves(ns, 1 - me).some(function (x) { return x.cap && x.to === f; });
+  }
   function nebulaWarning(st) { return pliesToPulse(st) <= 2; }
 
   function describeMove(lm) {
@@ -264,7 +274,7 @@
     VALUE: VALUE, NAMES: NAMES, SIDE_NAMES: SIDE_NAMES,
     newGame: newGame, legalMoves: legalMoves, pieceMoves: pieceMoves, applyMove: applyMove, shotTargets: shotTargets,
     material: material, findFlagship: findFlagship, flagshipThreatened: flagshipThreatened,
-    pliesToPulse: pliesToPulse, pulseAfterSide: pulseAfterSide, displayRound: displayRound, lancerThreats: lancerThreats, pieceMarkers: pieceMarkers, dangerSquares: dangerSquares,
+    pliesToPulse: pliesToPulse, pulseAfterSide: pulseAfterSide, displayRound: displayRound, lancerThreats: lancerThreats, pieceMarkers: pieceMarkers, dangerSquares: dangerSquares, exposesFlagship: exposesFlagship,
     mirrorCell: mirrorCell, pulsePly: pulsePly, genNebula: genNebula, nebulaWarning: nebulaWarning, isNebula: isNebula,
     coord: coord, rc: rc, idx: idx, describeMove: describeMove, nextRand: nextRand
   };

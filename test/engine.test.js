@@ -172,6 +172,25 @@ g.nebula = S('b4 b5 e2 e3'); g.nextNebula = S('c4 c5 d2 d3');
 g.nextPulse = 99; assert.ok(!SG.dangerSquares(g, sq('c1')).includes(sq('b3')), 'lane blocked by current nebula');
 g.nextPulse = 1;  assert.ok(SG.dangerSquares(g, sq('c1')).includes(sq('b3')), 'nebula clears on shift -> danger');
 
+// --- M1.4 Flagship exposure warning
+g = base(); g.board[sq('a1')] = null;
+g.board[sq('d1')] = {t:'F',s:0}; g.board[sq('d2')] = {t:'S',s:0}; g.board[sq('d4')] = {t:'L',s:1};
+const mvTo = (from, to) => SG.pieceMoves(g, sq(from)).find(m => m.to === sq(to));
+assert.ok(SG.exposesFlagship(g, mvTo('d2', 'c2')), 'Shield stepping aside exposes Flagship to Lancer d4');
+assert.ok(!SG.exposesFlagship(g, mvTo('d2', 'd3')), 'Shield stepping forward still blocks');
+assert.ok(SG.exposesFlagship(g, mvTo('d1', 'c1')) === false, 'Flagship stepping off the file is safe');
+// shot that removes a blocker opens a lane for another Red Lancer
+g = base(); g.board[sq('a1')] = null;
+g.board[sq('a1')] = {t:'F',s:0}; g.board[sq('b1')] = {t:'L',s:0}; g.board[sq('c1')] = {t:'D',s:1}; g.board[sq('d1')] = {t:'L',s:1};
+g.board[sq('a2')] = {t:'S',s:0}; g.board[sq('b2')] = {t:'S',s:0};
+// Blue Lancer b1 shoots Drone c1 -> b1 Lancer itself still blocks d1->a1; move Lancer b1 to... check a pure exposure by moving b1 away:
+assert.ok(SG.exposesFlagship(g, SG.pieceMoves(g, sq('b1')).find(m => m.kind === 'move')) === false, 'c1 Red Drone still blocks d1 Lancer');
+g.board[sq('c1')] = null;
+assert.ok(SG.exposesFlagship(g, SG.pieceMoves(g, sq('b1')).find(m => m.kind === 'move' && m.to === sq('c2'))), 'Lancer leaving b1 opens d1->a1 lane (range 3)');
+// winning moves never warn
+g = base(); g.board[sq('e4')] = {t:'D',s:0}; g.board[sq('f3')] = {t:'L',s:1}; g.board[sq('a1')] = {t:'F',s:0}; g.board[sq('a3')] = {t:'L',s:1};
+assert.ok(!SG.exposesFlagship(g, SG.pieceMoves(g, sq('e4')).find(m => m.to === sq('f6'))), 'capturing the enemy Flagship never warns');
+
 // --- Many AI-vs-AI games
 function play(levelB, levelR, seed) {
   let s = SG.newGame(seed);
