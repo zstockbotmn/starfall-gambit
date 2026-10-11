@@ -6,7 +6,7 @@
   /* board squares: Blue half (bottom) teal-navy glass, Red half (top) dark plum with scanlines */
   --sqb:#0b1a31; --sqb2:#10233f; --sqr:#170a26; --sqr2:#200e34;
   /* markers */
-  --mk-move:#5cffc8; --mk-lane:#ffc23d; --mk-cap:#ffffff; --mk-foe:#ff8fe0; --mk-danger:#ff5a3c; --mk-warn:#ffd23f;
+  --mk-move:#5cffc8; --mk-lane:#ffe680; --mk-cap:#ffffff; --mk-cap-b:#e0005a; --mk-foe:#ff8fe0; --mk-foesel:#ff9de6; --mk-danger:#e5452e; --mk-warn:#ffffff; --mk-warn-rim:#d4004a;
   --pad: 10px; --gut: 14px;
   /* Vertical space used by everything except the board cells (header, status, trays, legend, a little info). */
   --vover: calc(318px + env(safe-area-inset-top) + env(safe-area-inset-bottom));
@@ -201,11 +201,11 @@ h1{color:#f6f8ff}
   font-size:12px;font-weight:900;line-height:16px;text-align:center;box-shadow:0 0 0 2px rgba(0,0,0,.6)}
 /* ?debug tap log */
 /* ?debug tap log: collapsible panel pinned to the top, so it never covers the warning/info area at the bottom */
-.taplogbox{position:fixed;left:50%;transform:translateX(-50%);top:calc(2px + env(safe-area-inset-top));z-index:5;max-width:96vw;
-  display:flex;flex-direction:column;align-items:center;pointer-events:none;opacity:.88}
+.taplogbox{position:relative;flex:none;margin:0 auto;z-index:5;display:flex;flex-direction:column;align-items:center;pointer-events:none;opacity:.9}
 .taplogbtn{pointer-events:auto;font:10px/1 ui-monospace,Menlo,monospace;color:#cfe;background:rgba(0,0,0,.8);border:1px solid #456;
   border-radius:8px;padding:3px 8px;min-height:20px}
-.taplog{font:10px/1.3 ui-monospace,Menlo,monospace;color:#cfe;background:rgba(0,0,0,.8);padding:3px 5px;border-radius:6px;
+.taplog{position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top) + 112px);z-index:5;
+  font:10px/1.3 ui-monospace,Menlo,monospace;color:#cfe;background:rgba(0,0,0,.85);padding:3px 5px;border-radius:6px;
   white-space:pre;overflow:hidden;max-width:96vw;text-overflow:ellipsis;pointer-events:none}
 .taplog:empty,.taplogbox.collapsed .taplog{display:none}
 .lg.expose{background:#ffd23f;color:#1a1200;border-radius:50%;font-size:12px;font-weight:900;text-align:center;line-height:18px;font-style:normal}
@@ -238,3 +238,77 @@ h1{color:#f6f8ff}
 }
 .sprite{position:absolute;width:0;height:0;overflow:hidden}
 .pc.jam .shp{animation:none}
+
+/* ===================== M2.1 ===================== */
+/* Tall screens: the whole game column is centred vertically (fixed-height blocks => no layout shift). */
+@media (min-height: 641px) {
+  :root{ --vover: calc(332px + env(safe-area-inset-top) + env(safe-area-inset-bottom)); --legh: 40px; }
+  #app{justify-content:center}
+  .info{flex:0 0 auto;height:76px;min-height:76px;margin-top:6px}
+}
+/* Legend: all 8 markers, 2 rows x 4. Short screens: smaller text, short labels. <=500px tall: Rules only. */
+.legend{display:grid;grid-template-columns:repeat(4,auto);grid-auto-rows:1fr;justify-content:center;align-items:center;column-gap:12px;row-gap:2px;font-size:12px}
+.legend span{gap:4px;white-space:nowrap}
+.legend .lg{width:16px;height:16px}
+.legend b{font-weight:inherit}
+.legend .lgs{display:none}
+@media (max-height: 640px) {
+  :root{ --vover: calc(268px + env(safe-area-inset-top) + env(safe-area-inset-bottom)); --legh: 30px; }
+  .legend{font-size:10.5px;column-gap:8px;row-gap:0}
+  .legend .lg{width:13px;height:13px}
+  .legend .lgl{display:none} .legend .lgs{display:inline}
+}
+@media (max-height: 500px) {
+  :root{ --vover: calc(230px + env(safe-area-inset-top) + env(safe-area-inset-bottom)); }
+  .legend{display:none}
+}
+@media (max-width: 360px) { .legend{column-gap:6px} }
+.lg.lock{background:none;border:0} .lg.lock svg{width:100%;height:100%;display:block}
+.lg.underfire{border-radius:50%;background:var(--sqb)} .lg.underfire::after{inset:0;border-radius:50%;border:2px dashed #ff4d4d}
+.lg.foemove::after{left:50%;top:50%;width:70%;height:70%;transform:translate(-50%,-50%)}
+.lg.move::after{left:50%;top:50%;width:42%;height:42%;transform:translate(-50%,-50%)}
+
+/* Markers: dark outlines everywhere so they read on hatching, nebula and white hulls. */
+.ov.threat{background:repeating-linear-gradient(135deg,rgba(229,69,46,.9) 0 3px,rgba(0,0,0,.5) 3px 5px,transparent 5px 9px)}
+.lg.danger{background:repeating-linear-gradient(135deg,var(--mk-danger) 0 2px,#000 2px 3px,var(--sqb) 3px 5px)}
+.mk.move{box-shadow:0 0 0 3px rgba(0,0,0,.75)}
+.mk.lane{background:
+  linear-gradient(var(--mk-lane),var(--mk-lane)) center/calc(100% - 4px) 3px no-repeat,
+  linear-gradient(var(--mk-lane),var(--mk-lane)) center/3px calc(100% - 4px) no-repeat,
+  linear-gradient(rgba(0,0,0,.8),rgba(0,0,0,.8)) center/100% 7px no-repeat,
+  linear-gradient(rgba(0,0,0,.8),rgba(0,0,0,.8)) center/7px 100% no-repeat;filter:none}
+.mk.lane.withmove{opacity:.9}
+/* selection rings: coloured band between two dark bands, no tint fill */
+.ov.sel:not(.foe){background:none;box-shadow:inset 0 0 0 2px rgba(0,0,0,.85),inset 0 0 0 5px var(--ok),inset 0 0 0 7px rgba(0,0,0,.7)}
+.ov.sel.foe{background:none;box-shadow:inset 0 0 0 2px rgba(0,0,0,.85),inset 0 0 0 5px var(--mk-foesel),inset 0 0 0 7px rgba(0,0,0,.7)}
+.mk.move.foe{border-color:var(--mk-foe)}
+/* capture brackets on a (white) Blue ship, i.e. Red's captures while inspecting: deep pink-red instead of white */
+.pc.b ~ .mk.cap{--c:var(--mk-cap-b)}
+/* '!' = white badge, red rim and glyph: 17px badge, 12.5px glyph, clearly unlike the yellow lane plus */
+.mk.expose{--bs:17px;top:0;left:50%;right:auto;transform:translateX(-50%);width:var(--bs);height:var(--bs);box-sizing:border-box;
+  background:var(--mk-warn);color:var(--mk-warn-rim);border:2px solid var(--mk-warn-rim);border-radius:50%;
+  font-size:12.5px;font-weight:900;line-height:13px;text-align:center;box-shadow:0 0 0 1.5px rgba(0,0,0,.8)}
+.mk.cap.withexpose{top:19px;left:20%;right:20%;bottom:5%;--l:30%;--t:3px}
+.lg.expose{background:var(--mk-warn);color:var(--mk-warn-rim);border:2px solid var(--mk-warn-rim);border-radius:50%;font-size:11px;line-height:12px;font-weight:900;text-align:center}
+/* Flagship under fire ring */
+.pc.danger::before{border-color:#ff4d4d;box-shadow:0 0 0 1.5px rgba(0,0,0,.75),inset 0 0 0 1.5px rgba(0,0,0,.6)}
+/* Jammed ships keep their side's colours; a lock badge marks them */
+.pc.b.jam .shp{filter:drop-shadow(0 0 2.5px rgba(127,243,230,.7)) drop-shadow(0 0 1px rgba(232,196,106,.6))}
+.pc.r.jam .shp{filter:drop-shadow(0 0 2.5px rgba(255,43,214,.75))}
+.mk.lock{right:2%;bottom:2%;width:max(14px,calc(var(--cell) * .32));height:max(14px,calc(var(--cell) * .32));z-index:4}
+.mk.lock svg{width:100%;height:100%;display:block}
+.pc.F{width:90%;height:90%}
+
+/* Tap feedback: cancelled press = brief faint ring; hold on a Red ship = ring filling up before inspect. */
+.cell.nogo::after{content:"";position:absolute;inset:12%;border-radius:50%;border:2px solid rgba(255,255,255,.55);z-index:5;pointer-events:none;animation:nogo .4s ease-out forwards}
+@keyframes nogo{0%{opacity:.9;transform:scale(.8)}100%{opacity:0;transform:scale(1.08)}}
+@property --p{syntax:'<number>';inherits:false;initial-value:0}
+.cell.holding::before{content:"";position:absolute;inset:5%;border-radius:50%;z-index:5;pointer-events:none;opacity:0;
+  background:conic-gradient(var(--mk-foesel) calc(var(--p) * 1turn),rgba(255,255,255,.15) 0);
+  -webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 calc(100% - 3.5px));mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 calc(100% - 3.5px));
+  animation:holdfill var(--hold,350ms) linear 150ms forwards}
+@keyframes holdfill{from{--p:0;opacity:1}to{--p:1;opacity:1}}
+@media (prefers-reduced-motion: reduce){
+  .cell.holding::before{opacity:.9;--p:1}            /* static ring while holding */
+  .cell.nogo::after{opacity:.6}                      /* static faint ring for ~0.45s */
+}
