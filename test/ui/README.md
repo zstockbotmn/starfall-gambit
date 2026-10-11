@@ -1,4 +1,4 @@
 Headless UI checks (need `playwright-core` and Google Chrome; run from a folder where playwright-core is installed, e.g. NODE_PATH=/workspace/sg-tools/node_modules).
-- `node stress.js <url> [games] [width] [height]` – tap stress test (CDP touch, mouse, click-only; drift, holds, taps during the computer's delay and right after redraws). Must report 0 dropped.
-- `node shot6.js <url>` – layout/feature checks + screenshots at 390x844, 375x548, 320x460, 320x568.
+- `node stress.js <url> [games] [width] [height]` – tap stress test. Phase A: select/destination taps with mixed input (CDP touch, mouse, click-only), drift up to ~0.5 cell, holds, pre-selects and destination taps during the computer's delay (must do nothing), taps right after redraws. Phase C (env EDGE, default 60): drift < 0.25 cell across a border, lifts up to 8px outside the board edge, re-tap of the moved ship at ~160ms (and a ~60ms echo that must be ignored). Phase B (env SWIPES, default 150): swipes/drags that must change nothing. Must report 0 dropped, 0 swipe moves, 0 changes.
+- `node shot7.js <url>` – layout/feature checks + screenshots (screenshots/m1.6) at 390x844, 375x548, 320x460, 320x568.
 The game must be opened with `?debug` (the scripts add it) for the test hooks and the on-screen tap log.

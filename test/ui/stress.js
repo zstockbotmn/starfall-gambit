@@ -57,6 +57,17 @@ const pick = a => a[Math.floor(Math.random() * a.length)];
   const S = () => page.evaluate(() => { const s = SGDebug.state(); const sel = document.querySelector('.ov.sel:not(.foe)');
     return { ply: s.ply, turn: s.turn, w: s.winner, sel: sel ? +sel.closest('.cell').dataset.i : null, busy: SGDebug.busy() }; });
   const settle = () => page.waitForTimeout(30);
+  async function waitBlue() {
+    const t0 = Date.now();
+    try {
+      for (;;) {
+        if (await page.evaluate(() => SGDebug.state().turn === 0 || SGDebug.state().winner !== null)) break;
+        if (Date.now() - t0 > 8000) throw new Error('Red did not move within 8s');
+        await page.waitForTimeout(5);
+      }
+      R.maxRedWaitMs = Math.max(R.maxRedWaitMs || 0, Date.now() - t0);
+    } catch (e) { console.error('STUCK', JSON.stringify(await page.evaluate(() => ({ s: SGDebug.state(), busy: SGDebug.busy(), stats: SGDebug.stats(), log: document.getElementById('tapLog').textContent, modal: !document.getElementById('overModal').classList.contains('hidden') })))); throw e; }
+  }
   function drop(kind, info) { R.dropped++; R.drops.push({ kind, ...info }); }
   for (let g = 0; g < GAMES; g++) {
     await page.evaluate(seed => SGDebug.setState(SG.newGame(seed)), 500 + g);
@@ -73,9 +84,26 @@ const pick = a => a[Math.floor(Math.random() * a.length)];
             await tapCell(i, type); await settle();
             const t = await S(); R.kinds.preselect = (R.kinds.preselect || 0) + 1;
             if (t.turn === 1 && t.w === null && t.sel !== i) drop('preselect-during-delay', { i, type, t });
+            // ...and sometimes tap one of its destinations: must do nothing (no move, selection kept, no hatching / '!')
+            else if (t.turn === 1 && t.busy && Math.random() < 0.85) {
+              const dst = await page.evaluate(i => { const m = SG.pieceMoves(SGDebug.state(), i); return m.length ? m[Math.floor(Math.random() * m.length)].to : -1; }, i);
+              if (dst >= 0) {
+                const ply0 = t.ply; await tapCell(dst, pick(['touch', 'touch', 'mouse'])); await settle();
+                const u = await S(); R.kinds.redTurnDestination = (R.kinds.redTurnDestination || 0) + 1;
+                const ov = await page.evaluate(() => document.querySelectorAll('.ov.threat, .mk.expose, .ov.queued').length);
+                if (u.ply === ply0 && u.turn === 1) {
+                  if (u.sel !== i) drop('red-turn destination lost the selection', { i, dst, u });
+                  if (ov) { R.redTurnPreviews = (R.redTurnPreviews || 0) + 1; drop('hatching/! shown during Red turn', { i, dst }); }
+                } else if (u.ply === ply0 + 1 && (u.w !== null || (u.turn === 0 && (u.sel === i || await page.evaluate(i => { const p = SGDebug.state().board[i]; return !p || p.s !== 0; }, i))))) {
+                  // Red moved in between (and maybe captured the pre-selected ship): fine, nothing of ours played
+                  R.redTurnRace = (R.redTurnRace || 0) + 1;      // Red moved in between: fine, nothing of ours played
+                  const lm = await page.evaluate(() => SGDebug.state().lastMove.side); if (lm !== 1) drop('blue move played during Red turn', { i, dst });
+                } else drop('red-turn destination made a move', { i, dst, u, ply0 });
+              }
+            }
           }
         }
-        await page.waitForFunction(() => SGDebug.state().turn === 0 || SGDebug.state().winner !== null, null, { timeout: 5000, polling: 5 });
+        await waitBlue();
         continue;                                             // tap immediately after Red's redraw
       }
       const mv = await page.evaluate(() => SGAI.safeChooseMove(SGDebug.state(), 'easy'));
@@ -90,6 +118,58 @@ const pick = a => a[Math.floor(Math.random() * a.length)];
       await tapCell(mv.to, type); await settle();
       const t = await S(); R.kinds.destination = (R.kinds.destination || 0) + 1;
       if (t.ply !== ply0 + 1 && !(t.w !== null && t.ply === ply0 + 1)) drop('destination', { from: mv.from, to: mv.to, type, t });
+    }
+  }
+  // ---- Phase C: edge drift (< 0.25 cell across a border), lifts up to 8px outside the board, re-tap at ~160ms.
+  R.edge = { borderDrift: 0, edgeLift: 0, retap160: 0, echo60: 0 };
+  const EDGE = +(process.env.EDGE || 60);
+  const grid = () => page.evaluate(() => { const c = document.querySelectorAll('.cell'), a = c[0].getBoundingClientRect(), b = c[35].getBoundingClientRect(); return { l: a.left, t: a.top, r: b.right, b: b.bottom }; });
+  const touchPath = async pts => { await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: pts[0][0], y: pts[0][1] }] });
+    for (const p of pts.slice(1)) await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: p[0], y: p[1] }] });
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] }); };
+  const mousePath = async pts => { await page.mouse.move(pts[0][0], pts[0][1]); await page.mouse.down(); for (const p of pts.slice(1)) await page.mouse.move(p[0], p[1]); await page.mouse.up(); };
+  for (let k = 0; k < EDGE; k++) {
+    if (k % 12 === 0) await page.evaluate(seed => SGDebug.setState(SG.newGame(seed)), 700 + k);
+    await waitBlue();
+    if ((await S()).w !== null) { await page.evaluate(seed => SGDebug.setState(SG.newGame(seed)), 750 + k); }
+    let s0 = await S(); if (s0.sel !== null) { await tapCell(s0.sel, 'click'); await settle(); }
+    const own = await page.evaluate(() => { const s = SGDebug.state(); return s.board.map((p, i) => p && p.s === 0 && !SG.isNebula(s, i) && SG.pieceMoves(s, i).length ? i : -1).filter(i => i >= 0); });
+    const kind = pick(['borderDrift', 'borderDrift', 'edgeLift', 'retap160']);
+    const type = pick(['touch', 'touch', 'mouse']);
+    if (kind === 'borderDrift') {
+      const i = pick(own), [x, y, w] = await geo(i), ang = pick([0, Math.PI / 2, Math.PI, -Math.PI / 2, Math.PI / 4, -3 * Math.PI / 4]);
+      const st0 = rnd(0.36, 0.46), L = rnd(0.12, 0.235);       // starts near the border, crosses it, total < 0.25 cell
+      const dx = Math.cos(ang), dy = Math.sin(ang), sx = x + dx * st0 * w, sy = y + dy * st0 * w;
+      const pts = [[sx, sy], [sx + dx * L * w / 2, sy + dy * L * w / 2], [sx + dx * L * w, sy + dy * L * w]];
+      await (type === 'touch' ? touchPath(pts) : mousePath(pts)); await settle();
+      const t = await S(); R.edge.borderDrift++; R.taps++;
+      if (t.sel !== i) drop('border drift < 0.25 cell', { i, type, L, t });
+    } else if (kind === 'edgeLift') {
+      const g = await grid(), edgeOwn = own.filter(i => [0, 5].includes(i % 6) || [0, 5].includes(Math.floor(i / 6)));
+      if (!edgeOwn.length) continue;
+      const i = pick(edgeOwn), [x, y, w] = await geo(i), r = Math.floor(i / 6), c = i % 6, sides = [];
+      if (r === 0) sides.push([0, -1, g.t]); if (r === 5) sides.push([0, 1, g.b]); if (c === 0) sides.push([-1, 0, g.l]); if (c === 5) sides.push([1, 0, g.r]);
+      const [dx, dy, edge] = pick(sides), inset = rnd(0.12, 0.3) * w, out = rnd(1, 7.5), along = rnd(-0.3, 0.3) * w;
+      const sx = dx ? edge - dx * inset : x + along, sy = dy ? edge - dy * inset : y + along;
+      const ex = dx ? edge + dx * out : sx, ey = dy ? edge + dy * out : sy;
+      await (type === 'touch' ? touchPath([[sx, sy], [(sx + ex) / 2, (sy + ey) / 2], [ex, ey]]) : mousePath([[sx, sy], [ex, ey]])); await settle();
+      const t = await S(); R.edge.edgeLift++; R.taps++;
+      if (t.sel !== i) drop('lift <= 8px outside the board', { i, type, inset, out, t });
+    } else {
+      const mv = await page.evaluate(() => { const ms = SG.legalMoves(SGDebug.state()).filter(m => m.kind === 'move'); return ms[Math.floor(Math.random() * ms.length)]; });
+      if (!mv) continue;
+      await tapCell(mv.from, 'touch'); await settle();
+      const [x, y] = await geo(mv.to);
+      await touchPath([[x, y]]); const t0 = Date.now();
+      if (Math.random() < 0.3) {                               // echo: ~60ms later must NOT reselect
+        await page.waitForTimeout(40); await touchPath([[x, y]]); await settle();
+        const e = await S(); R.edge.echo60++; if (e.w === null && e.sel === mv.to && Date.now() - t0 < 150) drop('echo reselected', { mv });
+        await page.waitForTimeout(160);
+      } else {
+        await page.waitForTimeout(Math.max(0, 160 - (Date.now() - t0))); await touchPath([[x, y]]); await settle();
+        const t = await S(); R.edge.retap160++; R.taps++;
+        if (t.w === null && t.sel !== mv.to) drop('re-tap at ~160ms on the moved ship', { mv, t });
+      }
     }
   }
   // ---- Phase B: swipes / drags (touch + mouse). None may change the game.
@@ -115,7 +195,7 @@ const pick = a => a[Math.floor(Math.random() * a.length)];
     else if (kind === 'elsewhere-to-destination') pts = [[tx - w * 1.1, ty + w * 0.2], [tx - w * 0.5, ty], [tx, ty]];
     else if (kind === 'off-board') pts = [[tx, ty], [tx, ty - w * 0.4], [tx, bb.t - 30], [tx, Math.max(2, bb.t - 80)]];
     else if (kind === 'out-and-back') pts = [[tx, ty], [tx + w * 0.8, ty], [tx + w * 1.2, ty + w * 0.4], [tx + w * 0.1, ty]];
-    else if (kind === 'edge-lift-off') { const [ex, ey] = await geo(info.to % 6); pts = [[ex, bb.t + w * 0.08], [ex, bb.t - w * 0.15], [ex, bb.t - w * 0.35]]; }   // < 0.6 cell, ends off the board
+    else if (kind === 'edge-lift-off') { const [ex, ey] = await geo(info.to % 6); pts = [[ex, bb.t + w * 0.08], [ex, bb.t - w * 0.15], [ex, bb.t - Math.max(w * 0.35, 14)]]; }   // < 0.6 cell, ends > 8px off the board
     else if (kind === 'small-into-neighbour') pts = [[tx + w * 0.38, ty], [tx + w * 0.6, ty], [tx + w * 0.8, ty]];   // 0.42 cell, ends in the next square
     else pts = [[bb.l + 5, ty], [ (bb.l + bb.r) / 2, ty], [bb.r - 5, ty]];
     const type = pick(['touch', 'touch', 'mouse']);
@@ -134,5 +214,5 @@ const pick = a => a[Math.floor(Math.random() * a.length)];
   assert.equal(R.dropped, 0, 'dropped taps');
   assert.equal(R.accidentalMoves, 0, 'swipes made moves');
   assert.equal(R.accidentalChanges, 0, 'swipes changed selection');
-  console.log(`STRESS PASSED: ${R.taps} taps (max drift ${R.maxDriftCells} cell), 0 dropped; ${R.swipes} swipes, 0 moves, 0 changes`);
-})().catch(e => { console.error('FAIL', e.message); process.exit(1); });
+  console.log(`STRESS PASSED: ${R.taps} taps (max drift ${R.maxDriftCells} cell), 0 dropped; edge ${JSON.stringify(R.edge)}; red-turn destination taps ${R.kinds.redTurnDestination || 0}; ${R.swipes} swipes, 0 moves, 0 changes`);
+})().catch(async e => { console.error('FAIL', e.stack); process.exit(1); });

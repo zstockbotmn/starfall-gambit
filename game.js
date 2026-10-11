@@ -4,10 +4,10 @@
   var HUMAN = SG.BLUE, AI_SIDE = SG.RED, LEVEL = 'easy', AI_DELAY = 650, OVER_DELAY = 250, LONG_PRESS = 500;
   var GHOST_MS = 600;            // a pointer-generated click within this time of a pointer tap on the same square is its echo
   var DEBUG = /[?&]debug(=|&|$)/.test(location.search);
-  var st, sel = null, insp = null, marks = null, danger = [], opts = [], exposed = [], queued = null;
+  var st, sel = null, insp = null, marks = null, danger = [], opts = [], exposed = [];
   var busy = false, aiTimer = null, overTimer = null, gameId = 0, hintMsg = '', overShown = false;
   var $ = function (id) { return document.getElementById(id); };
-  var boardEl = $('board'), cells = [], cache = [];
+  var boardEl = $('board'), infoEl = document.querySelector('.info'), cells = [], cache = [];
   var SHIP_HINT = {
     F: 'Flagship: 1 square any direction. Keep it safe!',
     D: 'Drone: jumps in an L, even over ships and nebula.',
@@ -26,14 +26,18 @@
   // ---- Debug log (only with ?debug): every tap that did not change anything, and why.
   var dbgEl = null, dbgLines = [], stats = { taps: 0, handled: 0, ignored: 0, reasons: {}, cancelled: 0, cancelReasons: {}, moves: 0 };
   if (DEBUG) {
+    // Collapsible panel at the top of the screen (never over the warning / info area at the bottom).
+    var dbgBox = document.createElement('div'); dbgBox.className = 'taplogbox';
+    var dbgBtn = document.createElement('button'); dbgBtn.type = 'button'; dbgBtn.className = 'taplogbtn'; dbgBtn.textContent = 'log \u25BE';
     dbgEl = document.createElement('div'); dbgEl.id = 'tapLog'; dbgEl.className = 'taplog';
-    document.body.appendChild(dbgEl);
+    dbgBtn.onclick = function () { var c = dbgBox.classList.toggle('collapsed'); dbgBtn.textContent = c ? 'log \u25B8' : 'log \u25BE'; };
+    dbgBox.appendChild(dbgBtn); dbgBox.appendChild(dbgEl); document.body.appendChild(dbgBox);
   }
   function dlog(kind, msg) {
     if (kind === 'ignored') { stats.ignored++; stats.reasons[msg] = (stats.reasons[msg] || 0) + 1; }
     if (!DEBUG) return;
     dbgLines.unshift(new Date().toISOString().slice(17, 23) + ' ' + kind + ': ' + msg);
-    dbgLines.length = Math.min(dbgLines.length, 8);
+    dbgLines.length = Math.min(dbgLines.length, 5);
     dbgEl.textContent = dbgLines.join('\n');
   }
 
@@ -43,12 +47,24 @@
   // (that used to fire pointercancel and swallow taps). Because of that, drags must be rejected here:
   // a tap counts only if the press starts and ends on the same square and never travels more than
   // DRAG_CELLS x cell size (straight-line distance from the pointerdown point).
-  var DRAG_CELLS = 0.6;
+  // Edge drift: a press that moved less than SLOP_CELLS x cell counts on its START square even if the finger
+  // crossed a border; a lift up to EDGE_PX outside the board is treated as being on the nearest edge square.
+  // Between SLOP_CELLS and DRAG_CELLS the press must still end on its start square; beyond DRAG_CELLS it cancels.
+  var DRAG_CELLS = 0.6, SLOP_CELLS = 0.25, EDGE_PX = 8;
   var down = null, lpTimer = null, ghosts = [];
   function cellFrom(x, y) {
     var el = document.elementFromPoint(x, y);
     el = el && el.closest ? el.closest('.cell') : null;
     return el && boardEl.contains(el) ? +el.dataset.i : -1;
+  }
+  // Square under (x, y), or the nearest square if the point is at most EDGE_PX outside the grid; else -1.
+  function cellNear(x, y) {
+    var i = cellFrom(x, y); if (i >= 0) return i;
+    var a = cells[0].getBoundingClientRect(), b = cells[35].getBoundingClientRect();
+    if (x < a.left - EDGE_PX || x > b.right + EDGE_PX || y < a.top - EDGE_PX || y > b.bottom + EDGE_PX) return -1;
+    var cw = (b.right - a.left) / 6, ch = (b.bottom - a.top) / 6;
+    var c = Math.min(5, Math.max(0, Math.floor((x - a.left) / cw))), r = Math.min(5, Math.max(0, Math.floor((y - a.top) / ch)));
+    return r * 6 + c;
   }
   function clearPress() { clearTimeout(lpTimer); lpTimer = null; if (down) cells[down.i].classList.remove('press'); down = null; }
   function cancelPress(reason, detail) {
@@ -64,7 +80,7 @@
     if (down) cancelPress('second finger');
     ghosts = [];                                           // a new press means any pending echo click is stale
     var size = t.getBoundingClientRect().width;
-    down = { id: e.pointerId, i: +t.dataset.i, x: e.clientX, y: e.clientY, long: false, type: e.pointerType, max: DRAG_CELLS * size };
+    down = { id: e.pointerId, i: +t.dataset.i, x: e.clientX, y: e.clientY, long: false, type: e.pointerType, max: DRAG_CELLS * size, slop: SLOP_CELLS * size, ply: st.ply, gid: gameId };
     try { boardEl.setPointerCapture(e.pointerId); } catch (err) {}   // keep getting move/up even off the board
     t.classList.add('press');
     var d = down;
@@ -82,15 +98,21 @@
     var now = Date.now();
     if (!down || e.pointerId !== down.id) return;          // already cancelled (drag) or unknown pointer
     var d = down;
-    var i = cellFrom(e.clientX, e.clientY);
+    var i = cellNear(e.clientX, e.clientY);
     ghosts.push({ i: i, j: d.i, t: now });                 // swallow the browser's echo click either way
     var dist = Math.hypot(e.clientX - d.x, e.clientY - d.y);
     if (d.long) { clearPress(); return; }                  // the long-press already acted (inspect)
     if (dist > d.max) { cancelPress('drag over ' + DRAG_CELLS + ' cell', Math.round(dist) + 'px'); return; }
-    if (i < 0) { cancelPress('lifted off the board'); return; }
-    if (i !== d.i) { cancelPress('ended on a different square', SG.coord(i)); return; }
+    // Red moved while the finger was down: the tap was aimed at the old position, so it does nothing.
+    if (d.ply !== st.ply || d.gid !== gameId) { cancelPress('board changed during the press'); return; }
+    if (dist >= d.slop) {                                  // a real slide: must end on the start square
+      if (i < 0) { cancelPress('lifted off the board', Math.round(dist) + 'px'); return; }
+      if (i !== d.i) { cancelPress('ended on a different square', SG.coord(i) + ', ' + Math.round(dist) + 'px'); return; }
+    } else if (i !== d.i && DEBUG) {
+      dlog('drift', Math.round(dist) + 'px into ' + (i < 0 ? 'off-board' : SG.coord(i)) + ', counted on ' + SG.coord(d.i));
+    }
     clearPress();
-    tap(i, d.type);
+    tap(d.i, d.type);
   });
   boardEl.addEventListener('pointercancel', function (e) {
     if (down && e.pointerId === down.id) cancelPress('pointercancel from the browser');
@@ -117,7 +139,7 @@
   function firstGame() { try { return !localStorage.getItem('sg_played'); } catch (e) { return false; } }
 
   function start() {
-    clearTimeout(aiTimer); clearTimeout(overTimer); clearTimeout(queueTimer); aiTimer = overTimer = queueTimer = null; movedAt = null;
+    clearTimeout(aiTimer); clearTimeout(overTimer); aiTimer = overTimer = null; movedAt = null;
     gameId++;
     st = SG.newGame(); clearSel(); busy = false; overShown = false;
     hide('overModal');
@@ -126,7 +148,7 @@
     render();
   }
 
-  function clearSel() { sel = null; insp = null; marks = null; danger = []; opts = []; exposed = []; queued = null; }
+  function clearSel() { sel = null; insp = null; marks = null; danger = []; opts = []; exposed = []; }
 
   function inspect(i) {
     var pc = st.board[i];
@@ -145,33 +167,35 @@
       return;
     }
     sel = i;
-    opts = SG.pieceMoves(st, i); marks = SG.pieceMarkers(st, i); danger = SG.dangerSquares(st, i);
-    // '!' only for moves that NEWLY expose the Flagship; if it is already under attack, the single
-    // "Flagship under attack" warning line covers it instead of badges.
-    exposed = opts.filter(function (m) { return SG.newlyExposesFlagship(st, m); }).map(function (m) { return m.to; });
+    opts = SG.pieceMoves(st, i); marks = SG.pieceMarkers(st, i);
+    // Danger hatching and '!' badges depend on Red's reply, so they are only shown on your turn
+    // (a pre-selection made while Red is thinking gets them once Red has moved).
+    if (st.turn === HUMAN) {
+      danger = SG.dangerSquares(st, i);
+      // '!' only for moves that NEWLY expose the Flagship; if it is already under attack, the single
+      // "Flagship under attack" warning line covers it instead of badges.
+      exposed = opts.filter(function (m) { return SG.newlyExposesFlagship(st, m); }).map(function (m) { return m.to; });
+    }
     hintMsg = !opts.length ? 'That ship has no moves right now.' : SHIP_HINT[pc.t] +
       (exposed.length ? ' \u26A0 ! = leaves your Flagship open.' : '');
   }
 
-  var QUEUE_DELAY = 350, queueTimer = null, movedAt = null;   // movedAt: {i, t} of the last move you made by tapping
+  // movedAt: {i, t} of the last move you made by tapping. The second tap of a quick double-tap (< ECHO_MS)
+  // on the ship that just moved is ignored; a genuine re-tap after that reselects it.
+  var ECHO_MS = 150, movedAt = null;
 
   // Returns {did} or {ignored: reason} for the debug log / stress test.
   function onCell(i) {
     var pc = st.board[i], now = Date.now();
     var over = st.winner !== null, myTurn = !busy && !over && st.turn === HUMAN;
-    if (queueTimer) return { ignored: 'playing your queued move' };
     // Second tap of a double-tap lands on the ship that just moved there: don't reselect it.
-    if (movedAt && movedAt.i === i && now - movedAt.t < 450 && pc && pc.s === HUMAN) return { ignored: 'double-tap echo on the ship that just moved' };
+    if (movedAt && movedAt.i === i && now - movedAt.t < ECHO_MS && pc && pc.s === HUMAN) return { ignored: 'double-tap echo on the ship that just moved' };
     if (sel !== null) {
       var m = opts.filter(function (o) { return o.to === i; })[0];
       if (m) {
         if (over) { render(); return { ignored: 'game over' }; }
-        if (!myTurn) {                                        // Red's turn: queue it
-          if (queued && queued.to === i) { queued = null; hintMsg = 'Queued move cancelled.'; render(); return { did: 'unqueue' }; }
-          queued = { from: sel, to: i, kind: m.kind, cap: !!m.cap };
-          hintMsg = 'Queued: plays right after Red moves, if it\u2019s still legal.';
-          render(); return { did: 'queued' };
-        }
+        // Red's turn: nothing happens and the selection stays; markers are redrawn after Red moves.
+        if (!myTurn) return { ignored: 'destination during Red\u2019s turn (selection kept)' };
         clearSel(); movedAt = m.kind === 'move' ? { i: i, t: now } : null;   // shots: the Lancer stays put, nothing to guard
         commit(m);
         return { did: 'move' };
@@ -194,19 +218,14 @@
     var wasShot = m.kind === 'shot', target = m.to, redMove = st.turn === AI_SIDE;
     if (!redMove) { try { localStorage.setItem('sg_played', '1'); } catch (e) {} }
     var keep = redMove && sel !== null ? sel : null;           // a pre-selection survives Red's move
-    var keepType = keep !== null ? st.board[keep].t : null, q = redMove ? queued : null;
+    var keepType = keep !== null ? st.board[keep].t : null;
     st = SG.applyMove(st, m);
     clearSel(); hintMsg = '';
-    var playQueued = null;
     if (keep !== null && st.winner === null) {
       if (st.board[keep] && st.board[keep].s === HUMAN) {
         selectOwn(keep);                                       // markers recomputed for the new position
-        if (q) {
-          playQueued = SG.pieceMoves(st, q.from).filter(function (x) { return x.to === q.to && x.kind === q.kind && !!x.cap === q.cap; })[0] || null;
-          hintMsg = playQueued ? 'Playing your queued move\u2026' : 'Wait for Red: your queued move isn\u2019t possible any more.';
-        }
       } else {
-        hintMsg = 'Your selected ' + SG.NAMES[keepType] + ' was captured.' + (q ? ' Queued move cancelled.' : '');
+        hintMsg = 'Your selected ' + SG.NAMES[keepType] + ' was captured.';
       }
     }
     $('lastMove').textContent = SG.describeMove(st.lastMove) + '.';
@@ -217,19 +236,6 @@
     if (st.winner !== null) {
       var id = gameId;
       overTimer = setTimeout(function () { overTimer = null; if (id === gameId && st.winner !== null) gameOver(); }, OVER_DELAY);
-      return;
-    }
-    if (playQueued) {
-      if (playQueued) queued = { from: playQueued.from, to: playQueued.to };   // keep the queued marker visible
-      render();
-      var g0 = gameId;
-      queueTimer = setTimeout(function () {
-        queueTimer = null; queued = null;
-        if (g0 !== gameId || st.winner !== null || st.turn !== HUMAN) { render(); return; }
-        var mv = SG.pieceMoves(st, playQueued.from).filter(function (x) { return x.to === playQueued.to && x.kind === playQueued.kind; })[0];
-        clearSel();
-        if (mv) commit(mv); else render();
-      }, QUEUE_DELAY);
       return;
     }
     if (st.turn === AI_SIDE) {
@@ -262,7 +268,6 @@
       if (lm && (lm.from === i || lm.to === i)) html += '<i class="ov last"></i>';
       if (warn && st.nextNebula.indexOf(i) >= 0) html += '<i class="ov forecast"></i>';
       if (sel === i || insp === i) html += '<i class="ov sel' + foe + '"></i>';
-      if (queued && queued.to === i) html += '<i class="ov queued"></i>';
       if (pc) {
         html += '<span class="pc ' + (pc.s === SG.BLUE ? 'b' : 'r') + ' ' + pc.t +
           (SG.isNebula(st, i) ? ' jam' : '') + (i === flagDanger ? ' danger' : '') +
@@ -277,7 +282,6 @@
         label += (mv ? ', move' : '') + (ln ? ', fire lane' : '') + (cp ? ', capture' : '');
       }
       if (has(exposed, i)) { html += '<i class="mk expose">!</i>'; label += ', leaves your Flagship open'; }
-      if (queued && queued.to === i) label += ', queued';
       if (has(danger, i)) label += ', danger';
       var k = cache[i];
       if (k.cls !== cls) { c.className = cls; k.cls = cls; }
@@ -298,6 +302,7 @@
     // Warning line has its own slot above everything else in the info area, so it is never clipped.
     var wtxt = flagDanger >= 0 && st.turn === HUMAN ? '\u26A0 Your Flagship is under attack!' : '';
     if ($('warn').textContent !== wtxt) $('warn').textContent = wtxt;
+    infoEl.classList.toggle('haswarn', !!wtxt);   // short screens: hint drops to 1 line so 'what Red did' stays visible
     if ($('hint').textContent !== hintMsg) $('hint').textContent = hintMsg;
     tray('trayRed', st.captured[HUMAN], 'r', 'Captured:');
     tray('trayBlue', st.captured[AI_SIDE], 'b', 'Lost:');
@@ -349,7 +354,7 @@
   if (DEBUG) {
     window.SGDebug = {
       state: function () { return st; },
-      setState: function (s) { clearTimeout(aiTimer); clearTimeout(overTimer); clearTimeout(queueTimer); aiTimer = overTimer = queueTimer = null; movedAt = null; busy = false; gameId++;
+      setState: function (s) { clearTimeout(aiTimer); clearTimeout(overTimer); aiTimer = overTimer = null; movedAt = null; busy = false; gameId++;
         st = s; clearSel(); hintMsg = ''; overShown = false; hide('overModal'); },
       stats: function () { return JSON.parse(JSON.stringify(stats)); },
       busy: function () { return busy; }

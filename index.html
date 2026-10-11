@@ -10,7 +10,7 @@
 <meta name="theme-color" content="#070b1a">
 <title>Starfall Gambit</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ctext y=%22.9em%22 font-size=%2290%22%3E%E2%98%85%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="style.css?v=7">
+<link rel="stylesheet" href="style.css?v=8">
 </head>
 <body>
 <div id="app">
@@ -62,7 +62,7 @@
       <li><i class="lg expose">!</i><div><b>! badge = Flagship warning.</b> Making this move would leave your currently safe Flagship open to capture. If your Flagship is already under attack, you get one warning line instead. You're still allowed to do it.</div></li>
       <li><i class="lg danger"></i><div><b>Hatching = danger.</b> If your selected ship moves there, Red could capture it next turn. This already takes into account a nebula shift your move would trigger. A hatched square under the ship itself means it's under attack right now.</div></li>
     </ul>
-    <p class="small"><b>Read enemy threats:</b> tap a Red ship, or press and hold any Red ship, to see where it can move, fire and capture. Tap anywhere else to close. The view also closes when the next move is made. You can select your own ship while Red is thinking, and your selection stays after Red moves. If you also tap a destination while Red is thinking, the move is queued (dotted ring) and played right after Red moves, if it's still possible. Otherwise you'll see “Wait for Red”. A tap only counts if your finger starts and ends on the same square; swipes and drags across the board do nothing.</p>
+    <p class="small"><b>Read enemy threats:</b> tap a Red ship, or press and hold any Red ship, to see where it can move, fire and capture. Tap anywhere else to close. The view also closes when the next move is made. You can select your own ship while Red is thinking. Your selection stays, and its markers (including danger stripes and ! warnings) appear once Red has moved. Tapping a destination while Red is thinking does nothing, so tap it again after Red moves. A tap counts on the square where your finger went down, even if it drifts slightly; swipes and drags across the board do nothing.</p>
     <h3>Your fleet (7 ships)</h3>
     <ul class="pieces">
       <li><span class="pc mini b F"><span class="ic">F</span></span><div><b>Flagship ×1</b>: moves 1 square in any direction and captures by moving onto an enemy. If it's destroyed, you lose.</div></li>
@@ -105,8 +105,8 @@
   </div>
 </div>
 
-<script src="engine.js?v=7"></script>
-<script src="ai.js?v=7"></script>
-<script src="game.js?v=7"></script>
+<script src="engine.js?v=8"></script>
+<script src="ai.js?v=8"></script>
+<script src="game.js?v=8"></script>
 </body>
 </html>

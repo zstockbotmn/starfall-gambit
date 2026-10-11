@@ -1,7 +1,7 @@
 const { chromium, devices } = require('playwright-core');
 const assert = require('assert');
 const BASE = process.argv[2] || 'http://127.0.0.1:8765/';
-const out = '/workspace/starfall-gambit/screenshots/m1.5';
+const out = '/workspace/starfall-gambit/screenshots/m1.6';
 require('fs').rmSync(out, { recursive: true, force: true }); require('fs').mkdirSync(out, { recursive: true });
 const sq = s => (6 - +s[1]) * 6 + 'abcdef'.indexOf(s[0]);
 const C = s => `.cell[data-i="${sq(s)}"]`;
@@ -13,35 +13,86 @@ const forceRed = (page, from, to) => page.evaluate(([f, t]) => { window.__forced
   if (!window.__origAI) { window.__origAI = SGAI.safeChooseMove; SGAI.safeChooseMove = function (st, lv) {
     if (window.__forced) { const [a, b] = window.__forced; window.__forced = null; const m = SG.legalMoves(st).find(x => x.from === a && x.to === b); if (m) return m; }
     return window.__origAI(st, lv); }; } }, [sq(from), sq(to)]);
-const marks = page => page.evaluate(() => { const r = { move: [], cap: [], sel: [], expose: [], queued: [] }, f = i => 'abcdef'[i % 6] + (6 - Math.floor(i / 6));
+const marks = page => page.evaluate(() => { const r = { move: [], cap: [], sel: [], expose: [], queued: [], threat: [] }, f = i => 'abcdef'[i % 6] + (6 - Math.floor(i / 6));
   document.querySelectorAll('.cell').forEach(c => { const i = +c.dataset.i;
     if (c.querySelector('.mk.move')) r.move.push(f(i)); if (c.querySelector('.mk.cap')) r.cap.push(f(i)); if (c.querySelector('.ov.sel')) r.sel.push(f(i));
-    if (c.querySelector('.mk.expose')) r.expose.push(f(i)); if (c.querySelector('.ov.queued')) r.queued.push(f(i)); }); return r; });
+    if (c.querySelector('.mk.expose')) r.expose.push(f(i)); if (c.querySelector('.ov.queued')) r.queued.push(f(i)); if (c.querySelector('.ov.threat')) r.threat.push(f(i)); }); return r; });
 const ply = page => page.evaluate(() => SGDebug.state().ply);
 const hint = page => page.textContent('#hint');
 
 async function features(page, tag) {
   const R = {};
-  // Queue (legal): Blue F a1, D b1, L f2; Red F f6, D e5. Blue moves L f2->f3, then during Red's delay selects D b1 and taps a3.
-  await setPos(page, { a1: 'F0', b1: 'D0', f2: 'L0', f6: 'F1', e5: 'D1' });
+  const cdp = await page.context().newCDPSession(page);
+  const geo = c => page.$eval(C(c), e => { const r = e.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2, r.width]; });
+  const touch = async (pts, gap) => { await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: pts[0][0], y: pts[0][1] }] });
+    for (const p of pts.slice(1)) await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: p[0], y: p[1] }] });
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] }); };
+  const tapAt = async c => { const g = await geo(c); await touch([[g[0], g[1]]]); };
+  // 1+5. Destination tap during Red's turn does nothing; no hatching / '!' until Red has moved.
+  // Blue F a1, D b1, L f2; Red F f6, D b5 (attacks a3, c3). Blue L f2->f3, then during Red's delay select D b1 and tap a3.
+  await setPos(page, { a1: 'F0', b1: 'D0', f2: 'L0', f6: 'F1', b5: 'D1' });
   await forceRed(page, 'f6', 'e6');
   await page.tap(C('f2')); await page.tap(C('f3'));
   await page.tap(C('b1')); await page.tap(C('a3'));
-  let m = await marks(page); assert.deepEqual(m.queued, ['a3'], 'queued marker'); R.queuedHint = await hint(page);
-  await page.screenshot({ path: `${out}/${tag}-queued-move.png` });
-  await page.waitForFunction(() => SGDebug.state().ply === 3, null, { timeout: 4000 });
-  assert.equal(await page.evaluate(q => SGDebug.state().board[q] && SGDebug.state().board[q].t, sq('a3')), 'D', 'queued move played');
+  let m = await marks(page);
+  assert.equal(await ply(page), 1, 'no move during Red turn'); assert.deepEqual(m.sel, ['b1'], 'selection kept');
+  assert.deepEqual(m.threat, [], 'no hatching during Red turn'); assert.deepEqual(m.queued, [], 'no queue marker');
+  assert.ok(m.move.includes('a3'), 'move markers shown'); R.redTurnHint = await hint(page); assert.ok(!/Wait for Red|[Qq]ueue/.test(R.redTurnHint));
+  await page.screenshot({ path: `${out}/${tag}-redturn-preselect-no-hatching.png` });
+  await page.waitForFunction(() => SGDebug.state().ply === 2, null, { timeout: 4000 }); await page.waitForTimeout(200);
+  m = await marks(page); assert.equal(await ply(page), 2, 'nothing auto-played'); assert.deepEqual(m.sel, ['b1']);
+  assert.deepEqual(m.threat.sort(), ['a3', 'c3'], 'hatching appears after Red moved');
+  await page.screenshot({ path: `${out}/${tag}-after-red-markers.png` });
+  await page.tap(C('a3')); assert.equal(await ply(page), 3, 'tap again after Red moves plays it');
   await page.waitForFunction(() => SGDebug.state().turn === 0, null, { timeout: 4000 });
-  // Queue (no longer legal): Red Drone lands on a3 -> Blue's quiet move to a3 is now a capture -> not played
-  await setPos(page, { a1: 'F0', b1: 'D0', f2: 'L0', f6: 'F1', b5: 'D1' });
-  await forceRed(page, 'b5', 'a3');
-  await page.tap(C('f2')); await page.tap(C('f3'));
-  await page.tap(C('b1')); await page.tap(C('a3'));
-  await page.waitForFunction(() => SGDebug.state().ply === 2 && SGDebug.state().turn === 0, null, { timeout: 4000 });
-  await page.waitForTimeout(450);
-  R.illegalQueueHint = await hint(page); assert.ok(/Wait for Red/.test(R.illegalQueueHint)); assert.equal(await ply(page), 2);
-  m = await marks(page); assert.deepEqual(m.sel, ['b1'], 'selection kept'); assert.ok(m.cap.includes('a3'), 'markers recomputed after Red (a3 now a capture)');
-  await page.screenshot({ path: `${out}/${tag}-queued-move-not-legal.png` });
+  // 5. '!' badges: none during Red's turn, shown after Red moved
+  await setPos(page, { d1: 'F0', d2: 'S0', a1: 'L0', d4: 'L1', f6: 'F1' });
+  await forceRed(page, 'f6', 'e6');
+  await page.tap(C('a1')); await page.tap(C('a2')); await page.tap(C('d2'));
+  m = await marks(page); assert.deepEqual(m.sel, ['d2']); assert.deepEqual(m.expose, [], "no '!' during Red turn");
+  await page.waitForFunction(() => SGDebug.state().ply === 2, null, { timeout: 4000 }); await page.waitForTimeout(100);
+  m = await marks(page); assert.deepEqual(m.expose.sort(), ['c2', 'e2'], "'!' after Red moved");
+  await page.screenshot({ path: `${out}/${tag}-expose-after-red.png` });
+  // 2. Warning + what Red just did + hint all visible (Red Drone b5->c3 attacks the Flagship on d1)
+  await setPos(page, { d1: 'F0', d2: 'S0', a1: 'L0', f6: 'F1', b5: 'D1' });
+  await forceRed(page, 'b5', 'c3');
+  await page.tap(C('a1')); await page.tap(C('a2'));
+  await page.waitForFunction(() => SGDebug.state().ply === 2, null, { timeout: 4000 });
+  await page.tap(C('a2'));
+  R.info = await page.evaluate(() => { const info = document.querySelector('.info').getBoundingClientRect(), lim = Math.min(innerHeight, info.bottom) + 0.5;
+    const v = id => { const e = document.getElementById(id), r = e.getBoundingClientRect(); return { text: e.textContent, top: Math.round(r.top), bottom: Math.round(r.bottom), h: Math.round(r.height), ok: r.height >= 14 && r.bottom <= lim && r.top >= info.top - 0.5 }; };
+    return { warn: v('warn'), last: v('lastMove'), hint: v('hint'), infoH: Math.round(info.height) }; });
+  assert.equal(R.info.warn.text, '\u26A0 Your Flagship is under attack!'); assert.ok(/Red/.test(R.info.last.text));
+  assert.ok(R.info.warn.ok && R.info.last.ok && R.info.hint.ok, 'warning, last move and hint all visible ' + JSON.stringify(R.info));
+  await page.screenshot({ path: `${out}/${tag}-warning-with-red-move.png` });
+  // 4. Re-tap on the ship that just moved: ~50ms (double-tap echo) ignored, ~160ms reselects
+  await setPos(page, { a1: 'F0', b1: 'D0', f6: 'F1' });
+  await tapAt('b1'); await tapAt('c3'); await page.waitForTimeout(50); await tapAt('c3');
+  m = await marks(page); assert.equal(await ply(page), 1); assert.deepEqual(m.sel, [], 'echo at ~50ms ignored');
+  await page.waitForTimeout(900);
+  await setPos(page, { a1: 'F0', b1: 'D0', f6: 'F1' });
+  await tapAt('b1'); await tapAt('c3'); await page.waitForTimeout(160); await tapAt('c3');
+  m = await marks(page); assert.equal(await ply(page), 1); assert.deepEqual(m.sel, ['c3'], 're-tap at ~160ms reselects');
+  await page.waitForTimeout(900);
+  // 3. Edge drift: < 0.25 cell across a border counts on the start square; lift <= 8px outside the board counts; 14px outside cancels
+  await setPos(page, { a1: 'F0', b1: 'D0', f6: 'F1' });
+  let g = await geo('b1');
+  await touch([[g[0] + g[2] * 0.4, g[1]], [g[0] + g[2] * 0.52, g[1]], [g[0] + g[2] * 0.62, g[1]]]);   // 0.22 cell, ends in c1
+  m = await marks(page); assert.deepEqual(m.sel, ['b1'], 'drift across border counts on start'); R.driftLog = (await page.textContent('#tapLog')).split('\n').slice(0, 2);
+  await page.screenshot({ path: `${out}/${tag}-edge-drift.png` });
+  await tapAt('b1'); m = await marks(page); assert.deepEqual(m.sel, []);
+  const bb = await page.evaluate(() => document.querySelectorAll('.cell')[35].getBoundingClientRect().bottom);
+  await touch([[g[0], bb - g[2] * 0.2], [g[0], bb + 3], [g[0], bb + 7]]);   // lifts 7px below the board
+  m = await marks(page); assert.deepEqual(m.sel, ['b1'], 'lift within 8px outside counts');
+  await tapAt('b1');
+  await touch([[g[0], bb - g[2] * 0.2], [g[0], bb + 8], [g[0], bb + 14]]);  // 14px outside: cancelled
+  m = await marks(page); assert.deepEqual(m.sel, [], 'lift 14px outside cancels');
+  R.edgeLog = (await page.textContent('#tapLog')).split('\n')[0]; assert.ok(/lifted off the board/.test(R.edgeLog));
+  await touch([[g[0], g[1]], [g[0] + g[2] * 0.4, g[1]], [g[0] + g[2] * 0.62, g[1]]]);   // 0.62 cell: swipe cancel
+  m = await marks(page); assert.deepEqual(m.sel, [], '0.6 swipe cancel kept');
+  await touch([[g[0] + g[2] * 0.2, g[1]], [g[0] + g[2] * 0.45, g[1]], [g[0] + g[2] * 0.6, g[1]]]);   // 0.4 cell into c1: cancelled
+  m = await marks(page); assert.deepEqual(m.sel, [], '0.25-0.6 into neighbour cancels');
+  assert.ok(/ended on a different square/.test((await page.textContent('#tapLog')).split('\n')[0]));
   // Pre-selected ship captured by Red
   await setPos(page, { a1: 'F0', b1: 'D0', f2: 'L0', f6: 'F1', c3: 'D1' });
   await forceRed(page, 'c3', 'b1');
@@ -58,11 +109,6 @@ async function features(page, tag) {
   await page.waitForFunction(() => SGDebug.state().ply === 2, null, { timeout: 4000 });
   m = await marks(page); assert.deepEqual(m.sel, ['a1']); assert.ok(m.cap.includes('a4'), 'pre-selection recomputed');
   await page.screenshot({ path: `${out}/${tag}-preselect-recomputed.png` });
-  // Double-tap a destination: the moved ship must not be reselected
-  await setPos(page, { a1: 'F0', b1: 'D0', f6: 'F1' });
-  await page.tap(C('b1')); await page.tap(C('c3')); await page.tap(C('c3'));
-  m = await marks(page); assert.equal(await ply(page), 1); assert.deepEqual(m.sel, [], 'not reselected after double-tap');
-  await page.waitForTimeout(900);
   // '!' only when newly exposed + badge not covering bracket
   await setPos(page, { d1: 'F0', d2: 'S0', a1: 'L0', d4: 'L1', f6: 'F1', c2: 'D1' });
   await page.tap(C('d2'));
@@ -82,8 +128,7 @@ async function features(page, tag) {
   R.warnFullyVisible = wv; assert.ok(wv, 'warning not clipped');
   await page.screenshot({ path: `${out}/${tag}-flagship-under-attack.png` });
   // ?debug log of a cancelled swipe
-  const cdp = await page.context().newCDPSession(page);
-  const g = await page.$eval(C('d2'), e => { const r = e.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2, r.width]; });
+  g = await page.$eval(C('d2'), e => { const r = e.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2, r.width]; });
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: g[0], y: g[1] }] });
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: g[0] - g[2] * 1.2, y: g[1] }] });
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
@@ -91,7 +136,12 @@ async function features(page, tag) {
   R.logTop = (await page.textContent('#tapLog')).split('\n')[0];
   assert.ok(/cancelled: drag over 0.6 cell/.test(R.logTop));
   assert.equal(await ply(page), 0);
+  R.logPanel = await page.evaluate(() => { const b = document.querySelector('.taplogbox').getBoundingClientRect(), w = document.getElementById('warn').getBoundingClientRect(), info = document.querySelector('.info').getBoundingClientRect();
+    return { bottom: Math.round(b.bottom), warnTop: Math.round(w.top), clear: b.bottom <= info.top && b.bottom <= w.top }; });
+  assert.ok(R.logPanel.clear, 'debug log clear of warning');
   await page.screenshot({ path: `${out}/${tag}-debug-cancel-log.png` });
+  await page.click('.taplogbtn'); assert.ok(!(await page.isVisible('#tapLog')), 'log collapses');
+  await page.click('.taplogbtn'); assert.ok(await page.isVisible('#tapLog'), 'log expands');
   return R;
 }
 
