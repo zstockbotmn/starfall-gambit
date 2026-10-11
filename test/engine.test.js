@@ -37,17 +37,63 @@ g = empty(); g.board[SG.idx(5,0)] = {t:'F',s:0}; g.board[SG.idx(2,0)] = {t:'L',s
 const win = SG.legalMoves(g).find(m => m.cap && m.cap.t==='F');
 assert.ok(win); assert.equal(SG.applyMove(g, win).winner, 0);
 
-// --- Nebula schedule: pulses every 6 plies, symmetric, 4 cells in middle rows
-st = SG.newGame(7);
-let pulses = 0;
-for (let i = 0; i < 30 && st.winner === null; i++) {
-  const before = st.nebula;
-  st = SG.applyMove(st, SG.legalMoves(st)[0]);
-  if (st.pulsed) { pulses++; assert.equal(st.ply % 6, 0); assert.notEqual(st.nebula, before); }
-  for (const c of st.nebula) { assert.ok(c >= 6 && c < 30); assert.ok(st.nebula.includes(35 - c), 'symmetric'); }
-  assert.ok(st.nebula.length === 0 || st.nebula.length === 4);
+// --- Nebula schedule: alternating pulse plies, top-to-bottom mirror, 4 cells in rows 1..4 (0-based), no overlap with previous
+assert.deepEqual([1,2,3,4,5,6].map(SG.pulsePly), [6,13,18,25,30,37]);
+for (let seed = 1; seed <= 300; seed++) {
+  st = SG.newGame(seed);
+  let pulses = 0, nextMover = [];
+  while (st.winner === null && st.ply < SG.MAX_PLY) {
+    const before = st.nebula;
+    st = SG.applyMove(st, AI.chooseMove(st, 'easy'));
+    if (st.winner !== null) break;
+    if (st.pulsed) {
+      pulses++;
+      assert.equal(st.ply, SG.pulsePly(pulses), 'pulse timing');
+      nextMover.push(st.turn);
+      assert.equal(st.nebula.length, 4);
+      for (const c of st.nebula) assert.ok(!before.includes(c), 'new nebula never overlaps the previous one');
+    }
+    for (const c of st.nebula) { assert.ok(c >= 6 && c < 30, 'middle rows only'); assert.ok(st.nebula.includes(SG.mirrorCell(c)), 'mirrored top-to-bottom'); }
+    for (const c of st.nextNebula) assert.ok(!st.nebula.includes(c), 'forecast never overlaps current nebula');
+  }
+  for (let k = 1; k < nextMover.length; k++) assert.notEqual(nextMover[k], nextMover[k - 1], 'side reacting first alternates');
 }
-assert.ok(pulses >= 1);
+// Setup uses the same top-to-bottom mirror symmetry as the nebula
+st = SG.newGame(3);
+for (let i = 0; i < 36; i++) { const a = st.board[i], b = st.board[SG.mirrorCell(i)];
+  assert.equal(!!a, !!b); if (a) { assert.equal(a.t, b.t); assert.notEqual(a.s, b.s); } }
+// Display round: during play = current round; after game over = round of the final move
+assert.equal(SG.displayRound({ ply: 0, winner: null }), 1);
+assert.equal(SG.displayRound({ ply: 45, winner: null }), 23);
+assert.equal(SG.displayRound({ ply: 46, winner: 1 }), 23, 'Red wins on its move of round 23');
+assert.equal(SG.displayRound({ ply: 45, winner: 0 }), 23, 'Blue wins on its move of round 23');
+// Lancer threat map: own ships block, ignore-square treated as empty, shields not threatened
+g = empty();
+g.board[SG.idx(0,0)] = {t:'L',s:1}; g.board[SG.idx(2,0)] = {t:'D',s:0}; g.board[SG.idx(0,2)] = {t:'S',s:0};
+let th = SG.lancerThreats(g, 1, -1);
+assert.ok(th.includes(SG.idx(1,0)) && th.includes(SG.idx(2,0)) && !th.includes(SG.idx(3,0)), 'stops at first ship');
+assert.ok(th.includes(SG.idx(0,1)) && !th.includes(SG.idx(0,2)), 'shield not threatened & blocks');
+th = SG.lancerThreats(g, 1, SG.idx(2,0));
+assert.ok(th.includes(SG.idx(3,0)) && !th.includes(SG.idx(4,0)), 'moving ship unblocks the line, range 3');
+// safeChooseMove: falls back when chooseMove throws or returns null / illegal
+st = SG.newGame(9);
+const realChoose = AI.chooseMove;
+AI.chooseMove = () => { throw new Error('boom'); };
+assert.ok(AI.safeChooseMove(st, 'easy'), 'fallback on throw');
+AI.chooseMove = () => null;
+assert.ok(AI.safeChooseMove(st, 'easy'), 'fallback on null');
+AI.chooseMove = () => ({ from: 0, to: 35, kind: 'move' });
+const fb = AI.safeChooseMove(st, 'easy');
+assert.ok(SG.legalMoves(st).some(m => m.from === fb.from && m.to === fb.to), 'fallback on illegal');
+AI.chooseMove = realChoose;
+// Stranded: a side with no legal move loses
+g = empty(); g.turn = 0;
+g.board[SG.idx(5,0)] = {t:'F',s:0}; g.board[SG.idx(4,0)] = {t:'S',s:0}; g.board[SG.idx(4,1)] = {t:'S',s:0};
+g.board[SG.idx(0,5)] = {t:'F',s:1}; g.board[SG.idx(0,4)] = {t:'L',s:1};
+g.nebula = [SG.idx(5,1)];   // flagship boxed in by own shields + nebula; shields: (4,0) can go up, so jam them
+g.nebula = [SG.idx(5,1), SG.idx(4,0), SG.idx(4,1), SG.idx(3,3)];
+const lm = SG.legalMoves(g);
+assert.equal(lm.length, 0, 'blue stranded');
 
 // --- Many AI-vs-AI games
 function play(levelB, levelR, seed) {
@@ -62,7 +108,7 @@ function play(levelB, levelR, seed) {
       if (m.cap) assert.notEqual(m.cap.s, s.turn, 'never captures own piece');
       if (m.kind === 'shot') assert.notEqual(m.cap.t, 'S', 'shield never shot');
     }
-    const m = AI.chooseMove(s, s.turn === 0 ? levelB : levelR);
+    const m = AI.safeChooseMove(s, s.turn === 0 ? levelB : levelR);
     assert.ok(m, 'AI returned a move');
     s = SG.applyMove(s, m);
     assert.ok(s.ply <= SG.MAX_PLY, 'turn cap respected');

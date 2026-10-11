@@ -10,7 +10,7 @@
 <meta name="theme-color" content="#070b1a">
 <title>Starfall Gambit</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ctext y=%22.9em%22 font-size=%2290%22%3E%E2%98%85%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="style.css?v=1">
+<link rel="stylesheet" href="style.css?v=2">
 </head>
 <body>
 <div id="app">
@@ -23,7 +23,7 @@
   </header>
 
   <section class="status">
-    <div id="turn" class="turn">Your turn</div>
+    <div class="turnwrap"><div id="turn" class="turn">Your turn</div><button id="btnResult" class="btn small hidden" type="button">Result</button></div>
     <div class="meta">
       <span id="round">Round 1/40</span>
       <span id="nebulaInfo" class="neb">Nebula in 3</span>
@@ -43,30 +43,38 @@
 <div id="rulesModal" class="modal hidden" role="dialog" aria-modal="true">
   <div class="card scroll">
     <h2>How to play</h2>
-    <p><b>Goal:</b> destroy the enemy <b>Flagship</b>. You are <b class="blue">Blue</b> (bottom) and move first; the computer is <b class="red">Red</b>.</p>
-    <p>On your turn, do one thing: <b>move one ship</b>, or <b>fire one Lancer</b>. Tap a ship to see its options: <b>green dots</b> are moves, <b>red rings</b> are captures, <b>yellow crosshairs</b> are Lancer shots. Tap one to do it.</p>
+    <p><b>Goal:</b> destroy the enemy <b>Flagship</b>. The board is <b>6×6</b>. You are <b class="blue">Blue</b> (bottom) and move first; the computer is <b class="red">Red</b> (top).</p>
+    <p>On your turn, do one thing: <b>move one ship</b> or <b>fire one Lancer</b>. Tap a ship to see its options: <b>green dots</b> are moves, <b>red rings</b> are captures, and <b>yellow crosshairs</b> are Lancer shots. Tap one to do it. <b>Red-striped squares</b> show where enemy Lancers could hit.</p>
     <h3>Your fleet (7 ships)</h3>
     <ul class="pieces">
-      <li><span class="pc mini b">F</span><div><b>Flagship ×1</b> — moves 1 square in any direction and captures by moving onto an enemy. If it's destroyed, you lose.</div></li>
-      <li><span class="pc mini b">D</span><div><b>Drone ×2</b> — jumps in an L shape like a chess knight (it can leap over ships) and captures where it lands.</div></li>
-      <li><span class="pc mini b">L</span><div><b>Lancer ×2</b> — moves 1 square in any direction but <b>can't capture by moving</b>. Instead it can <b>fire</b>: it destroys the first enemy in a straight line (up, down, left, right) up to 3 squares away. Any ship in between blocks the shot. The Lancer stays where it is.</div></li>
-      <li><span class="pc mini b">S</span><div><b>Shield ×2</b> — moves 1 square up, down, left or right and captures by moving. <b>Lancer shots can't hurt a Shield</b>, and Shields block shots, so park them in front of your Flagship.</div></li>
+      <li><span class="pc mini b F"><span class="ic">F</span></span><div><b>Flagship ×1</b>: moves 1 square in any direction and captures by moving onto an enemy. If it's destroyed, you lose.</div></li>
+      <li><span class="pc mini b D"><span class="ic">D</span></span><div><b>Drone ×2</b>: jumps in an L shape like a chess knight and captures where it lands. It can jump over ships and over nebula, but it can't land on nebula.</div></li>
+      <li><span class="pc mini b L"><span class="ic">L</span></span><div><b>Lancer ×2</b>: moves 1 square in any direction but <b>can't capture by moving</b>. Instead it can <b>fire</b> up, down, left or right, up to <b>3 squares</b>, and the Lancer doesn't move. The shot stops at the first ship in the line. If that ship is an enemy, it's destroyed. <b>Your own ships block your shots</b>, and so do Shields and nebula.</div></li>
+      <li><span class="pc mini b S"><span class="ic">S</span></span><div><b>Shield ×2</b>: moves 1 square up, down, left or right and captures by moving. <b>Lancer shots can't hurt a Shield</b>, and Shields block shots, so park them in front of your Flagship.</div></li>
     </ul>
+    <p class="small">Starting setup: each back row is Lancer, Drone, Shield, Flagship, Drone, Lancer, with the second Shield just in front of the Flagship. Red's setup is Blue's mirrored top-to-bottom.</p>
     <h3>The nebula</h3>
-    <p>Every 3 rounds the nebula pulses: 4 squares in the middle of the board turn into nebula (always in a mirror-image pattern, so it's fair), and the old nebula clears. The squares that are about to change <b>flicker one round ahead</b> as a warning.</p>
     <ul>
-      <li>No ship can move into a nebula square, and shots can't pass through it.</li>
-      <li>A ship caught inside is <b>jammed</b> until the nebula moves on. It can't move or fire, but nothing can reach it either.</li>
+      <li>About every 3 rounds the nebula <b>shifts</b>. The old nebula fully clears, and 4 new squares in the <b>middle four rows (rows 2–5)</b> become nebula. They never overlap the squares that just cleared.</li>
+      <li>The pattern is mirrored top-to-bottom, just like the starting setup: a nebula square in row 2 has a twin in the same column in row 5, and row 3 pairs with row 4. Neither side is favored.</li>
+      <li>Shifts alternate between happening after Red's move and after yours, so each side takes turns being first to react.</li>
+      <li>The squares about to become nebula <b>flicker one round ahead</b>.</li>
+      <li>No ship can move into nebula, and shots can't pass through it.</li>
+      <li>A shift can land on squares that already have ships, and you're allowed to move onto a flickering square. Any ship on a square when it becomes nebula is <b>jammed</b>: it can't move or fire, but nothing can reach it. It's free again when the nebula shifts.</li>
     </ul>
     <h3>Game end</h3>
     <ul>
       <li>Destroy the enemy Flagship and you win.</li>
-      <li>If a player has no legal move on their turn, they're <b>stranded</b> and lose.</li>
-      <li>After 40 rounds the fleet with more points left wins (Lancer 3, Drone 3, Shield 2). Equal points means a draw.</li>
+      <li><b>No legal move loses:</b> if it's your turn and none of your ships can move or fire (for example, all blocked or jammed by the nebula), you're stranded and you lose.</li>
+      <li>After 40 rounds, the fleet with more points left wins: Lancer 3, Drone 3, Shield 2. <b>The Flagship isn't counted.</b> Equal points means a draw.</li>
     </ul>
-    <p class="small">You're allowed to leave your Flagship in danger, but the computer will notice. A red ring warns you when your Flagship is under fire.</p>
+    <p class="small">There's no "check" rule, so you're allowed to leave your Flagship in danger. A red flashing ring warns you when it's under fire.</p>
     <button class="btn primary wide" type="button" data-close>Got it</button>
   </div>
+</div>
+
+<div id="rotate" class="rotate" aria-hidden="true">
+  <div class="rotcard"><div class="rotic">📱</div><b>Please rotate your phone</b><span>Starfall Gambit is played in portrait.</span></div>
 </div>
 
 <div id="overModal" class="modal hidden" role="dialog" aria-modal="true">
@@ -79,8 +87,8 @@
   </div>
 </div>
 
-<script src="engine.js?v=1"></script>
-<script src="ai.js?v=1"></script>
-<script src="game.js?v=1"></script>
+<script src="engine.js?v=2"></script>
+<script src="ai.js?v=2"></script>
+<script src="game.js?v=2"></script>
 </body>
 </html>

@@ -27,22 +27,26 @@
     return { seed: t, value: ((r ^ (r >>> 14)) >>> 0) / 4294967296 };
   }
 
-  // Nebula: 2 random cells in the middle 4 rows plus their 180° mirror images (always symmetric = fair).
+  // Nebula: 2 random cells in the middle 4 rows (rows 2-5 as labelled on screen) plus their top-to-bottom
+  // mirror images (same column, mirrored row), exactly like the starting setup, so it is always fair.
+  // A new pattern never overlaps the previous one (the old nebula fully clears).
+  function mirrorCell(i) { var p = rc(i); return idx(N - 1 - p[0], p[1]); }
   function genNebula(seed, avoid) {
-    var cells, tries = 0;
-    do {
-      cells = [];
-      while (cells.length < 4) {
-        var x = nextRand(seed); seed = x.seed;
-        var i = 6 + Math.floor(x.value * 24);       // rows 1..4
-        var m = 35 - i;
-        if (cells.indexOf(i) < 0 && cells.indexOf(m) < 0) { cells.push(i, m); }
-      }
-      cells.sort(function (a, b) { return a - b; });
-      tries++;
-    } while (tries < 10 && avoid && avoid.join() === cells.join());
+    avoid = avoid || [];
+    var cells = [];
+    while (cells.length < 4) {
+      var x = nextRand(seed); seed = x.seed;
+      var i = 6 + Math.floor(x.value * 24);       // rows 1..4 (0-based)
+      var m = mirrorCell(i);
+      if (cells.indexOf(i) < 0 && avoid.indexOf(i) < 0 && avoid.indexOf(m) < 0) { cells.push(i, m); }
+    }
+    cells.sort(function (a, b) { return a - b; });
     return { cells: cells, seed: seed };
   }
+  // Pulse k (1-based) happens after ply 6k, plus one extra ply on even pulses: plies 6, 13, 18, 25, 30, ...
+  // So the nebula still shifts every 3 rounds on average, but alternately after Red's move (Blue reacts first)
+  // and after Blue's move (Red reacts first). This removes Blue's edge from always reacting first.
+  function pulsePly(k) { return NEBULA_EVERY * k + (k % 2 === 0 ? 1 : 0); }
 
   function newGame(seed) {
     if (seed === undefined) seed = (Math.random() * 4294967296) >>> 0;
@@ -57,7 +61,7 @@
     var g = genNebula(seed >>> 0, null);
     return {
       board: board, turn: BLUE, ply: 0,
-      nebula: [], nextNebula: g.cells, nextPulse: NEBULA_EVERY, seed: g.seed,
+      nebula: [], nextNebula: g.cells, nextPulse: pulsePly(1), pulses: 0, seed: g.seed,
       winner: null, reason: null, lastMove: null, captured: [[], []]
     };
   }
@@ -65,7 +69,7 @@
   function clone(st) {
     return {
       board: st.board.slice(), turn: st.turn, ply: st.ply,
-      nebula: st.nebula, nextNebula: st.nextNebula, nextPulse: st.nextPulse, seed: st.seed,
+      nebula: st.nebula, nextNebula: st.nextNebula, nextPulse: st.nextPulse, pulses: st.pulses, seed: st.seed,
       winner: st.winner, reason: st.reason, lastMove: st.lastMove,
       captured: [st.captured[0].slice(), st.captured[1].slice()]
     };
@@ -149,7 +153,7 @@
     if (ns.ply === ns.nextPulse) {                     // nebula pulse
       ns.nebula = ns.nextNebula;
       var g = genNebula(ns.seed, ns.nebula);
-      ns.nextNebula = g.cells; ns.seed = g.seed; ns.nextPulse += NEBULA_EVERY;
+      ns.nextNebula = g.cells; ns.seed = g.seed; ns.pulses++; ns.nextPulse = pulsePly(ns.pulses + 1);
       ns.pulsed = true;
     } else ns.pulsed = false;
     if (ns.ply >= MAX_PLY) {
@@ -175,6 +179,32 @@
   }
   // Rounds until next pulse is counted in plies; warning is shown during the final full round.
   function pliesToPulse(st) { return st.nextPulse - st.ply; }
+  // Which side makes the move that triggers the next pulse.
+  function pulseAfterSide(st) { return (st.nextPulse - 1) % 2; }
+  // Round number for display: during play the current round; once the game is over, the round of the final move.
+  function displayRound(st) { return st.winner !== null ? Math.max(1, Math.ceil(st.ply / 2)) : Math.floor(st.ply / 2) + 1; }
+  // Squares enemy Lancers (of side `enemy`) could hit, treating `ignore` as empty (the square a selected ship leaves).
+  function lancerThreats(st, enemy, ignore) {
+    var out = {};
+    for (var i = 0; i < CELLS; i++) {
+      var pc = st.board[i];
+      if (!pc || pc.s !== enemy || pc.t !== 'L' || isNebula(st, i)) continue;
+      var p = rc(i);
+      for (var d = 0; d < 4; d++) {
+        for (var k = 1; k <= LANCER_RANGE; k++) {
+          var r = p[0] + ORTHO[d][0] * k, c = p[1] + ORTHO[d][1] * k;
+          if (!inB(r, c)) break;
+          var j = idx(r, c);
+          if (isNebula(st, j)) break;
+          var q = j === ignore ? null : st.board[j];
+          if (!q) { out[j] = true; continue; }
+          if (q.s !== enemy && q.t !== 'S') out[j] = true;
+          break;
+        }
+      }
+    }
+    return Object.keys(out).map(Number);
+  }
   function nebulaWarning(st) { return pliesToPulse(st) <= 2; }
 
   function describeMove(lm) {
@@ -191,7 +221,8 @@
     VALUE: VALUE, NAMES: NAMES, SIDE_NAMES: SIDE_NAMES,
     newGame: newGame, legalMoves: legalMoves, pieceMoves: pieceMoves, applyMove: applyMove, shotTargets: shotTargets,
     material: material, findFlagship: findFlagship, flagshipThreatened: flagshipThreatened,
-    pliesToPulse: pliesToPulse, nebulaWarning: nebulaWarning, isNebula: isNebula,
+    pliesToPulse: pliesToPulse, pulseAfterSide: pulseAfterSide, displayRound: displayRound, lancerThreats: lancerThreats,
+    mirrorCell: mirrorCell, pulsePly: pulsePly, genNebula: genNebula, nebulaWarning: nebulaWarning, isNebula: isNebula,
     coord: coord, rc: rc, idx: idx, describeMove: describeMove, nextRand: nextRand
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.SG = api;

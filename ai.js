@@ -73,6 +73,15 @@
     return cfg.kind === 'search' ? searchMove(st, cfg.depth) : greedyMove(st, cfg);
   }
 
-  var api = { chooseMove: chooseMove, evaluate: evaluate, LEVELS: LEVELS };
+  // Never throws, never returns null while a legal move exists: falls back to a random legal move.
+  function safeChooseMove(st, level) {
+    var m = null;
+    try { m = api.chooseMove(st, level); } catch (e) { if (typeof console !== 'undefined') console.error('AI error', e); }
+    var legal = SG.legalMoves(st);
+    if (m && legal.some(function (x) { return x.from === m.from && x.to === m.to && x.kind === m.kind; })) return m;
+    return legal.length ? pick(legal) : null;
+  }
+
+  var api = { chooseMove: chooseMove, safeChooseMove: safeChooseMove, evaluate: evaluate, LEVELS: LEVELS };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.SGAI = api;
 })(typeof self !== 'undefined' ? self : this);
