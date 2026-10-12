@@ -1,0 +1,110 @@
+{
+ "bF": {
+  "tris": 9696,
+  "slots": 4,
+  "raw": 276664,
+  "packed": 47508
+ },
+ "bF_lod1": {
+  "tris": 3444,
+  "slots": 4,
+  "raw": 116320,
+  "packed": 21812
+ },
+ "bD": {
+  "tris": 13144,
+  "slots": 4,
+  "raw": 332784,
+  "packed": 53172
+ },
+ "bD_lod1": {
+  "tris": 3552,
+  "slots": 4,
+  "raw": 103052,
+  "packed": 19824
+ },
+ "bL": {
+  "tris": 2820,
+  "slots": 4,
+  "raw": 89628,
+  "packed": 17560
+ },
+ "bL_lod1": {
+  "tris": 1116,
+  "slots": 4,
+  "raw": 42836,
+  "packed": 9980
+ },
+ "bS": {
+  "tris": 12372,
+  "slots": 4,
+  "raw": 294052,
+  "packed": 45716
+ },
+ "bS_lod1": {
+  "tris": 3164,
+  "slots": 4,
+  "raw": 83724,
+  "packed": 16388
+ },
+ "rF": {
+  "tris": 1436,
+  "slots": 7,
+  "raw": 77544,
+  "packed": 16856
+ },
+ "rF_lod1": {
+  "tris": 974,
+  "slots": 7,
+  "raw": 56396,
+  "packed": 13520
+ },
+ "rD": {
+  "tris": 716,
+  "slots": 6,
+  "raw": 57872,
+  "packed": 13924
+ },
+ "rD_lod1": {
+  "tris": 540,
+  "slots": 6,
+  "raw": 42984,
+  "packed": 11120
+ },
+ "rL": {
+  "tris": 1416,
+  "slots": 5,
+  "raw": 57940,
+  "packed": 12532
+ },
+ "rL_lod1": {
+  "tris": 784,
+  "slots": 5,
+  "raw": 37696,
+  "packed": 9408
+ },
+ "rS": {
+  "tris": 1504,
+  "slots": 7,
+  "raw": 68100,
+  "packed": 15316
+ },
+ "rS_lod1": {
+  "tris": 772,
+  "slots": 7,
+  "raw": 44380,
+  "packed": 11452
+ },
+ "board": {
+  "tris": 2280,
+  "slots": 8,
+  "raw": 86788,
+  "packed": 17208
+ },
+ "board_lod1": {
+  "tris": 1608,
+  "slots": 8,
+  "raw": 70464,
+  "packed": 14736
+ }
+}

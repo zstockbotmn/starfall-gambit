@@ -1,0 +1,27 @@
+<!doctype html><meta charset="utf-8"><title>bake</title>
+<script type="importmap">{"imports":{"three":"../node_modules/three/build/three.module.js","three/addons/":"../node_modules/three/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
+import { mergeGeometries, mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
+import { buildShip, buildBoard, BUILDERS } from '../src/models.js';
+import { drawSky } from '../src/materials.js';
+const b64 = buf => { let s = '', u = new Uint8Array(buf); for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return btoa(s); };
+function bakeGroup(g) { g.updateMatrixWorld(true); const bySlot = {};
+  g.traverse(o => { if (!o.isMesh) return; let geo = o.geometry.clone().applyMatrix4(o.matrixWorld); if (o.matrixWorld.determinant() < 0) { // mirrored: flip winding
+      geo = geo.index ? geo.toNonIndexed() : geo; const p = geo.attributes.position; for (const a of Object.values(geo.attributes)) { const arr = a.array, n = a.itemSize; for (let i = 0; i < a.count; i += 3) for (let c = 0; c < n; c++) { const t = arr[(i + 1) * n + c]; arr[(i + 1) * n + c] = arr[(i + 2) * n + c]; arr[(i + 2) * n + c] = t; } } }
+    if (geo.index) geo = geo.toNonIndexed(); for (const k of Object.keys(geo.attributes)) if (!['position', 'normal', 'uv'].includes(k)) geo.deleteAttribute(k);
+    if (!geo.attributes.uv) geo.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array(geo.attributes.position.count * 2), 2));
+    (bySlot[o.userData.slot] ||= []).push(geo); });
+  const out = new THREE.Group(); out.name = g.name; let tris = 0;
+  for (const [slot, list] of Object.entries(bySlot)) { const m = mergeVertices(mergeGeometries(list), 1e-4); tris += m.index.count / 3;
+    const mesh = new THREE.Mesh(m, new THREE.MeshStandardMaterial({ name: slot })); mesh.name = g.name + '_' + slot; out.add(mesh); }
+  return { out, tris, slots: Object.keys(bySlot).length }; }
+async function glb(obj) { return new Promise((res, rej) => new GLTFExporter().parse(obj, r => res(r), rej, { binary: true })); }
+window.bake = async () => { const files = {}, stats = {};
+  for (const id of Object.keys(BUILDERS)) for (const [lod, q] of [['', 1], ['_lod1', .5]]) { const { out, tris, slots } = bakeGroup(buildShip(id, q)); files[`models/${id}${lod}.glb`] = b64(await glb(out)); stats[id + lod] = { tris, slots }; }
+  for (const [lod, q] of [['', 1], ['_lod1', .5]]) { const { out, tris, slots } = bakeGroup(buildBoard(q)); files[`models/board${lod}.glb`] = b64(await glb(out)); stats['board' + lod] = { tris, slots }; }
+  for (const [name, w] of [['sky', 4096], ['sky_low', 2048]]) { const c = document.createElement('canvas'); c.width = w; c.height = w / 2; drawSky(c.getContext('2d'), c.width, c.height); files[`${name}.webp`] = c.toDataURL('image/webp', .86).split(',')[1]; }
+  return { files, stats }; };
+window.__ready = true;
+</script>

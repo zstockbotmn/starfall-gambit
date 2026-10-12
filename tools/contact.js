@@ -1,0 +1,8 @@
+// Renders the asset contact sheet from the baked assets. Output: screenshots/m3/assets/*.png + contact-sheet-assets.png
+const { chromium } = require('/workspace/sg-tools/node_modules/playwright-core'); const fs = require('fs'); const OUT = __dirname + '/../screenshots/m3/assets/'; fs.mkdirSync(OUT, { recursive: true });
+const shots = [...['bF', 'bD', 'bL', 'bS', 'rF', 'rD', 'rL', 'rS'].map(id => ['ship-' + id, `view=ship&id=${id}`, 600, 600]), ['fleet-blue', 'view=fleet&side=b', 1200, 600], ['fleet-red', 'view=fleet&side=r', 1200, 600], ['board', 'view=board', 390, 844], ['board-low', 'view=board&tier=low', 390, 844], ['backdrop', 'view=backdrop', 1200, 600]];
+(async () => { const b = await chromium.launch({ executablePath: '/usr/bin/google-chrome', args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] }); const log = {};
+  for (const [n, q, w, h] of shots) { const p = await b.newPage({ viewport: { width: w, height: h }, deviceScaleFactor: 2 }); const errs = []; p.on('pageerror', e => errs.push(String(e))); p.on('console', m => m.type() === 'error' && errs.push(m.text()));
+    await p.goto('http://127.0.0.1:8771/tools/contact.html?' + q); await p.waitForFunction(() => window.__ready, null, { timeout: 180000 }).catch(() => errs.push('timeout'));
+    await p.screenshot({ path: OUT + n + '.png' }); log[n] = { info: await p.evaluate(() => window.__info), errs }; console.log(n, JSON.stringify(log[n])); await p.close(); }
+  fs.writeFileSync(OUT + 'render-log.json', JSON.stringify(log, null, 1)); await b.close(); })();
