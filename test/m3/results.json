@@ -22,8 +22,8 @@
      "software": true,
      "p50": 0,
      "p90": 0,
-     "calls": 64,
-     "tris": 110033,
+     "calls": 68,
+     "tris": 112417,
      "frames": 2,
      "battles": 0,
      "battling": false,
@@ -79,8 +79,8 @@
      "software": true,
      "p50": 0,
      "p90": 0,
-     "calls": 64,
-     "tris": 110033,
+     "calls": 0,
+     "tris": 0,
      "frames": 2,
      "battles": 0,
      "battling": false,
@@ -134,10 +134,10 @@
      "tier": "low",
      "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
      "software": true,
-     "p50": 16.7,
-     "p90": 16.7,
-     "calls": 64,
-     "tris": 110033,
+     "p50": 33.3,
+     "p90": 33.3,
+     "calls": 68,
+     "tris": 112417,
      "frames": 3,
      "battles": 0,
      "battling": false,
@@ -231,18 +231,18 @@
   "play-calls-high": {
    "pass": true,
    "info": {
-    "calls": 86,
-    "tris": 119848,
+    "calls": 90,
+    "tris": 122232,
     "tier": "high",
-    "p50": 16.6,
-    "p90": 16.6
+    "p50": 16.7,
+    "p90": 16.7
    }
   },
   "play-calls-medium": {
    "pass": true,
    "info": {
-    "calls": 83,
-    "tris": 119830,
+    "calls": 0,
+    "tris": 0,
     "p50": 0
    }
   },
@@ -251,10 +251,10 @@
    "info": {
     "tier": "low",
     "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
-    "calls": 64,
-    "tris": 110033,
+    "calls": 68,
+    "tris": 112417,
     "p50": 83.3,
-    "p90": 150
+    "p90": 149.9
    }
   },
   "badge-vs-dot-390x844": {
@@ -321,31 +321,32 @@
    "pass": true,
    "info": {
     "hint": "",
-    "after": 749
+    "after": 745
    }
   },
   "battle-full-1.3s": {
    "pass": true,
    "info": {
+    "cut": 0.91,
     "gaps": [
      [
       0,
-      433
+      362
      ],
      [
-      0.33,
-      933
+      0.29,
+      800
      ]
     ],
-    "ms": 1369,
-    "startupMs": 433,
-    "maxFrameMs": 933,
+    "ms": 1193,
+    "startupMs": 362,
+    "maxFrameMs": 800,
     "planned": 1300,
     "kind": "full",
     "finale": false,
     "skipped": false,
     "shook": true,
-    "frameP90": 166.6
+    "frameP90": 66.6
    }
   },
   "battle-fast-0.5s": {
@@ -354,12 +355,12 @@
     "gaps": [
      [
       0,
-      716
+      658
      ]
     ],
-    "ms": 734,
-    "startupMs": 716,
-    "maxFrameMs": 716,
+    "ms": 670,
+    "startupMs": 658,
+    "maxFrameMs": 658,
     "planned": 500,
     "kind": "fast",
     "finale": false,
@@ -370,7 +371,7 @@
   "battle-tap-to-skip": {
    "pass": true,
    "info": {
-    "ms": 261,
+    "ms": 265,
     "maxFrameMs": 0,
     "planned": 1300,
     "kind": "full",
@@ -385,108 +386,100 @@
     "gaps": [
      [
       0,
-      268
+      203
      ],
      [
       0.01,
-      933
+      800
      ],
      [
-      0.06,
-      883
+      0.05,
+      783
      ],
      [
-      0.1,
-      767
+      0.09,
+      850
      ],
      [
-      0.14,
+      0.13,
+      650
+     ],
+     [
+      0.17,
+      683
+     ],
+     [
+      0.2,
+      1450
+     ],
+     [
+      0.27,
+      667
+     ],
+     [
+      0.31,
       717
      ],
      [
-      0.18,
+      0.34,
       700
      ],
      [
-      0.21,
-      1350
+      0.38,
+      783
      ],
      [
-      0.28,
-      700
+      0.42,
+      1333
      ],
      [
-      0.32,
-      700
-     ],
-     [
-      0.35,
-      733
-     ],
-     [
-      0.39,
-      733
-     ],
-     [
-      0.43,
-      1417
-     ],
-     [
-      0.5,
-      650
-     ],
-     [
-      0.53,
-      650
-     ],
-     [
-      0.56,
-      683
-     ],
-     [
-      0.6,
-      683
-     ],
-     [
-      0.63,
-      700
-     ],
-     [
-      0.66,
-      750
-     ],
-     [
-      0.7,
+      0.48,
       633
      ],
      [
-      0.73,
+      0.51,
+      1517
+     ],
+     [
+      0.59,
+      850
+     ],
+     [
+      0.63,
       683
      ],
      [
+      0.67,
+      1367
+     ],
+     [
+      0.74,
+      667
+     ],
+     [
       0.77,
-      717
+      650
      ],
      [
       0.8,
-      767
+      800
      ],
      [
       0.84,
-      1417
+      1450
      ],
      [
-      0.91,
-      767
+      0.92,
+      683
      ],
      [
       0.95,
-      717
+      700
      ]
     ],
-    "ms": 19781,
-    "startupMs": 268,
-    "maxFrameMs": 1417,
+    "ms": 19717,
+    "startupMs": 203,
+    "maxFrameMs": 1517,
     "planned": 2500,
     "kind": "full",
     "finale": true,
@@ -500,16 +493,15 @@
   "battle-reduced-motion-no-shake": {
    "pass": true,
    "info": {
-    "cut": 0.86,
     "gaps": [
      [
       0,
-      257
+      1717
      ]
     ],
-    "ms": 263,
-    "startupMs": 257,
-    "maxFrameMs": 257,
+    "ms": 1721,
+    "startupMs": 1717,
+    "maxFrameMs": 1717,
     "planned": 300,
     "kind": "reduced",
     "finale": false,
@@ -540,7 +532,7 @@
    "pass": true,
    "info": {
     "cache": [
-     "sg-7c5e62d0ca"
+     "sg-54d3f5fec1"
     ],
     "entries": 38,
     "offline": {
