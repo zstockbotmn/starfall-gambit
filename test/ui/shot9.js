@@ -201,7 +201,8 @@ async function features(page, tag) {
   await page.tap(C('f2')); await page.tap(C('f3')); await page.tap(C('b1')); await page.tap(C('a3'));
   const tw = Date.now(); const samples = [];
   for (const at of [300, 900, 1200]) { await page.waitForTimeout(Math.max(0, at - (Date.now() - tw))); samples.push([at, await hint(page), await ply(page)]); }
-  R.waitSamples = samples; assert.ok(samples.every(x => /Wait for Red/.test(x[1])), 'wait visible >= 1.2s: ' + JSON.stringify(samples));
+  R.waitSamples = samples; // M3 proposal §5 (M2.1 tester item): the 1.2 s minimum applies only while it is still Red's turn; once Blue's turn begins (ply even) it is gone
+  assert.ok(samples.every(x => (x[2] % 2 === 1) === /Wait for Red/.test(x[1])), 'wait visible during Red turn only: ' + JSON.stringify(samples));
   assert.ok(samples[samples.length - 1][2] === 2, 'Red did move meanwhile');
   await page.waitForTimeout(500);
   // legend: 8 items, nothing clipped (hidden on <= 500px tall screens)
