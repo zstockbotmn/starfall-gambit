@@ -107,7 +107,8 @@
       dlog('ok', 'battle skipped'); return; }
     // presses until the rested frame + SKIP_QUIET_MS after a skip (by the event clock, so taps that queued up behind a busy frame count by when they
     // happened) are dropped: a skip never also selects or moves
-    if (e.timeStamp < quietUntil) { if (skipPtr === null) skipPtr = e.pointerId; dlog('ignored', 'press right after a battle skip'); return; }
+    var evT = Math.abs(e.timeStamp - performance.now()) < 30000 ? e.timeStamp : performance.now();   // event clock when it is the page clock (synthetic input may carry another base)
+    if (evT < quietUntil) { if (quietUntil !== Infinity) quietUntil = Math.max(quietUntil, evT + SKIP_QUIET_MS);   /* a burst of taps keeps the window open: the whole burst is swallowed */ if (skipPtr === null) skipPtr = e.pointerId; dlog('ignored', 'press right after a battle skip'); return; }
     // Rounded board corners / hairline gaps: fall back to the nearest cell.
     var t = e.target.closest('.cell'), i0 = (window.SGView && SGView.pick) ? cellNear(e.clientX, e.clientY) : t ? +t.dataset.i : cellNear(e.clientX, e.clientY);
     if (i0 < 0) { if (DEBUG) dlog('ignored', 'press off the board (' + Math.round(e.clientX) + ',' + Math.round(e.clientY) + ')'); return; }

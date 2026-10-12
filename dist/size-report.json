@@ -1,20 +1,20 @@
 {
- "version": "b75464237a",
+ "version": "49fa8d65f5",
  "bundle": {
   "raw": 871911,
   "gzip": 229213
  },
  "shell": {
-  "raw": 976150,
-  "gzip": 263092
+  "raw": 976486,
+  "gzip": 263209
  },
  "firstScreen": {
-  "raw": 2192730,
-  "gzip": 1044713
+  "raw": 2193066,
+  "gzip": 1044830
  },
  "allPrecached": {
-  "raw": 3309930,
-  "gzip": 1567120
+  "raw": 3310266,
+  "gzip": 1567237
  },
  "repoAssetsTotal": 3440504
 }
