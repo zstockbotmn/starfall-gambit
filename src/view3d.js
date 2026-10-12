@@ -219,15 +219,20 @@ export async function start(opts = {}) {
     // 5 return: attacker settles on its square (moving captures) — the camera never left the play pose (shake is a 2D view offset)
     if (moving) over(P.e, 1, u => A.position.lerpVectors(to.clone().sub(from).multiplyScalar(.82).add(from), to, u));
     return new Promise(res => { battle = { t0: now(), called: now(), T, ev, ups, prevU: 0, res, A, from, to, moving, kind, finale, mode: kind }; }), T; }
-  function battleEnd() { if (!battle) return; const b = battle; battle = null; fx.clear(); const bt0 = b.called; stats.lastBattle = { ms: Math.round(now() - bt0), startupMs: b.startup, maxFrameMs: Math.round(b.maxDt || 0), planned: b.T, kind: b.kind, finale: b.finale, skipped: now() - bt0 < b.T * (window.SG3D_TS || 1) - 30, shook: b.shook }; impactLight.intensity = 0; shake = 0; applyOffset(0, 0);
+  function battleEnd() { if (!battle) return; const b = battle; battle = null; fx.clear(); const bt0 = b.called; stats.lastBattle = { cut: b.cut, gaps: b.gaps, ms: Math.round(now() - bt0), startupMs: b.startup, maxFrameMs: Math.round(b.maxDt || 0), planned: b.T, kind: b.kind, finale: b.finale, skipped: !b.cut && now() - bt0 < b.T * (window.SG3D_TS || 1) - 30, shook: b.shook }; impactLight.intensity = 0; shake = 0; applyOffset(0, 0);
     document.body.classList.remove('sg-battle'); haze.forEach(h => h.material.opacity = .28);
     // the captured ship is gone; the attacker (if it moved) now belongs to the target square
     for (const k of Object.keys(shown)) if (shown[k].obj === b.A && b.moving) { delete shown[k]; root.remove(b.A); }
     stats.battles++; b.res && b.res(); if (lastSt) sync(lastSt, lastUi); idle.splice(0).forEach(f => { try { f(); } catch (e) { console.error(e); } }); }
-  function battleTick(t) { if (battle.startup === undefined) battle.startup = Math.round(t - battle.called); const b = battle; b.maxDt = Math.max(b.maxDt || 0, t - (b.lastT || b.called)); const ts = window.SG3D_TS || 1, u = Math.min(1, (t - b.called) / (b.T * ts))  /* clock starts at the tap: startup/shader stalls eat into the 1.3 s, they never extend it */, dtS = Math.min(.05, (t - (b.lastT || b.t0)) / 1000) / ts; b.lastT = t;
-    for (const e of b.ev) if (!e.done && u >= e.u) { e.done = true; e.fn(); }
+  function battleTick(t) { if (battle.startup === undefined) battle.startup = Math.round(t - battle.called); const b = battle; b.maxDt = Math.max(b.maxDt || 0, t - (b.lastT || b.called)); if (t - (b.lastT || b.called) > 150) (b.gaps = b.gaps || []).push([+(b.prevU || 0).toFixed(2), Math.round(t - (b.lastT || b.called))]); const ts = window.SG3D_TS || 1, u = Math.min(1, (t - b.called) / (b.T * ts))  /* clock starts at the tap: startup/shader stalls eat into the 1.3 s, they never extend it */, dtS = Math.min(.05, (t - (b.lastT || b.t0)) / 1000) / ts; b.lastT = t;
+    for (const e of b.ev) if (!e.done && u >= e.u) { e.done = true; const q = performance.now(); e.fn(); (b.evMs = b.evMs || []).push([+e.u.toFixed(2), Math.round(performance.now() - q)]); }
     for (const p of b.ups) if (u >= p.u0 && b.prevU <= p.u1) { const lu = p.u1 > p.u0 ? Math.min(1, Math.max(0, (u - p.u0) / (p.u1 - p.u0))) : 1; p.fn(lu, dtS); }
-    b.prevU = u; if (u >= 1) battleEnd(); }
+    // Deadline: on a slow GPU, if the next frame (judged by the last one) would land well past the 1.3 s / 0.5 s budget, finish now
+    // instead of overshooting by a whole frame. On a normal GPU (16-33 ms frames) this never triggers before u = 0.97.
+    const fdt = t - (b.prevT || b.called); b.prevT = t;
+    const late = u < 1 && u >= .5 && (t - b.called) + fdt / 2 > b.T * ts;   // ending now lands nearer the budget than the next frame would
+    if (late) { b.cut = +u.toFixed(2) || .01; for (const e of b.ev) if (!e.done) { e.done = true; e.fn(); } for (const p of b.ups) if (b.prevU <= p.u1) p.fn(1, 0); }
+    b.prevU = u; if (u >= 1 || late) battleEnd(); }
 
   // ---------- loop (on-demand: 30 fps idle cap, full rate while animating) ----------
   const bench = /bench/.test(Q); let pressing = false;
