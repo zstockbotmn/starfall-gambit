@@ -18,7 +18,7 @@ const NAMES = { F: 'Flagship', D: 'Drone', L: 'Lancer', S: 'Shield' };
 const renderer = new THREE.WebGLRenderer({ canvas: gl, antialias: true, preserveDrawingBuffer: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); renderer.setSize(innerWidth, innerHeight);
 renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = .9; renderer.shadowMap.enabled = TIER !== 'low';
-const T = makeTextures(TIER), M = makeMaterials(T, TIER);
+const T = makeTextures(TIER), M = makeMaterials(T, TIER, { hero: true });
 applyHullTextures(M, await loadHullTextures('../assets/'));
 const A = await loadAssets('../assets/', M, { lod: VIEW === 'ship' ? '' : '_lod1', skyName: TIER === 'low' ? 'sky_low' : 'sky' });
 const scene = new THREE.Scene(); scene.background = A.sky; scene.backgroundIntensity = .9; scene.backgroundRotation.y = 2.35;

@@ -60,7 +60,7 @@ export function applyHullTextures(M, H) {
   if (H.holo) M.holoAtlas.map = H.holo;
   if (H.redN) for (const k of ['redSkin', 'rGun', 'rPlate']) Object.assign(M[k], { normalMap: H.redN, normalScale: new THREE.Vector2(.9, .9), roughnessMap: H.redR, roughness: 1, needsUpdate: true });   // panel lines + wet/grimy roughness from red-hull.jpg
   for (const k of ['ceramic', 'plate', 'redSkin', 'rPlate', 'holoAtlas']) M[k].needsUpdate = true; }
-export function makeMaterials(T, tier = 'high') { const hi = tier !== 'low';
+export function makeMaterials(T, tier = 'high', opt = {}) { const hi = tier !== 'low';
   const Phys = hi ? THREE.MeshPhysicalMaterial : THREE.MeshStandardMaterial;
   const M = {
     ceramic: new Phys({ color: 0xe8e4dc, roughness: .28, metalness: 0, ...(hi ? { clearcoat: 1, clearcoatRoughness: .1, sheen: .3, sheenColor: new THREE.Color(0xbff6ff) } : {}), envMapIntensity: .5 }),
@@ -87,10 +87,11 @@ export function makeMaterials(T, tier = 'high') { const hi = tier !== 'low';
   M.holoGlyph = new THREE.MeshBasicMaterial({ color: 0x8affff, map: T.glyph, transparent: true, opacity: .85, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, toneMapped: false });
   M.holoGlyphPink = M.holoGlyph.clone(); M.holoGlyphPink.color.set(0xff7ae8);
   // Red hulls: dark, glossy, rain-slick gunmetal (low roughness, clearcoat, strong reflections); neon at half strength so slits read as accents
-  const wet = hi ? { clearcoat: 1, clearcoatRoughness: .06 } : {};
-  M.redSkin = new Phys({ color: 0x4c4a58, metalness: .88, roughness: .18, emissive: 0xffffff, emissiveIntensity: .9, envMapIntensity: 2.2, ...wet });
-  M.rGun = new Phys({ color: 0x1e2028, metalness: .92, roughness: .16, envMapIntensity: 2.4, ...wet });
-  M.rPlate = new Phys({ color: 0x17161d, metalness: .85, roughness: .22, envMapIntensity: 2.2, ...wet });
+  // clearcoat only for close-ups (opt.hero): in the play view it doubled the Red fragment cost; low roughness + strong env reflections keep the wet look
+  const wet = hi && opt.hero ? { clearcoat: 1, clearcoatRoughness: .06 } : {}, RedPhys = hi && opt.hero ? Phys : THREE.MeshStandardMaterial;
+  M.redSkin = new RedPhys({ color: 0x4c4a58, metalness: .88, roughness: .18, emissive: 0xffffff, emissiveIntensity: .9, envMapIntensity: 2.2, ...wet });
+  M.rGun = new RedPhys({ color: 0x1e2028, metalness: .92, roughness: .16, envMapIntensity: 2.4, ...wet });
+  M.rPlate = new RedPhys({ color: 0x17161d, metalness: .85, roughness: .22, envMapIntensity: 2.2, ...wet });
   M.rNeonM = new THREE.MeshStandardMaterial({ color: 0x30001f, emissive: 0xff2bd6, emissiveIntensity: 1.5 });
   M.rNeonC = new THREE.MeshStandardMaterial({ color: 0x00262a, emissive: 0x19f0ff, emissiveIntensity: 1.5 });
   M.holoAtlas = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: .95, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, toneMapped: false });

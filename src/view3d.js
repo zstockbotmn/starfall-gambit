@@ -31,7 +31,7 @@ export async function start(opts = {}) {
   const pref = LS('sg_quality', 'auto');
   let tier = qTier || (pref !== 'auto' ? pref : software ? 'low' : 'high'); const autoTier = !qTier && pref === 'auto';
   renderer.info.autoReset = false; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = .9; renderer.outputColorSpace = THREE.SRGBColorSpace;
-  renderer.shadowMap.type = THREE.PCFShadowMap;
+  renderer.shadowMap.type = THREE.PCFShadowMap; renderer.shadowMap.autoUpdate = false;
   const T = makeTextures(tier); let M = makeMaterials(T, tier);
   // ---------- assets ----------
   const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
@@ -245,6 +245,8 @@ export async function start(opts = {}) {
     if (!anim && (pressing || (tier === 'low' && !dirty))) return;
     if (!anim && !dirty && t - lastFrame < 33) return;
     const dt = t - lastFrame; lastFrame = t; dirty = false; if (dt < 200) { ft.push(dt); if (ft.length > 120) ft.shift(); }
+    // shadow map: every idle frame, but during a battle only every 3rd frame (never on its first) - a 2048 shadow pass per frame was the heaviest part of a battle frame
+    if (battle) { battle.sf = (battle.sf || 0) + 1; renderer.shadowMap.needsUpdate = battle.sf % 3 === 0; } else renderer.shadowMap.needsUpdate = true;
     if (battle) battleTick(t);
     for (const s of Object.values(shown)) { const o = s.obj, g = o.userData.glide; if (g) { const u = Math.min(1, (t - g.t0) / g.d); o.position.lerpVectors(g.a, g.b, u * u * (3 - 2 * u)); if (u >= 1) delete o.userData.glide; }
       else if (!reduced() && !(battle && o === battle.A)) o.position.y = SHIP_Y + Math.sin(t / 900 + o.userData.phase) * .012; }
@@ -264,8 +266,10 @@ export async function start(opts = {}) {
   if (sessionStorage.getItem && autoTier) { const s = sessionStorage.getItem('sg_auto_tier'); if (s && TIERS[s] && (s === 'low' || (s === 'medium' && tier === 'high'))) tier = s; }
   function prewarm() {   // compile every VFX / debris shader once, so a battle's first frame does not stall on shader compilation
     const at0 = new THREE.Vector3(0, -5, 0); sprite(T.softDot, 0xffffff, at0, .1); sprite(smokeTex, 0x302838, at0, .1, THREE.NormalBlending, .5); burst(at0, 4, 0xffffff, 1, 100);
-    beamMesh(at0, at0.clone().setY(-4), 0xffffff, 0x43f7e2, .02); ring(at0, 0xffffff, .1, .2); for (const id of IDS) { if (frac[id]) fx.add(frac[id].clone()); fx.add(makeShipMesh(id)); }
-    fx.traverse(o => o.frustumCulled = false); try { renderer.compile(scene, camera); composer.render(); } catch (e) {} fx.clear(); renderer.info.reset(); dirty = true; }
+    beamMesh(at0, at0.clone().setY(-4), 0xffffff, 0x43f7e2, .02); ring(at0, 0xffffff, .1, .2); for (const [bl, tm] of [[THREE.AdditiveBlending, false], [THREE.NormalBlending, true]]) { const ns = new THREE.Sprite(new THREE.SpriteMaterial({ color: 0xffffff, transparent: true, blending: bl, depthWrite: false, toneMapped: tm })); ns.position.copy(at0); fx.add(ns); }   // map-less sprite variants
+    { const sg = selG.clone(); sg.position.copy(at0); fx.add(sg); const hm = new THREE.Mesh(new THREE.PlaneGeometry(.1, .1), hatchMat); hm.position.copy(at0); fx.add(hm); }   // selection frame + hatching (first tap)
+    for (const id of IDS) { if (frac[id]) fx.add(frac[id].clone()); fx.add(makeShipMesh(id)); }
+    fx.traverse(o => o.frustumCulled = false); try { renderer.compile(scene, camera); if (composer) { renderer.setRenderTarget(composer.renderTarget1); renderer.compile(scene, camera); renderer.setRenderTarget(null); composer.render(); } else renderer.render(scene, camera); } catch (e) {} fx.clear(); renderer.info.reset(); dirty = true; }   // compile for the canvas AND the bloom render target (linear output = separate programs)
   document.body.classList.add('v3d'); applyTier(); ro.observe(document.getElementById('boardWrap'));
   prewarm(); fracP.then(() => { if (!battle) prewarm(); }); requestAnimationFrame(frame);
   const api = window.SGView = {
