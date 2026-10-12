@@ -144,7 +144,8 @@
       dlog('drift', Math.round(dist) + 'px into ' + (i < 0 ? 'off-board' : SG.coord(i)) + ', counted on ' + SG.coord(d.i));
     }
     clearPress();
-    tap(d.i, d.type);
+    // judge timing (double-tap echo) by when the finger lifted, not when a busy main thread got round to it (3D frames can lag)
+    inputTime = performance.timeOrigin + e.timeStamp; try { tap(d.i, d.type); } finally { inputTime = null; }
   });
   wrapEl.addEventListener('pointercancel', function (e) {
     if (down && e.pointerId === down.id) cancelPress('pointercancel from the browser');
@@ -228,7 +229,7 @@
   // A brief message that falls back to the previous hint unless something else replaced it meanwhile.
   // It is shown on top of the normal hint for FLASH_MS (>= 1.2s) even if Red moves meanwhile; the normal
   // hint (possibly updated underneath) comes back afterwards.
-  var redMovedAt = 0;
+  var redMovedAt = 0, inputTime = null;
   var FLASH_MS = 1500, flashMsg = '', flashUntil = 0;
   function flashHint(msg) {
     flashMsg = msg; flashUntil = Date.now() + FLASH_MS; render();
@@ -241,7 +242,7 @@
 
   // Returns {did} or {ignored: reason} for the debug log / stress test.
   function onCell(i) {
-    var pc = st.board[i], now = Date.now();
+    var pc = st.board[i], now = inputTime || Date.now();
     var over = st.winner !== null, myTurn = !busy && !over && st.turn === HUMAN;
     // Second tap of a double-tap lands on the ship that just moved there: don't reselect it.
     if (movedAt && movedAt.i === i && now - movedAt.t < ECHO_MS && pc && pc.s === HUMAN) return { ignored: 'double-tap echo on the ship that just moved' };

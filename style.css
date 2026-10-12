@@ -332,7 +332,7 @@ body.v3d #board .ov.threat,body.v3d #board .ov.sel{opacity:0}  /* drawn in-scene
 body.v3d #board .cell.boom{animation:none}                  /* the battle VFX replaces the 2D flash */
 body.v3d #board .cell.press{filter:none;background:rgba(255,255,255,.08) !important}
 body.v3d #board .mk.expose{left:auto;right:1px;top:1px;transform:none}   /* '!' in the top-right corner, clear of the centred move dot */
-body.v3d #board .mk.cap.withexpose{top:12%;left:12%;right:12%;bottom:12%}
+body.v3d #board .mk.cap.withexpose{top:calc(min(17px, 30%) + 3px);left:14%;right:14%;bottom:8%}   /* bracket starts below the corner badge */
 body.sg-battle #board .mk,body.sg-battle #board .ov{opacity:0 !important;transition:none}
 #fpshud{position:fixed;left:4px;bottom:4px;z-index:50;font:600 10px ui-monospace,monospace;color:#9ff;background:rgba(0,0,0,.6);padding:2px 5px;border-radius:4px;pointer-events:none}
 /* cancel cue: dark + white double ring, readable on every tile type (M2.1 open item) */
