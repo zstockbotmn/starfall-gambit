@@ -1,140 +1,62 @@
 {
- "taps": 468,
- "dropped": 4,
+ "taps": 379,
+ "dropped": 0,
  "byType": {
-  "touch": 271,
-  "mouse": 46,
-  "click": 95
+  "click": 84,
+  "mouse": 20,
+  "touch": 220
  },
- "drops": [
-  {
-   "kind": "select",
-   "i": 33,
-   "type": "mouse",
-   "t": {
-    "ply": 14,
-    "turn": 0,
-    "w": null,
-    "sel": null,
-    "busy": false
-   },
-   "log": "27.708 ok: battle skipped\n25.570 ok: move [mouse f3]\n25.074 ok: select [touch d2]\n24.634 ok: select [click c2]\n22.093 ok: move [click a2]"
-  },
-  {
-   "kind": "red-turn destination made a move",
-   "i": 32,
-   "dst": 33,
-   "u": {
-    "ply": 19,
-    "turn": 1,
-    "w": null,
-    "sel": null,
-    "busy": true
-   },
-   "ply0": 17,
-   "diag": {
-    "lastMove": {
-     "from": 22,
-     "to": 33,
-     "kind": "move",
-     "piece": "D",
-     "side": 1,
-     "cap": "S"
-    },
-    "atDst": {
-     "t": "D",
-     "s": 1
-    },
-    "atI": null,
-    "stillLegal": false,
-    "hint": "",
-    "log": "15.622 ok: move [touch d1]\n14.496 ok: select [click c1]\n13.863 ok: move [touch b1]\n13.441 ok: select [touch b2]\n12.006 ok: move [touch b2]"
-   },
-   "log": "15.622 ok: move [touch d1]\n14.496 ok: select [click c1]\n13.863 ok: move [touch b1]\n13.441 ok: select [touch b2]\n12.006 ok: move [touch b2]"
-  },
-  {
-   "kind": "re-tap at ~160ms on the moved ship",
-   "mv": {
-    "from": 34,
-    "to": 23,
-    "kind": "move",
-    "cap": null
-   },
-   "t": {
-    "ply": 2,
-    "turn": 0,
-    "w": null,
-    "sel": null,
-    "busy": false
-   },
-   "log": "26.568 ok: select [touch f3]\n25.686 ok: move [touch f3]\n25.189 ok: select [touch e1]\n23.975 ok: select [touch d1]\n23.974 drift: 14px into c1, counted on d1"
-  },
-  {
-   "kind": "corner tap",
-   "i": 35,
-   "type": "mouse",
-   "off": 2.988368280850696,
-   "t": {
-    "ply": 0,
-    "turn": 0,
-    "w": null,
-    "sel": null,
-    "busy": false
-   },
-   "log": "44.690 ok: deselect [click f1]\n44.256 ok: select [touch f1]\n43.861 ok: deselect [click e1]\n43.393 ok: select [touch e1]\n42.848 ok: deselect [click d2]"
-  }
- ],
+ "drops": [],
  "kinds": {
-  "select": 81,
-  "destination": 89,
-  "preselect": 53,
-  "redTurnDestination": 1
+  "select": 48,
+  "destination": 54,
+  "preselect": 27
  },
- "maxRedWaitMs": 1803,
+ "maxRedWaitMs": 1516,
  "edge": {
-  "borderDrift": 27,
-  "edgeLift": 15,
-  "retap160": 5,
-  "echo60": 4,
-  "cornerTap": 9
+  "borderDrift": 18,
+  "edgeLift": 10,
+  "retap160": 7,
+  "echo60": 5,
+  "cornerTap": 20
  },
  "swipes": 150,
  "accidentalMoves": 0,
  "accidentalChanges": 0,
  "swipeKinds": {
-  "destination-to-elsewhere/touch": 6,
-  "small-into-neighbour/touch": 10,
-  "ship-to-destination/mouse": 5,
-  "edge-lift-off/mouse": 9,
-  "destination-to-elsewhere/mouse": 4,
-  "off-board/touch": 14,
-  "elsewhere-to-destination/touch": 14,
-  "out-and-back/mouse": 7,
-  "elsewhere-to-destination/mouse": 5,
-  "ship-to-destination/touch": 16,
-  "across-board/mouse": 15,
+  "out-and-back/mouse": 5,
+  "across-board/touch": 17,
+  "elsewhere-to-destination/touch": 19,
+  "destination-to-elsewhere/mouse": 10,
+  "destination-to-elsewhere/touch": 12,
+  "off-board/mouse": 4,
+  "off-board/touch": 8,
+  "ship-to-destination/touch": 14,
+  "edge-lift-off/touch": 13,
+  "elsewhere-to-destination/mouse": 7,
+  "small-into-neighbour/touch": 14,
+  "across-board/mouse": 3,
+  "ship-to-destination/mouse": 3,
   "small-into-neighbour/mouse": 8,
-  "edge-lift-off/touch": 7,
-  "off-board/mouse": 9,
-  "across-board/touch": 12,
-  "out-and-back/touch": 9
+  "out-and-back/touch": 10,
+  "edge-lift-off/mouse": 3
  },
- "maxDriftCells": 0.48,
+ "maxDriftCells": 0.47,
  "appStats": {
-  "taps": 463,
-  "handled": 463,
-  "ignored": 0,
-  "reasons": {},
-  "cancelled": 154,
-  "cancelReasons": {
-   "board changed during the press": 7,
-   "drag over 0.6 cell": 113,
-   "ended on a different square": 12,
-   "lifted off the board": 22
+  "taps": 393,
+  "handled": 392,
+  "ignored": 1,
+  "reasons": {
+   "game over, empty square [touch c1]": 1
   },
-  "moves": 99
+  "cancelled": 147,
+  "cancelReasons": {
+   "drag over 0.6 cell": 109,
+   "lifted off the board": 20,
+   "ended on a different square": 18
+  },
+  "moves": 66
  },
  "errs": []
 }
-FAIL AssertionError [ERR_ASSERTION]: dropped taps
-    at /workspace/starfall-gambit-m3-red/test/ui/stress.js:232:10
+STRESS PASSED: 379 taps (0 battle-skip taps, expected) (max drift 0.47 cell), 0 dropped; edge {"borderDrift":18,"edgeLift":10,"retap160":7,"echo60":5,"cornerTap":20}; red-turn destination taps 0; 150 swipes, 0 moves, 0 changes
