@@ -348,6 +348,7 @@
     var over = st.winner !== null;
     var warn = !over && SG.nebulaWarning(st);
     var flagDanger = !over && SG.flagshipThreatened(st, HUMAN) ? SG.findFlagship(st, HUMAN) : -1;
+    if (flagDanger < 0 && !over && st.turn === HUMAN && SG.flagshipExposedByPulse(st, HUMAN)) flagDanger = SG.findFlagship(st, HUMAN);   // the shift my move triggers will expose it
     var lm = st.lastMove, foe = insp !== null ? ' foe' : '';
     for (var i = 0; i < 36; i++) {
       var c = cells[i], pc = st.board[i], p = SG.rc(i);
@@ -388,7 +389,7 @@
     else ni.textContent = 'Nebula in ' + plies + ' moves';
     ni.className = 'neb' + (warn ? ' warn' : '');
     // Warning line has its own slot above everything else in the info area, so it is never clipped.
-    var wtxt = flagDanger >= 0 && st.turn === HUMAN ? '\u26A0 Your Flagship is under attack!' : '';
+    var wtxt = flagDanger >= 0 && st.turn === HUMAN ? (SG.flagshipThreatened(st, HUMAN) ? '\u26A0 Your Flagship is under attack!' : '\u26A0 The nebula shift after your move exposes your Flagship!') : '';
     if ($('warn').textContent !== wtxt) $('warn').textContent = wtxt;
     infoEl.classList.toggle('haswarn', !!wtxt);   // short screens: hint drops to 1 line so 'what Red did' stays visible
     var htxt = Date.now() < flashUntil ? flashMsg : hintMsg;

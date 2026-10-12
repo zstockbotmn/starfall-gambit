@@ -246,6 +246,7 @@
       if (hit) out.push(m.to);
     });
     if (!isNebula(st, i) && legalMoves(Object.assign({}, st, { turn: foe }), foe).some(function (x) { return x.cap && x.to === i; })) out.push(i);
+    else if (pulseUnjamsThreat(st, i, me)) out.push(i);   // staying put: my move triggers the nebula shift, which exposes this square
     return out;
   }
   // Would making move m leave the mover's own Flagship capturable by the opponent right after it?
@@ -258,6 +259,15 @@
     var f = findFlagship(ns, me); if (f < 0) return false;
     return legalMoves(ns, 1 - me).some(function (x) { return x.cap && x.to === f; });
   }
+  // Warning only (no rule change): on my turn, if my move is the one that triggers the nebula pulse, would the square i
+  // (currently jammed/shielded by the nebula, or newly reachable) be capturable by the foe once the shift has happened?
+  function pulseUnjamsThreat(st, i, me) {
+    if (st.winner !== null || st.turn !== me || st.ply + 1 !== st.nextPulse || !st.nextNebula) return false;
+    var after = Object.assign({}, st, { nebula: st.nextNebula, turn: 1 - me });
+    if (isNebula(after, i)) return false;
+    return legalMoves(after, 1 - me).some(function (x) { return x.cap && x.to === i; });
+  }
+  function flagshipExposedByPulse(st, s) { var f = findFlagship(st, s); return f >= 0 && !flagshipThreatened(st, s) && pulseUnjamsThreat(st, f, s); }
   // Only moves that turn a safe Flagship into an attacked one (no warning if it is already under attack).
   function newlyExposesFlagship(st, m) {
     var pc = st.board[m.from]; if (!pc) return false;
@@ -281,7 +291,7 @@
     VALUE: VALUE, NAMES: NAMES, SIDE_NAMES: SIDE_NAMES,
     newGame: newGame, legalMoves: legalMoves, pieceMoves: pieceMoves, applyMove: applyMove, shotTargets: shotTargets,
     material: material, findFlagship: findFlagship, flagshipThreatened: flagshipThreatened,
-    pliesToPulse: pliesToPulse, pulseAfterSide: pulseAfterSide, displayRound: displayRound, lancerThreats: lancerThreats, pieceMarkers: pieceMarkers, dangerSquares: dangerSquares, exposesFlagship: exposesFlagship, newlyExposesFlagship: newlyExposesFlagship,
+    pliesToPulse: pliesToPulse, pulseAfterSide: pulseAfterSide, displayRound: displayRound, lancerThreats: lancerThreats, pieceMarkers: pieceMarkers, dangerSquares: dangerSquares, flagshipExposedByPulse: flagshipExposedByPulse, exposesFlagship: exposesFlagship, newlyExposesFlagship: newlyExposesFlagship,
     mirrorCell: mirrorCell, pulsePly: pulsePly, genNebula: genNebula, nebulaWarning: nebulaWarning, isNebula: isNebula,
     coord: coord, rc: rc, idx: idx, describeMove: describeMove, nextRand: nextRand
   };
