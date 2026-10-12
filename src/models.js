@@ -243,25 +243,31 @@ function redLancer() { const g = new THREE.Group();   // long spear with a ram: 
   g.add(underglow([[0, .5], [.09, .33], [.085, -.33], [-.085, -.33], [-.09, .33]], .6));
   decalSet(g, H, 53, 8); decalTop(g, R, 'hazY', .4, 0, .06, { rot: Math.PI / 2 });
   return g; }
-function redDrone() { const g = new THREE.Group();   // compact hunter with a spiky claw: stubby armoured wedge body, two jagged pincers forward, rear spikes
-  const H = [SEC(.2, .03, .01, .015, .03, .036, .02, .02), SEC(.1, .11, .016, .05, .06, .07, .06, .035), SEC(-.06, .14, .02, .065, .075, .088, .075, .04), SEC(-.18, .1, .02, .05, .06, .07, .06, .034), SEC(-.24, .05, .018, .03, .04, .046, .035, .026)];
-  loft(g, H); spine(g, .22, -.25, .05, .05, .07);
-  bigHex(g, 0, .082, .03, .03);
-  // claw: each pincer is a thick jagged blade curving inward, with inner teeth and a neon edge
-  for (const s of [1, -1]) { const C = [[.07, .06], [.17, .16], [.19, .3], [.13, .43], [.05, .47], [.11, .36], [.12, .25], [.08, .16], [.04, .1]].map(([x, f]) => [s * x, f]);
-    const pts = s > 0 ? C.slice().reverse() : C; const cl = P(ext(pts, .03, .004, 1), 'redSkin'); cl.position.y = .0; g.add(cl);
-    const top = P(ext((s > 0 ? [[.09, .1], [.16, .18], [.17, .3], [.12, .38], [.1, .26], [.08, .16]].reverse() : [[.09, .1], [.16, .18], [.17, .3], [.12, .38], [.1, .26], [.08, .16]].map(([x, f]) => [-x, f])), .012, .002, 1), 'plate'); top.position.y = .024; g.add(top);
-    for (let k = 0; k < 4; k++) { const f = .18 + k * .065, x = s * (.09 + (k === 3 ? .02 : .0)); spike(g, [x, f], [x - s * .05, f + .025], [x, f + .04], .016, -.008, k % 2 ? 'neonC' : 'neonM', false); }
-    for (const [a, b] of [[[.17, .16], [.19, .3]], [[.19, .3], [.13, .43]], [[.13, .43], [.05, .47]]]) { const ax = s * a[0], bx = s * b[0], L = Math.hypot(bx - ax, b[1] - a[1]); const e = P(new THREE.BoxGeometry(.004, .004, L * .9), 'neonM'); e.position.set((ax + bx) / 2, .02, -(a[1] + b[1]) / 2); e.rotation.y = Math.atan2(bx - ax, -(b[1] - a[1])); g.add(e); }
-    const tipS = P(new THREE.ConeGeometry(.008, .05, 5), 'chrome'); tipS.rotation.set(-Math.PI / 2, 0, -s * .9); tipS.position.set(s * .04, .006, -.48); g.add(tipS);
+function redDrone() { const g = new THREE.Group();   // X-wing hunter (concept-red.jpg): slim armoured fuselage, four long diagonal blade-wings in an X, dense greebles, magenta/cyan light strips
+  const H = [SEC(.3, .012, .006, .008, .012, .014, .01, .01), SEC(.2, .04, .012, .025, .035, .04, .03, .022), SEC(.04, .065, .016, .04, .05, .06, .05, .03), SEC(-.12, .07, .016, .045, .055, .064, .055, .032), SEC(-.24, .05, .014, .03, .04, .046, .035, .026), SEC(-.3, .03, .012, .02, .025, .03, .02, .02)];
+  loft(g, H); spine(g, .26, -.28, .028, .04, .055);
+  bigHex(g, 0, .07, -.04, .028);
+  // four blade-wings: forward pair raised, rear pair lowered (X from the side), long and tapering to a point
+  for (const sx of [1, -1]) for (const sf of [1, -1]) {
+    const ang = Math.atan2(sf, sx * 1.15), ux = Math.cos(ang), uf = Math.sin(ang), nx = -uf, nf = ux, Lw = .5;
+    const pt = (t, w) => [ux * t + nx * w, uf * t + nf * w], dy = sf > 0 ? .022 : -.012;
+    const wing = [pt(.03, .06), pt(.2, .05), pt(.4, .024), pt(Lw, .004), pt(Lw, -.004), pt(.36, -.03), pt(.16, -.05), pt(.03, -.055)];
+    const w1 = P(ext(wing, .012, .003, 1), 'redSkin'); w1.position.y = dy; w1.rotation.z = 0; g.add(w1);
+    const plate = P(ext([pt(.08, .035), pt(.3, .026), pt(.3, -.018), pt(.08, -.03)], .006, .002, 1), 'plate'); plate.position.y = dy + .01; g.add(plate);
+    // edge light strips (magenta on the leading edge, cyan on the trailing) and a cyan wingtip lamp
+    for (const [w, slot] of [[.05, 'neonM'], [-.045, 'neonC']]) { const a0 = pt(.06, w), a1 = pt(.42, w * .4), L = Math.hypot(a1[0] - a0[0], a1[1] - a0[1]);
+      const e = P(new THREE.BoxGeometry(.005, .005, L), slot); e.position.set((a0[0] + a1[0]) / 2, dy + .009, -(a0[1] + a1[1]) / 2); e.rotation.y = Math.atan2(a1[0] - a0[0], -(a1[1] - a0[1])); g.add(e); }
+    const tip = pt(Lw - .03, 0), lamp = P(new THREE.SphereGeometry(.011, S(8), S(6)), 'neonC'); lamp.position.set(tip[0], dy + .008, -tip[1]); g.add(lamp);
+    // fine greebles along the wing root
+    for (let k = 0; k < 6; k++) { const q = pt(.1 + k * .045, (k % 2 ? .012 : -.01)); const bx = P(new THREE.BoxGeometry(.018, .006, .01), k % 3 ? 'gunmetal' : 'plate'); bx.position.set(q[0], dy + .012, -q[1]); bx.rotation.y = -ang + Math.PI / 2; g.add(bx); }
+    const can = P(new THREE.CylinderGeometry(.008, .008, .09, S(8)), 'gunmetal'); const c0 = pt(.28, 0); can.rotation.x = Math.PI / 2; can.position.set(c0[0], dy - .008, -c0[1] - .02); g.add(can);
   }
-  spike(g, [.1, -.08], [.25, -.24], [.08, -.18], .01, .01, 'neonC');
-  const df = P(ext([[0, .04], [0, -.18], [.08, -.24], [.03, -.05]], .006, .002, 1), 'redSkin'); df.rotation.z = Math.PI / 2; df.position.set(0, .085, 0); g.add(df);
-  greebleLoft(g, H, 90, 31, { wFrac: .95, hMax: .016, slits: .45 }); flankSlits(g, H, 30, 32);
-  nozzles(g, [-.03, .03], .01, .245, .02);
-  for (const s of [1, -1]) holoFlush(g, .1, .026, s * .125, .035, .02, s * (Math.PI / 2 - .35), s > 0 ? 3 : 7);
-  g.add(underglow([[0, .2], [.13, -.06], [.05, -.24], [-.05, -.24], [-.13, -.06]], .8));
-  decalSet(g, H, 54, 6); decalTop(g, H, 'hexEm', -.12, 0, .05);
+  const df = P(ext([[0, .04], [0, -.2], [.06, -.26], [.025, -.06]], .006, .002, 1), 'redSkin'); df.rotation.z = Math.PI / 2; df.position.set(0, .075, 0); g.add(df);
+  greebleLoft(g, H, 110, 31, { wFrac: .95, hMax: .012, slits: .45 }); flankSlits(g, H, 34, 32);
+  nozzles(g, [-.022, .022], .008, .3, .016);
+  edgeStrips(g, [[0, .3], [.04, .2], [.065, .04], [.07, -.12], [.05, -.24], [-.05, -.24], [-.07, -.12], [-.065, .04], [-.04, .2]], .02, 'neonM');
+  g.add(underglow([[0, .26], [.12, 0], [0, -.26], [-.12, 0]], .8));
+  decalSet(g, H, 54, 6); decalTop(g, H, 'hexEm', -.12, 0, .04);
   return g; }
 function redShield() { const g = new THREE.Group();   // broad angular bulwark: wide faceted armour wedge, buttress spikes, tall tilted emitter plate projecting a hologram wall
   const H = [SEC(.2, .16, .014, .07, .05, .06, .1, .03), SEC(.1, .4, .016, .14, .07, .085, .2, .04), SEC(-.06, .46, .018, .16, .08, .095, .22, .042), SEC(-.18, .3, .018, .12, .07, .08, .16, .036), SEC(-.24, .14, .016, .07, .05, .058, .08, .03)];
@@ -291,7 +297,7 @@ function redShield() { const g = new THREE.Group();   // broad angular bulwark: 
 export const BUILDERS = { bF: blueFlagship, bD: blueDrone, bL: blueLancer, bS: blueShield, rF: redFlagship, rD: redDrone, rL: redLancer, rS: redShield };
 // Red ships: ~1.4x larger and lifted so they hover over the base like the Blue fleet. The long hulls (Flagship, Lancer) are capped
 // at 1.25 units of length so they don't swallow neighbouring squares; width and height still get the full 1.4x.
-const RED_FIT = { rF: [1.4, 1.15, 1.25], rL: [1.4, 1.15, 1.12], rD: [1.4, 1.2, 1.4], rS: [1.4, 1.15, 1.4] }, RED_LIFT = .06;
+const RED_FIT = { rF: [1.08, .95, 1.55], rL: [.95, .92, 1.5], rD: [1.3, 1.05, 1.3], rS: [1.4, 1.1, 1.4] }   /* daggers: Flagship and Lancer long and flat */, RED_LIFT = .06;
 export function buildShip(id, q = 1) { Q = q; let g = BUILDERS[id](); g.name = id; Q = 1;
   if (RED_FIT[id]) { const RS = { gunmetal: 'rGun', plate: 'rPlate', neonM: 'rNeonM', neonC: 'rNeonC' }; g.traverse(o => { if (o.isMesh && RS[o.userData.slot]) o.userData.slot = RS[o.userData.slot]; });   // Red-only materials (glossy wet gunmetal, half-strength neon)
     const w = new THREE.Group(); w.name = id; g.scale.set(...RED_FIT[id]); g.position.y = RED_LIFT; w.add(g); g = w; }
