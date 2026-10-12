@@ -244,15 +244,15 @@ export async function start(opts = {}) {
   // ---------- loop (on-demand: 30 fps idle cap, full rate while animating) ----------
   const bench = /bench/.test(Q); let pressing = false;
   addEventListener('pointerdown', () => { pressing = true; }, true); for (const ev of ['pointerup', 'pointercancel']) addEventListener(ev, () => { pressing = false; dirty = true; }, true);
-  let dirty = true, lastFrame = 0, contextLost = false; const drawCbs = []; const ft = [], stats = { frames: 0, battles: 0 };
-  function frame(t) { requestAnimationFrame(frame); if (contextLost || document.hidden) return;
+  let dirty = true, lastFrame = 0, contextLost = false, rafPrevRendered = false, rafPrevAt = 0; const drawCbs = []; const ft = [], stats = { frames: 0, battles: 0 };
+  function frame(t) { requestAnimationFrame(frame); const wall = performance.now(); if (rafPrevRendered) { ft.push(Math.min(wall - rafPrevAt, 10000)); if (ft.length > 120) ft.shift(); } rafPrevRendered = false; rafPrevAt = wall; if (contextLost || document.hidden) return;
     const anim = bench || battle || Object.values(shown).some(s => s.obj.userData.glide);
     // Input first: no idle frames while a finger is down (a slow GPU frame must never delay pointer events and turn a swipe into a
     // 0.5 s hold), and on the Low tier the scene is static between changes (no idle bob), so the main thread stays free for taps.
     // a selected ship means a move/attack tap is imminent: hold the idle bob (redraw only on change) so no slow idle frame is still queued on the GPU when the battle's first frame is due
     if (!anim && (pressing || ((tier === 'low' || selG.visible) && !dirty))) return;
     if (!anim && !dirty && t - lastFrame < 33) return;
-    const dt = t - lastFrame; lastFrame = t; dirty = false; if (dt < 200) { ft.push(dt); if (ft.length > 120) ft.shift(); }
+    lastFrame = t; dirty = false; rafPrevRendered = true;   // ft: real wall-clock gap from a rendered frame to the next rAF (seconds-long frames count)
     // shadow map: every idle frame, but during a battle only every 3rd frame (never on its first) - a 2048 shadow pass per frame was the heaviest part of a battle frame
     if (battle) { battle.sf = (battle.sf || 0) + 1; renderer.shadowMap.needsUpdate = battle.sf % 3 === 0; } else renderer.shadowMap.needsUpdate = true;
     if (battle) battleTick(t);
@@ -261,7 +261,8 @@ export async function start(opts = {}) {
     if (!reduced()) { T.scan.offset.y = (t / 4000) % 1; if (rain.visible) rain.position.y = -((t / 900) % 1) * .6; }
     if (shake) { const e = (t - shakeT0) / 180; if (e >= 1) { shake = 0; applyOffset(0, 0); } else { const a = view.H * .006 * (1 - e); applyOffset((Math.random() - .5) * 2 * a, (Math.random() - .5) * 2 * a); } }
     updateBatches(); renderer.info.reset(); composer.render(); stats.frames++; if (drawCbs.length) drawCbs.splice(0).forEach(f => f()); autoTune(); if (hud) drawHud(); }
-  let tuneFrames = 0; function autoTune() { if (++tuneFrames % 90) return; const s = [...ft].sort((a, b) => a - b), p50 = s[s.length >> 1];
+  let tuneFrames = 0; function autoTune() { if (battle) return; ++tuneFrames; const r = ft.slice(-4), stuck = r.length === 4 && r.every(x => x > 400);   // multi-hundred-ms frames: act now, don't wait 90 frames
+    if (tuneFrames % 90 && !stuck) return; if (stuck) { tuneFrames = 0; } const s = (stuck ? r : [...ft]).sort((a, b) => a - b), p50 = s[s.length >> 1]; if (stuck) ft.length = 0;
     const cap = battle ? 18 : 36;   // idle frames are capped at ~33 ms
     // steps down even when a tier was forced (?tier= / settings): a forced High that can't hold the budget would starve input.
     // Forced choices aren't persisted. Below Low, the frame time is capped by shrinking the drawing buffer (down to 0.6x).
