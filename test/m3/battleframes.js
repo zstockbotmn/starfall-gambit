@@ -18,6 +18,12 @@ require('fs').mkdirSync(DIR, { recursive: true });
     const s = await p.evaluate(() => ({ ...SGView.stats(), probe: __probe() })); if (!s.battling) break; const f = `${DIR}/${n}-${name}-u${String(u).slice(2)}.png`; await p.screenshot({ path: f, timeout: 120000 });
     out.push({ f, u: s.battleU, ...s.probe }); if (s.probe.rotDeg > .01) fail.push('rotation ' + n); if (s.probe.farEdgeY < s.probe.headerBottom) fail.push('under header ' + n); }
   await p.waitForFunction(() => !SGView.stats().battling, null, { timeout: 120000 }); const lb = await p.evaluate(() => ({ push: SGView.stats().lastBattle.push, gpu: SGView.stats().gpu, tier: SGView.stats().tier, ...__probe() }));
+  // second battle, skipped at the push peak: the play pose must be back at once (same far edge as at rest), checked right after the skip tap
+  const restY = lb.farEdgeY; await p.evaluate(() => { const s = SG.newGame(); s.board[24] = null; s.board[18] = { t: 'D', s: 1 }; SGDebug.setState(s); SGGame.render(); window.SG3D_TS = 4; });
+  await tap(30); await p.waitForTimeout(400); await tap(18); await p.waitForFunction(() => SGView.stats().battleU >= .4, null, { timeout: 60000, polling: 20 });
+  const mid = await p.evaluate(() => __probe()); await tap(10); const sk = await p.evaluate(() => ({ battling: SGView.battling(), ...__probe() }));
+  const fs = `${DIR}/6-after-skip.png`; await p.screenshot({ path: fs }); out.push({ f: fs, skip: sk, mid });
+  if (sk.battling || sk.rotDeg > .01 || Math.abs(sk.farEdgeY - restY) > 1) fail.push('skip did not restore play pose ' + JSON.stringify(sk)); if (mid.farEdgeY < mid.headerBottom) fail.push('mid under header');
   if (gl.length) fail.push(gl.length + ' GL errors: ' + gl[0]); if (out.length < 5) fail.push('only ' + out.length + ' frames');
   console.log(JSON.stringify({ frames: out, after: lb, glErrors: gl.length }, null, 1)); console.log(fail.length ? 'FRAMES FAIL ' + fail.join('; ') : 'FRAMES PASS');
  } finally { await b.close(); } process.exitCode = fail.length ? 1 : 0; })();
