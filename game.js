@@ -54,7 +54,7 @@
   // crossed a border; a lift up to EDGE_PX outside the board is treated as being on the nearest edge square.
   // Between SLOP_CELLS and DRAG_CELLS the press must still end on its start square; beyond DRAG_CELLS it cancels.
   var DRAG_CELLS = 0.6, SLOP_CELLS = 0.25, SLOP_MIN_PX = 12, EDGE_PX = 8;   // tap tolerance = max(12px, 0.25 cell)
-  var down = null, lpTimer = null, ghosts = [];
+  var down = null, lpTimer = null, ghosts = [], skipPtr = null, lastTouchEnd = -1e9;
   function cellFrom(x, y) {
     if (window.SGView && SGView.pick) return SGView.pick(x, y, 0);   // 3D: raycast the projected board, never the DOM overlay
     var el = document.elementFromPoint(x, y);
@@ -95,7 +95,8 @@
   }
   wrapEl.addEventListener('pointerdown', function (e) {
     if (e.pointerType === 'mouse' && e.button !== 0) return;
-    viewSkip();                                            // a tap during a battle skips to its end (and still counts as a tap)
+    // a tap during a battle only skips it: it is swallowed (no select), along with its echo click
+    if (window.SGView && SGView.battling()) { viewSkip(); skipPtr = e.pointerId; dlog('ok', 'battle skipped'); return; }
     // Rounded board corners / hairline gaps: fall back to the nearest cell.
     var t = e.target.closest('.cell'), i0 = (window.SGView && SGView.pick) ? cellNear(e.clientX, e.clientY) : t ? +t.dataset.i : cellNear(e.clientX, e.clientY);
     if (i0 < 0) return;
@@ -104,7 +105,7 @@
     ghosts = [];                                           // a new press means any pending echo click is stale
     // In 3D the DOM square is a projected trapezoid whose bounding box is wider than the square itself; tolerances use the real width
     var size = (window.SGView && SGView.cellSize) ? SGView.cellSize(i0).w : t.getBoundingClientRect().width;
-    down = { id: e.pointerId, i: +t.dataset.i, x: e.clientX, y: e.clientY, long: false, type: e.pointerType, max: DRAG_CELLS * size, slop: Math.max(SLOP_MIN_PX, SLOP_CELLS * size), ply: st.ply, gid: gameId };
+    down = { t0: e.timeStamp, id: e.pointerId, i: +t.dataset.i, x: e.clientX, y: e.clientY, long: false, type: e.pointerType, max: DRAG_CELLS * size, slop: Math.max(SLOP_MIN_PX, SLOP_CELLS * size), ply: st.ply, gid: gameId };
     try { wrapEl.setPointerCapture(e.pointerId); } catch (err) {}   // keep getting move/up even off the board
     fxAdd(i0, 'press');
     var d = down, pc0 = st.board[i0];
@@ -115,7 +116,7 @@
       var hold = capTarget ? LONG_PRESS_CAP : LONG_PRESS;
       d.hold = hold; t.style.setProperty('--hold', (hold - 150) + 'ms'); fxAdd(i0, 'holding');
       lpTimer = setTimeout(function () {
-        if (down !== d) return;
+        if (down !== d || performance.now() - d.t0 < hold) return;   // timers can fire early relative to queued input under load
         fxDel(d.i, 'holding'); d.long = true; inspect(d.i); dlog('ok', 'long-press inspect ' + SG.coord(d.i) + ' (' + hold + 'ms)');
       }, hold);
     }
@@ -127,6 +128,8 @@
   });
   wrapEl.addEventListener('pointerup', function (e) {
     var now = Date.now();
+    if (e.pointerType === 'touch') lastTouchEnd = now;
+    if (skipPtr === e.pointerId) { skipPtr = null; ghosts.push({ i: -3, j: -3, t: now, any: true }); return; }
     if (!down || e.pointerId !== down.id) {                // already cancelled (drag) or unknown pointer:
       ghosts.push({ i: cellNear(e.clientX, e.clientY), j: -2, t: now });   // still swallow its echo click
       return;
@@ -135,7 +138,10 @@
     var i = cellNear(e.clientX, e.clientY);
     ghosts.push({ i: i, j: d.i, t: now });                 // swallow the browser's echo click either way
     var dist = Math.hypot(e.clientX - d.x, e.clientY - d.y);
-    if (d.long) { clearPress(); return; }                  // the long-press already acted (inspect)
+    // hold vs tap is decided by the event clock: a finger that lifted before the hold time is a tap even if the
+    // (late) hold timer already ran on a busy main thread
+    if (d.long && e.timeStamp - d.t0 >= d.hold) { clearPress(); return; }   // the long-press already acted (inspect)
+    if (d.long) { d.long = false; insp = null; marks = null; dlog('ok', 'late hold timer ignored (' + Math.round(e.timeStamp - d.t0) + 'ms press)'); }
     if (dist > d.max) { cancelPress('drag over ' + DRAG_CELLS + ' cell', Math.round(dist) + 'px'); return; }
     // Red moved while the finger was down: the tap was aimed at the old position, so it does nothing.
     if (d.ply !== st.ply || d.gid !== gameId) { cancelPress('board changed during the press'); return; }
@@ -148,7 +154,11 @@
     clearPress();
     // judge timing (double-tap echo) by when the finger lifted, not when a busy main thread got round to it (3D frames can lag)
     inputTime = performance.timeOrigin + e.timeStamp; try { tap(d.i, d.type); } finally { inputTime = null; }
+    // the echo window starts once the tap's work (render, 3D sync) is done, not at pointerup
+    var done = Date.now(); ghosts.forEach(function (g) { if (g.t === now) g.t = done; }); if (e.pointerType === 'touch') lastTouchEnd = done;
   });
+  // stop the browser synthesising compatibility mouse events / click after a touch
+  wrapEl.addEventListener('touchend', function (e) { if (e.cancelable) e.preventDefault(); }, { passive: false });
   wrapEl.addEventListener('pointercancel', function (e) {
     if (down && e.pointerId === down.id) cancelPress('pointercancel from the browser');
   });
@@ -159,10 +169,11 @@
     var t = e.target.closest('.cell'); if (!t) return;
     if (e.detail === 0) viewSkip();
     var i = +t.dataset.i, now = Date.now();
+    if (e.detail !== 0 && now - lastTouchEnd < 1000) { dlog('ignored', 'compat click after touch [' + SG.coord(i) + ']'); return; }
     ghosts = ghosts.filter(function (g) { return now - g.t < GHOST_MS; });
     // detail === 0: keyboard, VoiceOver or programmatic activation, never an echo of a finger/mouse tap.
     if (e.detail !== 0) for (var k = 0; k < ghosts.length; k++) {
-      if (ghosts[k].i === i || ghosts[k].j === i) { ghosts.splice(k, 1); return; }   // echo of a pointer press: already dealt with
+      if (ghosts[k].any || ghosts[k].i === i || ghosts[k].j === i) { ghosts.splice(k, 1); return; }   // echo of a pointer press: already dealt with
     }
     tap(i, 'click');
   });
