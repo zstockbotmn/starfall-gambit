@@ -260,7 +260,12 @@ function redShield() { const g = new THREE.Group();   // broad angular bulwark: 
   return g; }
 
 export const BUILDERS = { bF: blueFlagship, bD: blueDrone, bL: blueLancer, bS: blueShield, rF: redFlagship, rD: redDrone, rL: redLancer, rS: redShield };
-export function buildShip(id, q = 1) { Q = q; const g = BUILDERS[id](); g.name = id; Q = 1; return g; }
+// Red ships: ~1.4x larger and lifted so they hover over the base like the Blue fleet. The long hulls (Flagship, Lancer) are capped
+// at 1.25 units of length so they don't swallow neighbouring squares; width and height still get the full 1.4x.
+const RED_FIT = { rF: [1.4, 1.4, 1.25], rL: [1.4, 1.4, 1.12], rD: [1.4, 1.4, 1.4], rS: [1.4, 1.4, 1.4] }, RED_LIFT = .06;
+export function buildShip(id, q = 1) { Q = q; let g = BUILDERS[id](); g.name = id; Q = 1;
+  if (RED_FIT[id]) { const w = new THREE.Group(); w.name = id; g.scale.set(...RED_FIT[id]); g.position.y = RED_LIFT; w.add(g); g = w; }
+  return g; }
 
 // ================= BOARD: slab + trims + grid strips (tiles are instanced at runtime) =================
 export function buildBoard(q = 1) { Q = q; const g = new THREE.Group(); g.name = 'board';
