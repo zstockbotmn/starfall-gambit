@@ -313,3 +313,7 @@ h1{color:#f6f8ff}
   .cell.holding::before{opacity:.9;--p:1}            /* static ring while holding */
   .cell.nogo::after{opacity:.6}                      /* static faint ring for ~0.45s */
 }
+/* Square hit area round the rounded board frame, so corner taps up to 8px outside the grid still land on the frame
+   (hit testing follows border-radius). Painted below the cells; transparent. */
+#boardWrap{position:relative;isolation:isolate}
+#boardWrap::after{content:'';position:absolute;inset:-2px;z-index:-1;border-radius:0;background:transparent}
