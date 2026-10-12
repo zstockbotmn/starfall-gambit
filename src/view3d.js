@@ -209,6 +209,12 @@ export async function start(opts = {}) {
     if (finale && kind === 'full') { P.c = .16; P.s = .26; P.i = .26; P.e = .9; }
     document.body.classList.add('sg-battle'); haze.forEach(h => { if (h.userData.cell === m.to) h.material.opacity = .28 * .3; });
     const nose = from.clone().add(to.clone().sub(from).normalize().multiplyScalar(.32)).setY(SHIP_Y + .05);
+    // Full mode: a close-up. The camera pushes in toward the attacker/target pair during the charge, holds through the strike and
+    // explosion, and is back on its play pose by the end (battleEnd also restores it exactly, so skip/cut never leave it moved).
+    const cam0 = { pos: camera.position.clone(), q: camera.quaternion.clone() };
+    if (kind === 'full') { const focus = from.clone().add(to).multiplyScalar(.5).setY(SHIP_Y * .5), push = finale ? .5 : .42, aim = new THREE.Vector3();
+      const camAt = k => { camera.position.copy(cam0.pos).lerp(focus, push * k); aim.set(0, 0, 0).lerp(focus, k); camera.lookAt(aim); camera.updateMatrixWorld(); };
+      over(0, P.c, u => camAt(u * u * (3 - 2 * u))); over(P.c, P.e, () => camAt(1)); over(P.e, 1, u => camAt(1 - u * u * (3 - 2 * u))); }
     if (kind !== 'reduced') {
       // 1 charge-up
       at(0, () => { const g = sprite(T.softDot, col.glow, nose, .05); over(0, P.c, u => g.scale.setScalar(.05 + .5 * u)); over(P.c, P.c + .08, u => g.material.opacity = 1 - u);
@@ -230,7 +236,8 @@ export async function start(opts = {}) {
         const sp = burst(hit, 160, side === 'r' && shot ? 0x19f0ff : col.spark, 2.6, 600, 1.2, .05); over(P.i, P.e, (u, dt) => sp.upd(dt, u));
         const rg = ring(to, loser === 'r' ? 0xff7a2e : 0x9ff8ff, .1, 1.2); over(P.i, P.i + .3, (u, dt) => rg.upd(dt, u)); }
       // 4 destruction: swap in pre-broken pieces of the loser
-      B.visible = false; const ch = kind === 'reduced' ? [] : debris(B.position.clone(), bId, loser); over(P.i, 1, (u, dt) => ch.forEach(c => c.upd(dt, u)));
+      B.visible = false; if (shown[m.to] && shown[m.to].obj === B) { delete shown[m.to]; root.remove(B); } updateBatches();   // gone the moment it explodes
+      const ch = kind === 'reduced' ? [] : debris(B.position.clone(), bId, loser); over(P.i, 1, (u, dt) => ch.forEach(c => c.upd(dt, u)));
       if (kind === 'reduced') { const g = makeShipMesh(bId); g.position.copy(B.position); fx.add(g); over(P.i, 1, u => g.scale.setScalar(SHIP_SCALE * (1 - u))); burst(hit, 12, col.spark, .6, 300, .5, .04); }
       else if (loser === 'r') { const n = finale ? 9 : 5; for (let k = 0; k < n; k++) { const d = finale ? k * .05 : 0; const f = sprite(fireTex, k % 2 ? 0xff7a2e : 0xffb05a, hit.clone().add(new THREE.Vector3((Math.random() - .5) * .4, Math.random() * .2, (Math.random() - .5) * .4)), .05); f.material.opacity = 0;
           over(P.i + d, Math.min(1, P.i + d + .35), u => { f.material.opacity = 1 - u; f.scale.setScalar(.2 + .9 * u); }); const sm = sprite(smokeTex, 0x302838, hit.clone(), .1, THREE.NormalBlending, 0); over(P.i + .08 + d, 1, u => { sm.material.opacity = .6 * Math.sin(Math.PI * u); sm.scale.setScalar(.3 + .8 * u); sm.position.y = SHIP_Y + u * .6; }); }
@@ -240,8 +247,8 @@ export async function start(opts = {}) {
     });
     // 5 return: attacker settles on its square (moving captures) — the camera never left the play pose (shake is a 2D view offset)
     if (moving) over(P.e, 1, u => A.position.lerpVectors(to.clone().sub(from).multiplyScalar(.82).add(from), to, u));
-    return new Promise(res => { battle = { t0: now(), called: now(), T: DUR, ev, ups, prevU: 0, res, A, from, to, moving, kind, finale, mode: kind }; }), DUR; }
-  function battleEnd() { if (!battle) return; const b = battle; battle = null; fx.clear(); const bt0 = b.called; stats.lastBattle = { cut: b.cut, gaps: b.gaps, ms: Math.round(now() - bt0), startupMs: b.startup, maxFrameMs: Math.round(b.maxDt || 0), planned: b.T, kind: b.kind, finale: b.finale, skipped: !b.cut && now() - bt0 < b.T * (window.SG3D_TS || 1) - 30, shook: b.shook }; impactLight.intensity = 0; shake = 0; applyOffset(0, 0);
+    return new Promise(res => { battle = { t0: now(), called: now(), T: DUR, ev, ups, prevU: 0, res, A, from, to, moving, kind, finale, mode: kind, cam0 }; }), DUR; }
+  function battleEnd() { if (!battle) return; const b = battle; battle = null; fx.clear(); if (b.cam0) { camera.position.copy(b.cam0.pos); camera.quaternion.copy(b.cam0.q); camera.updateMatrixWorld(); } const bt0 = b.called; stats.lastBattle = { cut: b.cut, gaps: b.gaps, ms: Math.round(now() - bt0), startupMs: b.startup, maxFrameMs: Math.round(b.maxDt || 0), planned: b.T, kind: b.kind, finale: b.finale, skipped: !b.cut && now() - bt0 < b.T * (window.SG3D_TS || 1) - 30, shook: b.shook }; impactLight.intensity = 0; shake = 0; applyOffset(0, 0);
     document.body.classList.remove('sg-battle'); haze.forEach(h => h.material.opacity = .28);
     // the captured ship is gone; the attacker (if it moved) now belongs to the target square
     for (const k of Object.keys(shown)) if (shown[k].obj === b.A && b.moving) { delete shown[k]; root.remove(b.A); }
