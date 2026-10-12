@@ -1,0 +1,69 @@
+{
+ "taps": 353,
+ "dropped": 0,
+ "byType": {
+  "touch": 208,
+  "mouse": 20,
+  "click": 71
+ },
+ "drops": [],
+ "kinds": {
+  "select": 37,
+  "destination": 40,
+  "preselect": 24,
+  "redTurnDestination": 13
+ },
+ "redTurnRace": 9,
+ "raceLateMove": 6,
+ "maxRedWaitMs": 1733,
+ "edge": {
+  "borderDrift": 25,
+  "edgeLift": 14,
+  "retap160": 9,
+  "echo60": 3,
+  "cornerTap": 6
+ },
+ "swipes": 150,
+ "accidentalMoves": 0,
+ "accidentalChanges": 0,
+ "swipeKinds": {
+  "small-into-neighbour/touch": 14,
+  "elsewhere-to-destination/mouse": 10,
+  "across-board/touch": 11,
+  "edge-lift-off/touch": 12,
+  "ship-to-destination/touch": 15,
+  "out-and-back/touch": 9,
+  "off-board/mouse": 6,
+  "destination-to-elsewhere/touch": 16,
+  "off-board/touch": 18,
+  "out-and-back/mouse": 6,
+  "destination-to-elsewhere/mouse": 6,
+  "across-board/mouse": 3,
+  "small-into-neighbour/mouse": 3,
+  "ship-to-destination/mouse": 7,
+  "edge-lift-off/mouse": 2,
+  "elsewhere-to-destination/touch": 12
+ },
+ "maxDriftCells": 0.48,
+ "appStats": {
+  "taps": 362,
+  "handled": 358,
+  "ignored": 4,
+  "reasons": {
+   "destination during Red’s turn (selection kept) [mouse f3]": 1,
+   "destination during Red’s turn (selection kept) [touch a2]": 2,
+   "destination during Red’s turn (selection kept) [mouse d4]": 1
+  },
+  "cancelled": 155,
+  "cancelReasons": {
+   "board changed during the press": 6,
+   "ended on a different square": 16,
+   "drag over 0.6 cell": 118,
+   "lifted off the board": 15
+  },
+  "moves": 58
+ },
+ "errs": []
+}
+STRESS PASSED: 353 taps (max drift 0.48 cell), 0 dropped; edge {"borderDrift":25,"edgeLift":14,"retap160":9,"echo60":3,"cornerTap":6}; red-turn destination taps 13; 150 swipes, 0 moves, 0 changes
+EXIT 0
