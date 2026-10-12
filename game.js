@@ -95,6 +95,7 @@
   }
   wrapEl.addEventListener('pointerdown', function (e) {
     if (e.pointerType === 'mouse' && e.button !== 0) return;
+    if (e.pointerType !== 'touch') lastTouchEnd = -1e9;          // a real mouse/pen press after a touch: its click is genuine
     // a tap during a battle only skips it: it is swallowed (no select), along with its echo click
     if (window.SGView && SGView.battling()) { viewSkip(); skipPtr = e.pointerId; dlog('ok', 'battle skipped'); return; }
     // Rounded board corners / hairline gaps: fall back to the nearest cell.
