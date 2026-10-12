@@ -1,27 +1,27 @@
 {
  "bF": {
-  "tris": 22636,
+  "tris": 25996,
   "slots": 4,
-  "raw": 1091376,
-  "packed": 161320
+  "raw": 1175824,
+  "packed": 174236
  },
  "bF_lod1": {
-  "tris": 6830,
+  "tris": 8510,
   "slots": 4,
-  "raw": 339384,
-  "packed": 56104
+  "raw": 382392,
+  "packed": 62776
  },
  "bD": {
-  "tris": 16920,
+  "tris": 22680,
   "slots": 4,
-  "raw": 428724,
-  "packed": 71220
+  "raw": 573492,
+  "packed": 94332
  },
  "bD_lod1": {
-  "tris": 5276,
+  "tris": 8156,
   "slots": 4,
-  "raw": 148852,
-  "packed": 27304
+  "raw": 222580,
+  "packed": 39152
  },
  "bL": {
   "tris": 11752,
@@ -96,12 +96,12 @@
   "packed": 59188
  },
  "bF_frac": {
-  "raw": 379116,
-  "packed": 77808
+  "raw": 432080,
+  "packed": 87516
  },
  "bD_frac": {
-  "raw": 186096,
-  "packed": 46896
+  "raw": 264100,
+  "packed": 60660
  },
  "bL_frac": {
   "raw": 247512,

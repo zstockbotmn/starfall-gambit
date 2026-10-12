@@ -43,6 +43,11 @@ function blueFlagship() { const g = new THREE.Group();
   for (const s of [1, -1]) { port(g, s * .2, .02, -.02, .022, 0, -Math.PI / 2); port(g, s * .16, .01, -.2, .016, 0, -Math.PI / 2); }
   const bell = P(new THREE.CylinderGeometry(.06, .045, .05, S(32), 1, true), 'gold'); bell.rotation.x = Math.PI / 2; bell.position.z = .44; g.add(bell);
   g.add(at(P(new THREE.CircleGeometry(.05, S(28)), 'tealGlow'), 0, 0, .43));
+  // sculpted gold filigree tracing the blades and hull spine
+  filigree(g, [[.07, .012, -.06], [.2, .016, -.05], [.32, .018, -.1], [.4, .016, -.18]], .005);
+  filigree(g, [[.06, .0, .14], [.2, .004, .2], [.3, .004, .32], [.34, .002, .4]], .0045);
+  filigree(g, [[.0, .058, -.36], [.0, .066, -.2], [.0, .062, .0], [.0, .05, .2], [.0, .035, .34]], .006, false);
+  filigree(g, [[.05, .045, -.3], [.07, .05, -.14], [.08, .045, .04], [.06, .035, .22]], .004);
   g.scale.setScalar(1.12); return g; }
 function blueDrone() { const g = new THREE.Group();   // cross frame with four eye-pods (concept)
   const hub = P(new THREE.CylinderGeometry(.075, .085, .06, S(8)), 'ceramic'); g.add(hub); g.add(at(P(new THREE.CylinderGeometry(.088, .088, .012, S(8)), 'gold'), 0, .0, 0));
@@ -52,7 +57,10 @@ function blueDrone() { const g = new THREE.Group();   // cross frame with four e
     for (const f of [.45, .7]) { const c = P(new THREE.TorusGeometry(.03, .006, S(8), S(20)), 'gold'); c.rotation.y = -a + Math.PI / 2; c.position.set(x * f, 0, z * f); g.add(c); }
     const pod = P(new THREE.SphereGeometry(.08, S(28), S(18)), 'ceramic'); pod.position.set(x, 0, z); g.add(pod);
     const seam = P(new THREE.TorusGeometry(.081, .006, S(8), S(36)), 'gold'); seam.rotation.x = Math.PI / 2; seam.position.set(x, 0, z); g.add(seam);
-    port(g, x * 1.3, 0, z * 1.3, .036, Math.PI / 2 - a, 0); port(g, x, .075, z, .03, 0, -Math.PI / 2); }
+    port(g, x * 1.3, 0, z * 1.3, .036, Math.PI / 2 - a, 0); port(g, x, .075, z, .03, 0, -Math.PI / 2);
+    const c = Math.cos(a), sn = Math.sin(a), q = (r, y, t) => [c * r - sn * t, y, sn * r + c * t];   // sculpted gold swoops along each arm and over the pod
+    filigree(g, [q(.08, .03, 0), q(.14, .04, .02), q(.2, .055, .015), q(.26, .082, 0)], .0045, false);
+    filigree(g, [q(.2, 0, .07), q(.26, .04, .085), q(.32, 0, .07)], .004, false); filigree(g, [q(.2, 0, -.07), q(.26, .04, -.085), q(.32, 0, -.07)], .004, false); }
   return g; }
 function blueLancer() { const g = new THREE.Group();   // spear: thicker sculpted ceramic hull, heavy gold lance, four swept gold fins, gold filigree
   const hull = P(lathe([[0, .2], [.04, .14], [.08, .02], [.095, -.1], [.088, -.2], [.06, -.28], [.03, -.33], [0, -.34]], 40), 'ceramic'); hull.scale.y = .72; hull.position.z = .1; g.add(hull);
