@@ -48,52 +48,52 @@
   "packed": 72560
  },
  "rF": {
-  "tris": 37216,
+  "tris": 19644,
   "slots": 7,
-  "raw": 1635648,
-  "packed": 415296
+  "raw": 1097644,
+  "packed": 270424
  },
  "rF_lod1": {
-  "tris": 11492,
+  "tris": 10740,
   "slots": 7,
-  "raw": 765732,
-  "packed": 185680
+  "raw": 727936,
+  "packed": 177020
  },
  "rD": {
-  "tris": 10284,
+  "tris": 5132,
   "slots": 7,
-  "raw": 479464,
-  "packed": 124976
+  "raw": 326392,
+  "packed": 83748
  },
  "rD_lod1": {
-  "tris": 3596,
+  "tris": 3188,
   "slots": 7,
-  "raw": 250452,
-  "packed": 64464
+  "raw": 231304,
+  "packed": 60724
  },
  "rL": {
-  "tris": 16406,
+  "tris": 7434,
   "slots": 7,
-  "raw": 716996,
-  "packed": 179824
+  "raw": 473528,
+  "packed": 112580
  },
  "rL_lod1": {
-  "tris": 4598,
+  "tris": 4742,
   "slots": 7,
-  "raw": 324148,
-  "packed": 77716
+  "raw": 341720,
+  "packed": 81404
  },
  "rS": {
-  "tris": 18972,
+  "tris": 8532,
   "slots": 8,
-  "raw": 814584,
-  "packed": 211112
+  "raw": 500652,
+  "packed": 125048
  },
  "rS_lod1": {
-  "tris": 5040,
+  "tris": 4544,
   "slots": 8,
-  "raw": 352832,
-  "packed": 88212
+  "raw": 323416,
+  "packed": 81948
  },
  "bF_frac": {
   "raw": 432080,
@@ -112,20 +112,20 @@
   "packed": 104388
  },
  "rF_frac": {
-  "raw": 842124,
-  "packed": 232524
+  "raw": 805020,
+  "packed": 223296
  },
  "rD_frac": {
-  "raw": 313644,
-  "packed": 105940
+  "raw": 294320,
+  "packed": 102752
  },
  "rL_frac": {
-  "raw": 390832,
-  "packed": 122372
+  "raw": 410896,
+  "packed": 127936
  },
  "rS_frac": {
-  "raw": 417032,
-  "packed": 129876
+  "raw": 392000,
+  "packed": 124376
  },
  "board": {
   "tris": 2280,

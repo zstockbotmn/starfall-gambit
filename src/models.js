@@ -140,10 +140,11 @@ function greebleLoft(g, secs, n, seed, { x0 = 0, y0 = 0, fMin = -1, fMax = 1, wF
   const f0 = Math.max(secs.at(-1).f, fMin), f1 = Math.min(secs[0].f, fMax);
   while (made < n && tries++ < n * 30) { const f = f0 + grnd() * (f1 - f0), s = secAt(secs, f); if (!s || s.w < .02) continue; const x = (grnd() * 2 - 1) * s.w * wFrac, [y, sl] = topAt(s, x); made++;
     const kind = grnd(), o = new THREE.Group(); o.position.set(x + x0, y + y0, -f); o.rotation.z = sl;
-    if (kind < .55) { const w = .008 + grnd() * .026, l = .012 + grnd() * .05, h = .004 + grnd() * hMax, r = grnd(); o.add(at(P(soft(w, h, l), r < .5 ? 'gunmetal' : r < .8 ? 'plate' : 'chrome'), 0, h / 2, 0));
+    if (kind < .5) { const w = .014 + grnd() * .04, l = .02 + grnd() * .07, h = .0015 + grnd() * .003; o.add(at(P(new THREE.BoxGeometry(w, h, l), grnd() < .5 ? 'plate' : 'gunmetal'), 0, h / 2, 0)); }   // fine flush panel plates
+    else if (kind < .62) { const w = .006 + grnd() * .016, l = .01 + grnd() * .03, h = .003 + grnd() * hMax * .45, r = grnd(); o.add(at(P(soft(w, h, l), r < .5 ? 'gunmetal' : r < .8 ? 'plate' : 'chrome'), 0, h / 2, 0));
       if (grnd() < .25) o.add(at(P(soft(w * .6, h * .7, l * .6), 'plate'), 0, h + h * .35, 0)); }
-    else if (kind < .75) { const k = 3 + Math.floor(grnd() * 3), l = .02 + grnd() * .03; for (let v = 0; v < k; v++) o.add(at(P(new THREE.BoxGeometry(.003, .006, l), 'chrome'), (v - (k - 1) / 2) * .006, .003, 0)); o.add(at(P(new THREE.BoxGeometry(k * .006 + .004, .002, l + .004), 'gunmetal'), 0, .001, 0)); }
-    else if (kind < .85) { const fin = P(ext([[0, 0], [0, .03 + grnd() * .03], [.012 + grnd() * .02, 0]], .003, .001, 1), 'gunmetal'); fin.rotation.set(0, 0, Math.PI / 2); fin.position.y = .0; o.add(fin); }
+    else if (kind < .8) { const k = 3 + Math.floor(grnd() * 3), l = .02 + grnd() * .03; for (let v = 0; v < k; v++) o.add(at(P(new THREE.BoxGeometry(.003, .006, l), 'chrome'), (v - (k - 1) / 2) * .006, .003, 0)); o.add(at(P(new THREE.BoxGeometry(k * .006 + .004, .002, l + .004), 'gunmetal'), 0, .001, 0)); }
+    else if (kind < .9) { const fin = P(ext([[0, 0], [0, .03 + grnd() * .03], [.012 + grnd() * .02, 0]], .003, .001, 1), 'gunmetal'); fin.rotation.set(0, 0, Math.PI / 2); fin.position.y = .0; o.add(fin); }
     else { o.add(at(P(new THREE.CylinderGeometry(.004 + grnd() * .006, .006 + grnd() * .006, .006 + grnd() * .012, 6), 'gunmetal'), 0, .006, 0)); }
     if (grnd() < slits) o.add(at(P(new THREE.BoxGeometry(.003, .0025, .015 + grnd() * .03), grnd() < .6 ? 'neonM' : 'neonC'), (grnd() - .5) * .02, .0022, 0));
     g.add(o); } }
@@ -167,12 +168,15 @@ function bigHex(g, x, y, z, r) { // large glowing cyan hexagonal reactor core wi
   for (const [rr, yy] of [[r * 1.12, .045], [r * .7, .046], [r * .4, .047]]) { const t = P(new THREE.TorusGeometry(rr, .0045, 4, 6), 'neonC'); t.rotation.set(Math.PI / 2, 0, Math.PI / 6); t.position.set(x, y + yy, z); g.add(t); }
   for (let k = 0; k < 6; k++) { const a = k / 6 * Math.PI * 2 + Math.PI / 6, m = P(new THREE.BoxGeometry(.008, .016, r * .5), 'chrome'); m.position.set(x + Math.sin(a) * r * 1.3, y + .03, z + Math.cos(a) * r * 1.3); m.rotation.y = a; g.add(m); } }
 const SEC = (f, w, e, sw, sh, r, kw, k) => ({ f, w, e, sw, sh, r, kw, k });
+// sleek tapered knife-edge spine along the centreline: needle-sharp at the bow, widest/highest aft of midships, tapering at the stern
+function spineSecs(f0, f1, w, h) { const L = f0 - f1, at = (u, ww, hh) => SEC(f0 - L * u, ww, 0, ww * .22, hh * .62, hh, ww, 0); return [at(0, .002, .004), at(.25, w * .45, h * .55), at(.55, w * .85, h * .9), at(.78, w, h), at(1, w * .55, h * .7)]; }
+function spine(g, f0, f1, w, h, y0, slot = 'redSkin') { const S2 = spineSecs(f0, f1, w, h); loft(g, S2, slot, 0, y0);
+  const L = Math.hypot(f0 - f1, h); const ln = P(new THREE.BoxGeometry(.003, .003, (f0 - f1) * .7), 'neonC'); ln.position.set(0, y0 + h * .93 + .002, -(f0 - (f0 - f1) * .45)); ln.rotation.x = Math.atan2(h * .9, (f0 - f1) * .55) * .5; g.add(ln); return S2; }
 function redFlagship() { const g = new THREE.Group();   // dreadnought (red-flagship-ref): long faceted arrowhead, stepped spine, sawtooth spikes, big cyan hex core, aft bridge tower
   const H = [SEC(.5, .006, 0, .003, .01, .012, .003, .006), SEC(.38, .06, .008, .03, .03, .036, .03, .018), SEC(.18, .15, .012, .065, .05, .062, .065, .03), SEC(-.04, .24, .016, .095, .066, .082, .095, .036),
     SEC(-.22, .29, .018, .11, .072, .088, .1, .036), SEC(-.34, .23, .018, .1, .068, .08, .09, .032), SEC(-.43, .13, .018, .075, .058, .066, .07, .028)];
   loft(g, H);
-  const SP = [SEC(.34, .008, .0, .004, .01, .014, .006, .0), SEC(.2, .05, .01, .025, .034, .04, .04, .0), SEC(-.06, .085, .016, .045, .05, .058, .07, .0), SEC(-.3, .09, .018, .05, .055, .062, .08, .0), SEC(-.4, .06, .016, .035, .045, .05, .055, .0)];
-  loft(g, SP, 'redSkin', 0, .06);   // raised spine superstructure
+  const SP = spine(g, .44, -.42, .085, .07, .06);   // sleek tapered dreadnought spine
   bigHex(g, 0, .11, -.05, .062);
   // aft bridge tower: stacked angular blocks + antenna cluster
   const T = [SEC(-.2, .045, .0, .03, .03, .034, .045, .0), SEC(-.28, .05, .0, .035, .04, .044, .05, .0), SEC(-.36, .04, .0, .028, .032, .036, .04, .0)];
@@ -200,7 +204,7 @@ function redLancer() { const g = new THREE.Group();   // long spear with a ram: 
   loft(g, H);
   // ram head: a heavier faceted wedge at the bow ending in a chrome ram spike
   const R = [SEC(.5, .012, .0, .006, .012, .016, .006, .01), SEC(.42, .07, .006, .035, .04, .05, .04, .03), SEC(.33, .09, .01, .045, .05, .06, .05, .034), SEC(.27, .05, .01, .025, .03, .036, .03, .02)];
-  loft(g, R, 'plate');
+  loft(g, R, 'plate'); spine(g, .52, -.44, .03, .042, .028);
   const ram = P(new THREE.ConeGeometry(.016, .1, 6), 'chrome'); ram.rotation.x = -Math.PI / 2; ram.position.set(0, .006, -.54); g.add(ram);
   for (const s of [1, -1]) { const pr = P(new THREE.ConeGeometry(.008, .08, 5), 'chrome'); pr.rotation.set(-Math.PI / 2, 0, 0); pr.position.set(s * .05, .004, -.46); g.add(pr); }
   g.add(at(P(new THREE.BoxGeometry(.11, .004, .004), 'neonM'), 0, .03, -.36)); g.add(at(P(new THREE.BoxGeometry(.08, .004, .004), 'neonC'), 0, .04, -.4));
@@ -220,7 +224,7 @@ function redLancer() { const g = new THREE.Group();   // long spear with a ram: 
   return g; }
 function redDrone() { const g = new THREE.Group();   // compact hunter with a spiky claw: stubby armoured wedge body, two jagged pincers forward, rear spikes
   const H = [SEC(.2, .03, .01, .015, .03, .036, .02, .02), SEC(.1, .11, .016, .05, .06, .07, .06, .035), SEC(-.06, .14, .02, .065, .075, .088, .075, .04), SEC(-.18, .1, .02, .05, .06, .07, .06, .034), SEC(-.24, .05, .018, .03, .04, .046, .035, .026)];
-  loft(g, H);
+  loft(g, H); spine(g, .22, -.25, .05, .05, .07);
   bigHex(g, 0, .082, .03, .03);
   // claw: each pincer is a thick jagged blade curving inward, with inner teeth and a neon edge
   for (const s of [1, -1]) { const C = [[.07, .06], [.17, .16], [.19, .3], [.13, .43], [.05, .47], [.11, .36], [.12, .25], [.08, .16], [.04, .1]].map(([x, f]) => [s * x, f]);
@@ -239,7 +243,7 @@ function redDrone() { const g = new THREE.Group();   // compact hunter with a sp
   return g; }
 function redShield() { const g = new THREE.Group();   // broad angular bulwark: wide faceted armour wedge, buttress spikes, tall tilted emitter plate projecting a hologram wall
   const H = [SEC(.2, .16, .014, .07, .05, .06, .1, .03), SEC(.1, .4, .016, .14, .07, .085, .2, .04), SEC(-.06, .46, .018, .16, .08, .095, .22, .042), SEC(-.18, .3, .018, .12, .07, .08, .16, .036), SEC(-.24, .14, .016, .07, .05, .058, .08, .03)];
-  loft(g, H);
+  loft(g, H); spine(g, .2, -.25, .09, .06, .085);
   // emitter plate: tall angled armoured frame at the bow, glowing pink emitter face with a neon grid
   const E = new THREE.Group(); E.position.set(0, .06, -.14); E.rotation.x = -.42;
   const frame = [[0, .2], [.2, .17], [.3, .06], [.28, 0], [-.28, 0], [-.3, .06], [-.2, .17]];
