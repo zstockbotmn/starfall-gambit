@@ -22,4 +22,8 @@
     } else window.SG3D.state = 'no-webgl2';
   }
   if ('serviceWorker' in navigator && !/nosw/.test(q) && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(function () {});
+  // cache-first SW: after a deploy the first load still ran the OLD cached scripts (stale fixes, missing debug logging). When a new
+  // worker takes over a page that an old one was serving, reload once - only in the first 15 s, so it never interrupts a game.
+  if ('serviceWorker' in navigator && navigator.serviceWorker.controller && !/nosw/.test(q)) { var swT0 = Date.now(), swDone = false;
+    navigator.serviceWorker.addEventListener('controllerchange', function () { if (swDone || Date.now() - swT0 > 15000) return; swDone = true; location.reload(); }); }
 })();
