@@ -1,0 +1,4 @@
+320x460: STRESS PASSED: 574 taps (max drift 0.48 cell), 0 dropped; edge {"borderDrift":25,"edgeLift":17,"retap160":6,"echo60":4,"cornerTap":8}; red-turn destination taps 57; 150 swipes, 0 moves, 0 changes
+320x568: STRESS PASSED: 578 taps (max drift 0.48 cell), 0 dropped; edge {"borderDrift":16,"edgeLift":15,"retap160":11,"echo60":2,"cornerTap":16}; red-turn destination taps 47; 150 swipes, 0 moves, 0 changes
+375x548: STRESS PASSED: 696 taps (max drift 0.48 cell), 0 dropped; edge {"borderDrift":25,"edgeLift":10,"retap160":7,"echo60":6,"cornerTap":12}; red-turn destination taps 76; 150 swipes, 0 moves, 0 changes
+390x844: STRESS PASSED: 668 taps (max drift 0.48 cell), 0 dropped; edge {"borderDrift":23,"edgeLift":13,"retap160":6,"echo60":5,"cornerTap":13}; red-turn destination taps 65; 150 swipes, 0 moves, 0 changes

@@ -1,0 +1,432 @@
+[
+ {
+  "tag": "390x844",
+  "cell": 56.7,
+  "redTurnHint": "Wait for Red’s move.",
+  "info": {
+   "warn": {
+    "text": "⚠ Your Flagship is under attack!",
+    "top": 679,
+    "bottom": 697,
+    "h": 18,
+    "ok": true
+   },
+   "last": {
+    "text": "Red Drone b5→c3.",
+    "top": 699,
+    "bottom": 716,
+    "h": 17,
+    "ok": true
+   },
+   "hint": {
+    "text": "Lancer: steps 1 square, or fires along its lanes (up to 3).",
+    "top": 718,
+    "bottom": 736,
+    "h": 18,
+    "ok": true
+   },
+   "infoH": 76
+  },
+  "driftLog": [
+   "40.977 ok: select [touch b1]",
+   "40.977 drift: 12px into c1, counted on b1"
+  ],
+  "edgeLog": "41.694 cancelled: lifted off the board (25px) [touch from b1]",
+  "capturedHint": "Your selected Drone was captured.",
+  "badgeOverlapsBracket": false,
+  "warn": "⚠ Your Flagship is under attack!",
+  "warnFullyVisible": true,
+  "logTop": "45.176 cancelled: drag over 0.6 cell (68px) [touch from d2]",
+  "logPanel": {
+   "bottom": 175,
+   "warnTop": 679,
+   "clear": true
+  },
+  "boomRightAfter": 1,
+  "boomAfter1s": 0,
+  "boomAfterNebula": 0,
+  "drift11px": "b1",
+  "cancelCue": true,
+  "cueGone": true,
+  "jam": [
+   {
+    "lock": true,
+    "filter": "drop-shadow(rgba(127, 243, 230, 0.7) 0px 0px 2.5px) drop-shadow(rgba(232, 196, 106, 0.6) 0px 0px 1px)"
+   },
+   {
+    "lock": true,
+    "filter": "drop-shadow(rgba(255, 43, 214, 0.75) 0px 0px 2.5px)"
+   }
+  ],
+  "badge": {
+   "w": 17,
+   "h": 17,
+   "font": "12.5px",
+   "bg": "rgb(255, 255, 255)",
+   "color": "rgb(212, 0, 74)"
+  },
+  "holdRingOnTarget": true,
+  "slowTapCaptured": true,
+  "longHoldInspects": true,
+  "holdNonTargetInspects": true,
+  "waitSamples": [
+   [
+    300,
+    "Wait for Red’s move.",
+    1
+   ],
+   [
+    900,
+    "Wait for Red’s move.",
+    2
+   ],
+   [
+    1200,
+    "Wait for Red’s move.",
+    2
+   ]
+  ],
+  "legend": {
+   "n": 8,
+   "inside": true
+  },
+  "dbgVsTitle": true,
+  "corner": {
+   "a1 corner": "a1",
+   "a1 outside 5px": "a1",
+   "f1 corner": "f1",
+   "f1 outside 6px": "f1",
+   "a6 corner (Red, inspect)": true
+  },
+  "infoOrder": "warn,lastMove,hint",
+  "logUnderDialog": true,
+  "noScrollFull": true,
+  "boardTops": [
+   238
+  ],
+  "noScrollPlay": true,
+  "errs": []
+ },
+ {
+  "tag": "375x548",
+  "cell": 46.7,
+  "redTurnHint": "Wait for Red’s move.",
+  "info": {
+   "warn": {
+    "text": "⚠ Your Flagship is under attack!",
+    "top": 494,
+    "bottom": 510,
+    "h": 16,
+    "ok": true
+   },
+   "last": {
+    "text": "Red Drone b5→c3.",
+    "top": 510,
+    "bottom": 526,
+    "h": 16,
+    "ok": true
+   },
+   "hint": {
+    "text": "Lancer: steps 1 square, or fires along its lanes (up to 3).",
+    "top": 526,
+    "bottom": 541,
+    "h": 15,
+    "ok": true
+   },
+   "infoH": 48
+  },
+  "driftLog": [
+   "25.725 ok: select [touch b1]",
+   "25.724 drift: 10px into c1, counted on b1"
+  ],
+  "edgeLog": "26.242 cancelled: lifted off the board (23px) [touch from b1]",
+  "capturedHint": "Your selected Drone was captured.",
+  "badgeOverlapsBracket": false,
+  "warn": "⚠ Your Flagship is under attack!",
+  "warnFullyVisible": true,
+  "logTop": "29.107 cancelled: drag over 0.6 cell (56px) [touch from d2]",
+  "logPanel": {
+   "bottom": 87,
+   "warnTop": 494,
+   "clear": true
+  },
+  "boomRightAfter": 1,
+  "boomAfter1s": 0,
+  "boomAfterNebula": 0,
+  "drift11px": "b1",
+  "cancelCue": true,
+  "cueGone": true,
+  "jam": [
+   {
+    "lock": true,
+    "filter": "drop-shadow(rgba(127, 243, 230, 0.7) 0px 0px 2.5px) drop-shadow(rgba(232, 196, 106, 0.6) 0px 0px 1px)"
+   },
+   {
+    "lock": true,
+    "filter": "drop-shadow(rgba(255, 43, 214, 0.75) 0px 0px 2.5px)"
+   }
+  ],
+  "badge": {
+   "w": 17,
+   "h": 17,
+   "font": "12.5px",
+   "bg": "rgb(255, 255, 255)",
+   "color": "rgb(212, 0, 74)"
+  },
+  "holdRingOnTarget": true,
+  "slowTapCaptured": true,
+  "longHoldInspects": true,
+  "holdNonTargetInspects": true,
+  "waitSamples": [
+   [
+    300,
+    "Wait for Red’s move.",
+    1
+   ],
+   [
+    900,
+    "Wait for Red’s move.",
+    2
+   ],
+   [
+    1200,
+    "Wait for Red’s move.",
+    2
+   ]
+  ],
+  "legend": {
+   "n": 8,
+   "inside": true
+  },
+  "dbgVsTitle": true,
+  "corner": {
+   "a1 corner": "a1",
+   "a1 outside 5px": "a1",
+   "f1 corner": "f1",
+   "f1 outside 6px": "f1",
+   "a6 corner (Red, inspect)": true
+  },
+  "infoOrder": "warn,lastMove,hint",
+  "logUnderDialog": true,
+  "noScrollFull": true,
+  "boardTops": [
+   137
+  ],
+  "noScrollPlay": true,
+  "errs": []
+ },
+ {
+  "tag": "320x460",
+  "cell": 38.3,
+  "redTurnHint": "Wait for Red’s move.",
+  "info": {
+   "warn": {
+    "text": "⚠ Your Flagship is under attack!",
+    "top": 404,
+    "bottom": 420,
+    "h": 16,
+    "ok": true
+   },
+   "last": {
+    "text": "Red Drone b5→c3.",
+    "top": 420,
+    "bottom": 436,
+    "h": 16,
+    "ok": true
+   },
+   "hint": {
+    "text": "Lancer: steps 1 square, or fires along its lanes (up to 3).",
+    "top": 436,
+    "bottom": 451,
+    "h": 15,
+    "ok": true
+   },
+   "infoH": 50
+  },
+  "driftLog": [
+   "53.590 ok: select [touch b1]",
+   "53.590 drift: 8px into c1, counted on b1"
+  ],
+  "edgeLog": "54.040 cancelled: lifted off the board (22px) [touch from b1]",
+  "capturedHint": "Your selected Drone was captured.",
+  "badgeOverlapsBracket": false,
+  "warn": "⚠ Your Flagship is under attack!",
+  "warnFullyVisible": true,
+  "logTop": "56.739 cancelled: drag over 0.6 cell (46px) [touch from d2]",
+  "logPanel": {
+   "bottom": 87,
+   "warnTop": 404,
+   "clear": true
+  },
+  "boomRightAfter": 1,
+  "boomAfter1s": 0,
+  "boomAfterNebula": 0,
+  "drift11px": "b1",
+  "cancelCue": true,
+  "cueGone": true,
+  "jam": [
+   {
+    "lock": true,
+    "filter": "drop-shadow(rgba(127, 243, 230, 0.7) 0px 0px 2.5px) drop-shadow(rgba(232, 196, 106, 0.6) 0px 0px 1px)"
+   },
+   {
+    "lock": true,
+    "filter": "drop-shadow(rgba(255, 43, 214, 0.75) 0px 0px 2.5px)"
+   }
+  ],
+  "badge": {
+   "w": 17,
+   "h": 17,
+   "font": "12.5px",
+   "bg": "rgb(255, 255, 255)",
+   "color": "rgb(212, 0, 74)"
+  },
+  "holdRingOnTarget": true,
+  "slowTapCaptured": true,
+  "longHoldInspects": true,
+  "holdNonTargetInspects": true,
+  "waitSamples": [
+   [
+    300,
+    "Wait for Red’s move.",
+    1
+   ],
+   [
+    900,
+    "Wait for Red’s move.",
+    2
+   ],
+   [
+    1200,
+    "Wait for Red’s move.",
+    2
+   ]
+  ],
+  "legend": "hidden",
+  "dbgVsTitle": true,
+  "corner": {
+   "a1 corner": "a1",
+   "a1 outside 5px": "a1",
+   "f1 corner": "f1",
+   "f1 outside 6px": "f1",
+   "a6 corner (Red, inspect)": true
+  },
+  "infoOrder": "warn,lastMove,hint",
+  "logUnderDialog": true,
+  "noScrollFull": true,
+  "boardTops": [
+   133
+  ],
+  "noScrollPlay": true,
+  "errs": []
+ },
+ {
+  "tag": "320x568",
+  "cell": 45,
+  "redTurnHint": "Wait for Red’s move.",
+  "info": {
+   "warn": {
+    "text": "⚠ Your Flagship is under attack!",
+    "top": 484,
+    "bottom": 500,
+    "h": 16,
+    "ok": true
+   },
+   "last": {
+    "text": "Red Drone b5→c3.",
+    "top": 500,
+    "bottom": 516,
+    "h": 16,
+    "ok": true
+   },
+   "hint": {
+    "text": "Lancer: steps 1 square, or fires along its lanes (up to 3).",
+    "top": 516,
+    "bottom": 531,
+    "h": 15,
+    "ok": true
+   },
+   "infoH": 78
+  },
+  "driftLog": [
+   "20.372 ok: select [touch b1]",
+   "20.372 drift: 10px into c1, counted on b1"
+  ],
+  "edgeLog": "20.939 cancelled: lifted off the board (23px) [touch from b1]",
+  "capturedHint": "Your selected Drone was captured.",
+  "badgeOverlapsBracket": false,
+  "warn": "⚠ Your Flagship is under attack!",
+  "warnFullyVisible": true,
+  "logTop": "23.805 cancelled: drag over 0.6 cell (54px) [touch from d2]",
+  "logPanel": {
+   "bottom": 87,
+   "warnTop": 484,
+   "clear": true
+  },
+  "boomRightAfter": 1,
+  "boomAfter1s": 0,
+  "boomAfterNebula": 0,
+  "drift11px": "b1",
+  "cancelCue": true,
+  "cueGone": true,
+  "jam": [
+   {
+    "lock": true,
+    "filter": "drop-shadow(rgba(127, 243, 230, 0.7) 0px 0px 2.5px) drop-shadow(rgba(232, 196, 106, 0.6) 0px 0px 1px)"
+   },
+   {
+    "lock": true,
+    "filter": "drop-shadow(rgba(255, 43, 214, 0.75) 0px 0px 2.5px)"
+   }
+  ],
+  "badge": {
+   "w": 17,
+   "h": 17,
+   "font": "12.5px",
+   "bg": "rgb(255, 255, 255)",
+   "color": "rgb(212, 0, 74)"
+  },
+  "holdRingOnTarget": true,
+  "slowTapCaptured": true,
+  "longHoldInspects": true,
+  "holdNonTargetInspects": true,
+  "waitSamples": [
+   [
+    300,
+    "Wait for Red’s move.",
+    1
+   ],
+   [
+    900,
+    "Wait for Red’s move.",
+    2
+   ],
+   [
+    1200,
+    "Wait for Red’s move.",
+    2
+   ]
+  ],
+  "legend": {
+   "n": 8,
+   "inside": true
+  },
+  "dbgVsTitle": true,
+  "corner": {
+   "a1 corner": "a1",
+   "a1 outside 5px": "a1",
+   "f1 corner": "f1",
+   "f1 outside 6px": "f1",
+   "a6 corner (Red, inspect)": true
+  },
+  "infoOrder": "warn,lastMove,hint",
+  "logUnderDialog": true,
+  "noScrollFull": true,
+  "boardTops": [
+   137
+  ],
+  "noScrollPlay": true,
+  "errs": []
+ }
+]
+UI CHECKS PASSED
