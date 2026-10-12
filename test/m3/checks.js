@@ -66,7 +66,7 @@ const tap = async (p, i) => { const c = await p.evaluate(i => SGDebug.cellCenter
     await p.evaluate(() => localStorage.setItem('sg_battle', 'full')); await setS(p, 'shot'); await tap(p, 30); await p.waitForTimeout(120); await tap(p, 18); await p.waitForTimeout(250);
     const before = await p.evaluate(() => SGView.battling()); await tap(p, 35); await p.waitForTimeout(50); lb = await p.evaluate(() => SGView.stats().lastBattle);
     ok('battle-tap-to-skip', before && lb.skipped && lb.ms < 700, lb);
-    await p.waitForTimeout(200);   // presses within 150 ms of a skip are dropped by design
+    await p.waitForTimeout(700);   // presses until the rested frame + 250 ms after a skip are dropped by design
     await setS(p, 'finale'); await tap(p, 31); await p.waitForTimeout(120); await p.evaluate(() => { window.SG3D_TS = 8; }); await tap(p, 13);
     for (const [n, ms] of [['1', 3000], ['2', 2500], ['3', 3500]]) { await p.waitForTimeout(ms); await p.screenshot({ path: `${OUT}/battle/flagship-finale-${n}.png` }); }
     await p.waitForFunction(() => !SGView.battling(), null, { timeout: 60000 }); await p.evaluate(() => { window.SG3D_TS = 1; }); lb = await p.evaluate(() => SGView.stats().lastBattle); ok('battle-finale-2.5s', lb.planned === 2500 && lb.finale, lb);
