@@ -76,6 +76,9 @@ function blueLancer() { const g = new THREE.Group();   // spear: thicker sculpte
   const can = P(new THREE.SphereGeometry(.04, S(20), S(10)), 'glass'); can.scale.set(.8, .6, 2.2); can.position.set(0, .055, -.02); g.add(can);
   const bell = P(new THREE.CylinderGeometry(.05, .036, .045, S(20), 1, true), 'gold'); bell.rotation.x = Math.PI / 2; bell.position.z = .45; g.add(bell);
   g.add(at(P(new THREE.CircleGeometry(.04, S(20)), 'tealGlow'), 0, 0, .44));
+  // polish: teal light channels along the hull, gold filigree curls on the side fins, gold tip collar on the lance
+  for (const sd of [1, -1]) { g.add(at(P(new THREE.BoxGeometry(.006, .006, .2), 'tealGlow'), sd * .084, .022, .04)); filigree(g, [[sd * .1, .004, -.16], [sd * .17, .006, -.26], [sd * .22, .006, -.36], [sd * .24, .004, -.4]], .0045, false); }
+  const tc = P(new THREE.TorusGeometry(.03, .006, S(8), S(24)), 'gold'); tc.position.z = -.52; g.add(tc); g.add(at(P(new THREE.SphereGeometry(.012, S(12), S(8)), 'tealGlow'), 0, 0, -.63));
   return g; }
 function blueShield() { const g = new THREE.Group();   // tall domed bastion: larger, taller dome with gold ribs, crown spire, flared rim wings, teal eye ports
   const dome = P(new THREE.LatheGeometry(V2([[.28, 0], [.27, .06], [.24, .15], [.19, .24], [.13, .3], [.06, .335], [0, .34]]), S(64)), 'ceramic'); g.add(dome);
@@ -90,6 +93,10 @@ function blueShield() { const g = new THREE.Group();   // tall domed bastion: la
   blade(g, curve([[.29, -.07], [.52, -.03], [.56, .2], [.43, .07], [.31, .06]]), .022, -.03, 1.05, true);
   blade(g, curve([[.2, .2], [.3, .3], [.28, .42], [.22, .3], [.15, .26]]), .016, -.02, 1.06, true);
   for (let k = 0; k < 12; k++) { const a = k / 12 * Math.PI * 2; g.add(at(P(new THREE.BoxGeometry(.032, .006, .012), 'tealGlow'), Math.cos(a) * .35, -.024, Math.sin(a) * .35)).children.at(-1).rotation.y = -a; }
+  // polish: ring of teal ports around the dome base, gold-tipped rim blades, teal crown band
+  for (let k = 0; k < 8; k++) { const a = k / 8 * Math.PI * 2 + Math.PI / 8; port(g, Math.cos(a) * .27, .045, Math.sin(a) * .27, .016, Math.PI / 2 - a, 0); }
+  for (const sd of [1, -1]) g.add(at(P(new THREE.SphereGeometry(.014, S(12), S(8)), 'gold'), sd * .545, -.03, -.19));
+  const band = P(new THREE.TorusGeometry(.2, .006, S(8), S(48)), 'tealGlow'); band.rotation.x = Math.PI / 2; band.position.y = .2; g.add(band);
   g.scale.setScalar(1.05); return g; }
 
 // ================= RED: gritty neon cyberpunk (matches concept-red + red-flagship-ref): long, angular, heavily greebled black hulls =================

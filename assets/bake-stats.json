@@ -24,28 +24,28 @@
   "packed": 57256
  },
  "bL": {
-  "tris": 11752,
+  "tris": 13288,
   "slots": 4,
-  "raw": 545068,
-  "packed": 107656
+  "raw": 585060,
+  "packed": 115780
  },
  "bL_lod1": {
-  "tris": 4436,
+  "tris": 5144,
   "slots": 4,
-  "raw": 209756,
-  "packed": 48788
+  "raw": 229356,
+  "packed": 53240
  },
  "bS": {
-  "tris": 20672,
+  "tris": 28880,
   "slots": 4,
-  "raw": 879084,
-  "packed": 177876
+  "raw": 1085500,
+  "packed": 223720
  },
  "bS_lod1": {
-  "tris": 7768,
+  "tris": 10320,
   "slots": 4,
-  "raw": 316332,
-  "packed": 72560
+  "raw": 386336,
+  "packed": 89360
  },
  "rF": {
   "tris": 19738,
@@ -104,12 +104,12 @@
   "packed": 85036
  },
  "bL_frac": {
-  "raw": 247512,
-  "packed": 71620
+  "raw": 264496,
+  "packed": 74996
  },
  "bS_frac": {
-  "raw": 363156,
-  "packed": 104388
+  "raw": 441000,
+  "packed": 126728
  },
  "rF_frac": {
   "raw": 829828,
