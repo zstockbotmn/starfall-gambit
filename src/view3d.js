@@ -127,11 +127,13 @@ export async function start(opts = {}) {
   const root = new THREE.Group(); scene.add(root);
   // Batching: every (ship type, material slot) is ONE InstancedMesh; a ship on the board is an empty Object3D whose matrix feeds the instances.
   const batch = {}, m4b = new THREE.Matrix4();
+  // play view: every ship stays inside its own square - clamp its footprint (max |x|, |z|) to FIT_HALF of a cell after SHIP_SCALE
+  const FIT_HALF = .45, shipFit = {}; for (const id of IDS) { const bb = new THREE.Box3().setFromObject(proto[id]), h = Math.max(-bb.min.x, bb.max.x, -bb.min.z, bb.max.z) * SHIP_SCALE; shipFit[id] = Math.min(1, FIT_HALF / h); proto[id].scale.setScalar(shipFit[id]); }
   for (const id of IDS) { proto[id].updateMatrixWorld(true); batch[id] = []; proto[id].traverse(m => { if (!m.isMesh) return; const im = new THREE.InstancedMesh(m.geometry, m.material, 4);
     im.count = 0; im.castShadow = m.castShadow; im.receiveShadow = m.receiveShadow; im.frustumCulled = false; scene.add(im); batch[id].push({ im, local: m.matrixWorld.clone() }); }); }
   function updateBatches() { root.updateMatrixWorld(true); const per = {}; for (const s of Object.values(shown)) if (s.obj.visible) (per[s.id] ||= []).push(s.obj);
     for (const id of IDS) { const objs = per[id] || []; for (const e of batch[id]) { objs.forEach((o, n) => { m4b.multiplyMatrices(o.matrixWorld, e.local); e.im.setMatrixAt(n, m4b); }); e.im.count = objs.length; e.im.instanceMatrix.needsUpdate = true; } } }
-  function makeShipMesh(id) { const o = proto[id].clone(); o.scale.setScalar(SHIP_SCALE); if (id[0] === 'r') o.rotation.y = Math.PI; return o; }
+  function makeShipMesh(id) { const o = proto[id].clone(); o.scale.setScalar(SHIP_SCALE * shipFit[id]); if (id[0] === 'r') o.rotation.y = Math.PI; return o; }
   function makeShip(id) { const o = new THREE.Object3D(); o.scale.setScalar(SHIP_SCALE); if (id[0] === 'r') o.rotation.y = Math.PI; o.userData.id = id; o.userData.phase = Math.random() * 6; return o; }
   function place(o, i) { const p = cellPos(i); o.position.set(p.x, SHIP_Y, p.z); o.userData.cell = i; }
   const idOf = pc => pc ? (pc.s === 0 ? 'b' : 'r') + pc.t : null;
@@ -169,7 +171,7 @@ export async function start(opts = {}) {
     g.position.copy(from).add(to).multiplyScalar(.5); g.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize()); fx.add(g); return g; }
   function ring(at, color, r0, r1) { const m = new THREE.Mesh(new THREE.RingGeometry(.8, 1, 48).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false, side: THREE.DoubleSide }));
     m.position.copy(at).setY(.03); m.renderOrder = 12; fx.add(m); return { upd(dt, u) { m.scale.setScalar(r0 + (r1 - r0) * u); m.material.opacity = 1 - u; } }; }
-  function debris(at, id, loser) { const src = frac[id]; if (!src) return []; const g = src.clone(); g.scale.setScalar(SHIP_SCALE); if (id[0] === 'r') g.rotation.y = Math.PI; g.position.copy(at); fx.add(g);
+  function debris(at, id, loser) { const src = frac[id]; if (!src) return []; const g = src.clone(); g.scale.setScalar(SHIP_SCALE * (shipFit[id] || 1)); if (id[0] === 'r') g.rotation.y = Math.PI; g.position.copy(at); fx.add(g);
     return g.children.map(ch => { const dir = ch.position.clone().setY(0).normalize(); const v = dir.multiplyScalar(1.2 + Math.random() * 1.6).add(new THREE.Vector3(0, 1.2 + Math.random() * 1.8, 0)); const w = new THREE.Vector3(Math.random() - .5, Math.random() - .5, Math.random() - .5).multiplyScalar(14);
       return { upd(dt, u) { v.y -= 6 * dt; ch.position.addScaledVector(v, dt / SHIP_SCALE); const wy = (g.position.y + ch.position.y * SHIP_SCALE); if (wy < .03 && v.y < 0) { v.y *= -.35; v.x *= .6; v.z *= .6; w.multiplyScalar(.6); }
         ch.rotation.x += w.x * dt; ch.rotation.y += w.y * dt; ch.rotation.z += w.z * dt; const s = u > .7 ? 1 - (u - .7) / .3 : 1; ch.scale.setScalar(Math.max(.001, s)); } }; }); }
@@ -279,6 +281,7 @@ export async function start(opts = {}) {
     cellSize: i => { camera.updateMatrixWorld(); const c = cellPos(i), q = (dx, dz) => project(new THREE.Vector3(c.x + dx, 0, c.z + dz)); const L = q(-.5, 0), R = q(.5, 0), T = q(0, -.5), B = q(0, .5), C = q(0, 0);
       return { x: C[0], y: C[1], w: Math.hypot(R[0] - L[0], R[1] - L[1]), h: Math.hypot(B[0] - T[0], B[1] - T[1]) }; },
     project: (i, y = 0) => { const p = cellPos(i).setY(y); camera.updateMatrixWorld(); return project(p); },
+    fit: () => ({ ...shipFit }),
     stats: () => { const s = [...ft].sort((a, b) => a - b), p = q => +(s[Math.floor(s.length * q)] || 0).toFixed(1); return { tier, gpu, software, p50: p(.5), p90: p(.9), calls: renderer.info.render.calls, tris: renderer.info.render.triangles, frames: stats.frames, battles: stats.battles, lastBattle: stats.lastBattle, battling: !!battle, hazeTarget: battle ? haze.filter(h => h.material.opacity < .2).length : 0, fit: fitInfo, fracLoaded: Object.keys(frac).length }; },
     setTier: t => { tier = t; applyTier(); }, disable, renderNow: () => { dirty = true; updateBatches(); composer.render(); },
   };

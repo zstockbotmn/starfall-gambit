@@ -90,7 +90,7 @@ function blueShield() { const g = new THREE.Group();   // tall domed bastion: la
   blade(g, curve([[.29, -.07], [.52, -.03], [.56, .2], [.43, .07], [.31, .06]]), .022, -.03, 1.05, true);
   blade(g, curve([[.2, .2], [.3, .3], [.28, .42], [.22, .3], [.15, .26]]), .016, -.02, 1.06, true);
   for (let k = 0; k < 12; k++) { const a = k / 12 * Math.PI * 2; g.add(at(P(new THREE.BoxGeometry(.032, .006, .012), 'tealGlow'), Math.cos(a) * .35, -.024, Math.sin(a) * .35)).children.at(-1).rotation.y = -a; }
-  g.scale.setScalar(1.22); return g; }
+  g.scale.setScalar(1.05); return g; }
 
 // ================= RED: gritty neon cyberpunk (matches concept-red + red-flagship-ref): long, angular, heavily greebled black hulls =================
 // 'redSkin' faces get a planar projection of the AI top-view reference (greebles + neon) in tools/bake.html.
