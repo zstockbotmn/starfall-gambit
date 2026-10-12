@@ -244,7 +244,7 @@ export async function start(opts = {}) {
   // ---------- loop (on-demand: 30 fps idle cap, full rate while animating) ----------
   const bench = /bench/.test(Q); let pressing = false;
   addEventListener('pointerdown', () => { pressing = true; }, true); for (const ev of ['pointerup', 'pointercancel']) addEventListener(ev, () => { pressing = false; dirty = true; }, true);
-  let dirty = true, lastFrame = 0, contextLost = false; const ft = [], stats = { frames: 0, battles: 0 };
+  let dirty = true, lastFrame = 0, contextLost = false; const drawCbs = []; const ft = [], stats = { frames: 0, battles: 0 };
   function frame(t) { requestAnimationFrame(frame); if (contextLost || document.hidden) return;
     const anim = bench || battle || Object.values(shown).some(s => s.obj.userData.glide);
     // Input first: no idle frames while a finger is down (a slow GPU frame must never delay pointer events and turn a swipe into a
@@ -260,7 +260,7 @@ export async function start(opts = {}) {
       else if (!reduced() && !(battle && o === battle.A)) o.position.y = SHIP_Y + Math.sin(t / 900 + o.userData.phase) * .012; }
     if (!reduced()) { T.scan.offset.y = (t / 4000) % 1; if (rain.visible) rain.position.y = -((t / 900) % 1) * .6; }
     if (shake) { const e = (t - shakeT0) / 180; if (e >= 1) { shake = 0; applyOffset(0, 0); } else { const a = view.H * .006 * (1 - e); applyOffset((Math.random() - .5) * 2 * a, (Math.random() - .5) * 2 * a); } }
-    updateBatches(); renderer.info.reset(); composer.render(); stats.frames++; autoTune(); if (hud) drawHud(); }
+    updateBatches(); renderer.info.reset(); composer.render(); stats.frames++; if (drawCbs.length) drawCbs.splice(0).forEach(f => f()); autoTune(); if (hud) drawHud(); }
   let tuneFrames = 0; function autoTune() { if (++tuneFrames % 90) return; const s = [...ft].sort((a, b) => a - b), p50 = s[s.length >> 1];
     const cap = battle ? 18 : 36;   // idle frames are capped at ~33 ms
     // steps down even when a tier was forced (?tier= / settings): a forced High that can't hold the budget would starve input.
@@ -285,7 +285,9 @@ export async function start(opts = {}) {
   prewarm(); fracP.then(() => { if (!battle) prewarm(); }); requestAnimationFrame(frame);
   const api = window.SGView = {
     // the board is drawn in the same task as the DOM/status update, so the canvas never paints a frame behind the status line
-    sync: (st, ui) => { sync(st, ui); if (!battle && !contextLost && !document.hidden) { dirty = false; renderer.shadowMap.needsUpdate = true; updateBatches(); composer.render(); stats.frames++; } }, battle: (p, m, n) => { const r = battleStart(p, m, n); return r; }, battling: () => !!battle, skip: () => battleEnd(), onIdle: f => battle ? idle.push(f) : f(),
+    // no synchronous draw here: on slow GPUs it pushed a battle's first frame back by a whole extra frame. The next rAF draws it
+    // (dirty bypasses the idle throttles), and game.js shows the status text only once that frame is in (SGView.afterDraw).
+    sync, afterDraw: f => { drawCbs.push(f); },battle: (p, m, n) => { const r = battleStart(p, m, n); return r; }, battling: () => !!battle, skip: () => battleEnd(), onIdle: f => battle ? idle.push(f) : f(),
     cellCenter: i => { const r = cells[i].getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2, w: r.width, h: r.height }; },
     // true projected square (a trapezoid): centre, width along its middle line, height along its middle column
     cellSize: i => { camera.updateMatrixWorld(); const c = cellPos(i), q = (dx, dz) => project(new THREE.Vector3(c.x + dx, 0, c.z + dz)); const L = q(-.5, 0), R = q(.5, 0), T = q(0, -.5), B = q(0, .5), C = q(0, 0);

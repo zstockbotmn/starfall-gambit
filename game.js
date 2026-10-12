@@ -203,6 +203,13 @@
     dlog('ok', 'new game (' + LEVEL + ')');
   }
 
+  // the move line changes together with the 3D board: wait for the frame that draws the move (cap 250 ms)
+  var statusSeq = 0;
+  function setStatus(txt) {
+    var n = ++statusSeq, done = false, put = function () { if (done || n !== statusSeq) return; done = true; $('lastMove').textContent = txt; };
+    if (window.SGView && SGView.afterDraw && !SGView.battling()) { SGView.afterDraw(put); setTimeout(put, 250); } else put();
+  }
+
   function clearSel() { sel = null; insp = null; marks = null; danger = []; opts = []; exposed = []; }
 
   function inspect(i) {
@@ -302,7 +309,7 @@
         hintMsg = 'Your selected ' + SG.NAMES[keepType] + ' was captured.';
       }
     }
-    $('lastMove').textContent = SG.describeMove(st.lastMove) + '.';
+    setStatus(SG.describeMove(st.lastMove) + '.');
     if (st.pulsed) hintMsg = 'The nebula shifted! ' + hintMsg;
     if (!redMove) stats.moves++;
     render();
@@ -350,7 +357,7 @@
       if (marks) {
         var mv = has(marks.moves, i), ln = has(marks.lanes, i), cp = has(marks.caps, i);
         if (ln) html += '<i class="mk lane' + (mv ? ' withmove' : '') + '"></i>';
-        if (mv) html += '<i class="mk move' + foe + '"></i>';
+        if (mv) html += '<i class="mk move' + foe + (has(exposed, i) ? ' withexpose' : '') + '"></i>';
         if (cp) html += '<i class="mk cap' + (has(exposed, i) ? ' withexpose' : '') + '"></i>';
         label += (mv ? ', move' : '') + (ln ? ', fire lane' : '') + (cp ? ', capture' : '');
       }

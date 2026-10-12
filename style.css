@@ -356,3 +356,4 @@ body.v3d #board .mk.cap.withexpose{top:20px}
 .cell.nogo::after{inset:8%;border:3px solid #fff;box-shadow:0 0 0 2px rgba(0,0,0,.9),inset 0 0 0 2px rgba(0,0,0,.9),0 0 10px 2px rgba(255,255,255,.6);animation:nogo2 .6s ease-out forwards}
 @keyframes nogo2{0%{opacity:1;transform:scale(.85)}60%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(1.06)}}
 .taplog{top:auto;bottom:calc(env(safe-area-inset-bottom) + 8px);max-height:30vh;overflow:auto}
+body.v3d #board .mk.move.withexpose{left:32%;top:64%;transform:translate(-50%,-50%)}   /* small squares: move dot steps down-left, clear of the 17px corner badge */
