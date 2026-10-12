@@ -1,5 +1,54 @@
 {
+ "ship-bF": {
+  "info": {
+   "calls": 1,
+   "tris": 1
+  },
+  "errs": []
+ },
+ "ship-bD": {
+  "info": {
+   "calls": 1,
+   "tris": 1
+  },
+  "errs": []
+ },
+ "ship-bL": {
+  "info": {
+   "calls": 1,
+   "tris": 1
+  },
+  "errs": []
+ },
+ "ship-bS": {
+  "info": {
+   "calls": 1,
+   "tris": 1
+  },
+  "errs": []
+ },
  "ship-rF": {
+  "info": {
+   "calls": 1,
+   "tris": 1
+  },
+  "errs": []
+ },
+ "ship-rD": {
+  "info": {
+   "calls": 1,
+   "tris": 1
+  },
+  "errs": []
+ },
+ "ship-rL": {
+  "info": {
+   "calls": 1,
+   "tris": 1
+  },
+  "errs": []
+ },
+ "ship-rS": {
   "info": {
    "calls": 1,
    "tris": 1
