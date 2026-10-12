@@ -12,7 +12,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { makeTextures, makeMaterials, makeEnvironment, canvasTex, loadHullTextures, applyHullTextures } from './materials.js';
 
-const TILT = 62, FOV = 26, SHIP_Y = .2, SHIP_SCALE = 1.22;
+const TILT = 68, FOV = 26, SHIP_Y = .2, SHIP_SCALE = 1.22;
 const TIERS = { high: { dpr: 2, shadow: 2048, bloom: true, msaa: 4, rain: true }, medium: { dpr: 1.5, shadow: 1024, bloom: true, msaa: 0, rain: true }, low: { dpr: 1, shadow: 0, bloom: false, msaa: 0, rain: false } };
 const BATTLE_MS = { full: 1300, fast: 500, reduced: 300, off: 0 }, FINALE_MS = { full: 2500, fast: 900, reduced: 300, off: 0 };
 const cellPos = i => new THREE.Vector3((i % 6) - 2.5, 0, Math.floor(i / 6) - 2.5);   // row 0 = Red back row (far)
@@ -100,10 +100,10 @@ export async function start(opts = {}) {
     renderer.setPixelRatio(Math.min(devicePixelRatio || 1, TIERS[tier].dpr) * dprScale); renderer.setSize(W, H, false); canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
     composer && composer.setSize(W, H); composer && composer.setPixelRatio(renderer.getPixelRatio());
     camera.aspect = W / H; camera.clearViewOffset(); const r = slotRect(), t = TILT * Math.PI / 180, dir = new THREE.Vector3(0, Math.sin(t), Math.cos(t));
-    const C = [[-3, -3], [3, -3], [-3, 3], [3, 3]].map(([x, z]) => new THREE.Vector3(x, 0, z)), E = [[-3.3, -3.3], [3.3, -3.3], [-3.3, 3.3], [3.3, 3.3]].map(([x, z]) => new THREE.Vector3(x, 0, z));
+    const C = [[-3, -3], [3, -3], [-3, 3], [3, 3]].map(([x, z]) => new THREE.Vector3(x, 0, z)), E = [[-3.08, -3.08], [3.08, -3.08], [-3.08, 3.08], [3.08, 3.08]].map(([x, z]) => new THREE.Vector3(x, 0, z));
     const set = d => { camera.position.copy(dir).multiplyScalar(d); camera.lookAt(0, 0, 0); camera.updateProjectionMatrix(); camera.updateMatrixWorld(); };
     let lo = 5, hi = 200; for (let k = 0; k < 40; k++) { const d = (lo + hi) / 2; set(d); const p = E.map(project), w = Math.max(p[1][0], p[3][0]) - Math.min(p[0][0], p[2][0]), h = Math.max(p[2][1], p[3][1]) - Math.min(p[0][1], p[1][1]);
-      if (w > r.width * 1.02 || h > r.height * 1.02) lo = d; else hi = d; }
+      if (w > Math.max(r.width * 1.02, Math.min(r.width * 1.14, innerWidth - 10)) || h > r.height * 1.06) lo = d;   /* the far row may spill a little past the slot sides: bigger far ships on short phones */ else hi = d; }
     set(hi); const p = C.map(project), cx = (p[0][0] + p[1][0] + p[2][0] + p[3][0]) / 4, cy = (Math.min(p[0][1], p[1][1]) + Math.max(p[2][1], p[3][1])) / 2;
     view.ox = cx - (r.left + r.width / 2); view.oy = cy - (r.top + r.height / 2); applyOffset(0, 0);
     const q = C.map(project).map(([x, y]) => [x - r.left, y - r.top]);
