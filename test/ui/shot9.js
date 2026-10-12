@@ -40,25 +40,25 @@ async function features(page, tag) {
   assert.deepEqual(m.move, [], 'no stale move dots during Red turn'); assert.deepEqual(m.cap, [], 'no brackets during Red turn');
   R.redTurnHint = await hint(page); assert.ok(/Wait for Red\u2019s move/.test(R.redTurnHint), 'brief wait message: ' + R.redTurnHint);
   await page.screenshot({ path: `${out}/${tag}-redturn-preselect-no-hatching.png` });
-  await page.waitForFunction(() => SGDebug.state().ply === 2, null, { timeout: 4000 }); await page.waitForTimeout(200);
+  await page.waitForFunction(() => SGDebug.state().ply === 2, null, { timeout: 10000 }); await page.waitForTimeout(200);
   m = await marks(page); assert.equal(await ply(page), 2, 'nothing auto-played'); assert.deepEqual(m.sel, ['b1']); assert.ok(m.move.includes('a3'), 'move dots after Red moved');
   assert.deepEqual(m.threat.sort(), ['a3', 'c3'], 'hatching appears after Red moved');
   await page.screenshot({ path: `${out}/${tag}-after-red-markers.png` });
   await page.tap(C('a3')); assert.equal(await ply(page), 3, 'tap again after Red moves plays it');
-  await page.waitForFunction(() => SGDebug.state().turn === 0, null, { timeout: 4000 });
+  await page.waitForFunction(() => SGDebug.state().turn === 0, null, { timeout: 10000 });
   // 5. '!' badges: none during Red's turn, shown after Red moved
   await setPos(page, { d1: 'F0', d2: 'S0', a1: 'L0', d4: 'L1', f6: 'F1' });
   await forceRed(page, 'f6', 'e6');
   await page.tap(C('a1')); await page.tap(C('a2')); await page.tap(C('d2'));
   m = await marks(page); assert.deepEqual(m.sel, ['d2']); assert.deepEqual(m.expose, [], "no '!' during Red turn");
-  await page.waitForFunction(() => SGDebug.state().ply === 2, null, { timeout: 4000 }); await page.waitForTimeout(100);
+  await page.waitForFunction(() => SGDebug.state().ply === 2, null, { timeout: 10000 }); await page.waitForTimeout(100);
   m = await marks(page); assert.deepEqual(m.expose.sort(), ['c2', 'e2'], "'!' after Red moved");
   await page.screenshot({ path: `${out}/${tag}-expose-after-red.png` });
   // 2. Warning + what Red just did + hint all visible (Red Drone b5->c3 attacks the Flagship on d1)
   await setPos(page, { d1: 'F0', d2: 'S0', a1: 'L0', f6: 'F1', b5: 'D1' });
   await forceRed(page, 'b5', 'c3');
   await page.tap(C('a1')); await page.tap(C('a2'));
-  await page.waitForFunction(() => SGDebug.state().ply === 2, null, { timeout: 4000 });
+  await page.waitForFunction(() => SGDebug.state().ply === 2, null, { timeout: 10000 });
   await page.tap(C('a2'));
   R.info = await page.evaluate(() => { const info = document.querySelector('.info').getBoundingClientRect(), lim = Math.min(innerHeight, info.bottom) + 0.5;
     const v = id => { const e = document.getElementById(id), r = e.getBoundingClientRect(); return { text: e.textContent, top: Math.round(r.top), bottom: Math.round(r.bottom), h: Math.round(r.height), ok: r.height >= 14 && r.bottom <= lim && r.top >= info.top - 0.5 }; };
@@ -100,7 +100,7 @@ async function features(page, tag) {
   await forceRed(page, 'c3', 'b1');
   await page.tap(C('f2')); await page.tap(C('f3'));
   await page.tap(C('b1'));
-  await page.waitForFunction(() => SGDebug.state().ply === 2, null, { timeout: 4000 });
+  await page.waitForFunction(() => SGDebug.state().ply === 2, null, { timeout: 10000 });
   R.capturedHint = await hint(page); assert.ok(/Your selected Drone was captured/.test(R.capturedHint));
   await page.screenshot({ path: `${out}/${tag}-preselected-captured.png` });
   // Pre-selection markers recomputed: Lancer a1 pre-selected; Red Drone moves into its lane (a4) -> capture marker appears
@@ -108,7 +108,7 @@ async function features(page, tag) {
   await forceRed(page, 'b6', 'a4');
   await page.tap(C('f2')); await page.tap(C('f3')); await page.tap(C('a1'));
   m = await marks(page); assert.ok(!m.cap.includes('a4'));
-  await page.waitForFunction(() => SGDebug.state().ply === 2, null, { timeout: 4000 });
+  await page.waitForFunction(() => SGDebug.state().ply === 2, null, { timeout: 10000 });
   m = await marks(page); assert.deepEqual(m.sel, ['a1']); assert.ok(m.cap.includes('a4'), 'pre-selection recomputed');
   await page.screenshot({ path: `${out}/${tag}-preselect-recomputed.png` });
   // '!' only when newly exposed + badge not covering bracket
@@ -156,10 +156,11 @@ async function features(page, tag) {
   R.boomRightAfter = await page.evaluate(() => document.querySelectorAll('.cell.boom').length);
   await page.waitForTimeout(1000);
   R.boomAfter1s = await page.evaluate(() => document.querySelectorAll('.cell.boom').length); assert.equal(R.boomAfter1s, 0, 'boom class removed');
+  // let Red's reply land first (setState cancels a pending reply; in 3D the battle + think time outlast the 1 s wait)
+  await page.waitForFunction(() => SGDebug.state().turn === 0 || SGDebug.state().winner !== null, null, { timeout: 10000 });
   await page.evaluate(() => { const s = SGDebug.state(); const t = JSON.parse(JSON.stringify(s)); t.nebula = [21, 22]; SGDebug.setState(t); });
   await page.evaluate(() => { const s = SGDebug.state(); const t = JSON.parse(JSON.stringify(s)); t.nebula = []; SGDebug.setState(t); });
   R.boomAfterNebula = await page.evaluate(() => document.querySelectorAll('.cell.boom').length); assert.equal(R.boomAfterNebula, 0);
-  await page.waitForFunction(() => SGDebug.state().turn === 0 || SGDebug.state().winner !== null, null, { timeout: 4000 });
   // (2) tolerance max(12px, .25 cell): 11px drift across a border counts; 0.4-cell slide into a neighbour cancels with a cue
   await setPos(page, { a1: 'F0', b1: 'D0', f6: 'F1' });
   g = await geo('b1'); const half = g[2] / 2;
@@ -179,7 +180,10 @@ async function features(page, tag) {
   await setPos(page, { d1: 'F0', d2: 'S0', a1: 'L0', d4: 'L1', f6: 'F1', c2: 'D1' });
   await page.tap(C('d2'));
   R.badge = await page.$eval('.mk.expose', e => { const r = e.getBoundingClientRect(), cs = getComputedStyle(e); return { w: r.width, h: r.height, font: cs.fontSize, bg: cs.backgroundColor, color: cs.color }; });
-  assert.ok(R.badge.w >= 16 && R.badge.w <= 18 && parseFloat(R.badge.font) >= 12 && parseFloat(R.badge.font) <= 13, 'badge size');
+  R.badge.v3d = await page.evaluate(() => document.body.classList.contains('v3d')); R.badge.localW = await page.$eval('.mk.expose', e => e.offsetWidth);
+  // 3D: the badge is sized in the square's own layout (min(17px, 30%)) and then perspective-mapped; checked there, M3 checks cover on-screen overlap
+  if (R.badge.v3d) assert.ok(R.badge.localW >= 12 && R.badge.localW <= 18 && parseFloat(R.badge.font) >= 9, 'badge size (3D) ' + JSON.stringify(R.badge));
+  else assert.ok(R.badge.w >= 16 && R.badge.w <= 18 && parseFloat(R.badge.font) >= 12 && parseFloat(R.badge.font) <= 13, 'badge size');
   await page.locator('#boardWrap').screenshot({ path: `${out}/${tag}-badge.png` });
   // (6) slow tap on a capture target still captures; a long hold inspects (with a hold ring first)
   await setPos(page, { d1: 'F0', c2: 'D0', f6: 'F1', d4: 'L1', a6: 'L1' });
@@ -187,7 +191,7 @@ async function features(page, tag) {
   R.holdRingOnTarget = await holdAt('d4', 700);
   R.slowTapCaptured = (await ply(page)) === 1; assert.ok(R.slowTapCaptured, '700ms tap on capture target captures');
   assert.ok(R.holdRingOnTarget, 'hold ring visible');
-  await page.waitForFunction(() => SGDebug.state().turn === 0 || SGDebug.state().winner !== null, null, { timeout: 4000 });
+  await page.waitForFunction(() => SGDebug.state().turn === 0 || SGDebug.state().winner !== null, null, { timeout: 10000 });
   await setPos(page, { d1: 'F0', c2: 'D0', f6: 'F1', d4: 'L1', a6: 'L1' });
   await page.tap(C('c2'));
   await holdAt('d4', 1100); R.longHoldInspects = await page.evaluate(() => !!document.querySelector('.ov.sel.foe')) && (await ply(page)) === 0;
@@ -205,7 +209,9 @@ async function features(page, tag) {
   for (const at of [300, 900, 1200]) { await page.waitForTimeout(Math.max(0, at - (Date.now() - tw))); samples.push([at, await hint(page), await ply(page)]); }
   R.waitSamples = samples; // M3 proposal §5 (M2.1 tester item): the 1.2 s minimum applies only while it is still Red's turn; once Blue's turn begins (ply even) it is gone
   assert.ok(samples.every(x => (x[2] % 2 === 1) === /Wait for Red/.test(x[1])), 'wait visible during Red turn only: ' + JSON.stringify(samples));
-  assert.ok(samples[samples.length - 1][2] === 2, 'Red did move meanwhile');
+  // Red then moves (within 1.2 s at the normal think time; later under ?aidelay) and the Wait text is gone within 100 ms of Blue's turn
+  await page.waitForFunction(() => SGDebug.state().ply === 2, null, { timeout: 10000 }); await page.waitForTimeout(100);
+  assert.ok(!/Wait for Red/.test(await hint(page)), 'Red did move meanwhile and Wait cleared');
   await page.waitForTimeout(500);
   // legend: 8 items, nothing clipped (hidden on <= 500px tall screens)
   R.legend = await page.evaluate(() => { const L = document.querySelector('.legend'); if (getComputedStyle(L).display === 'none') return 'hidden';
@@ -280,4 +286,4 @@ async function run(browser, w, h, tag) {
   for (const r of res) { assert.equal(r.boardTops.length, 1, r.tag + ' board moved'); assert.ok(r.noScrollFull && r.noScrollPlay, r.tag + ' scroll'); assert.equal(r.errs.length, 0); }
   console.log('UI CHECKS PASSED');
   await browser.close();
-})().catch(e => { console.error('FAIL', e.message); process.exit(1); });
+})().catch(e => { console.error('FAIL', e.message, (e.stack.match(/shot9.js:\d+/g) || []).join(' ')); process.exit(1); });

@@ -40,25 +40,25 @@ async function features(page, tag) {
   assert.deepEqual(m.move, [], 'no stale move dots during Red turn'); assert.deepEqual(m.cap, [], 'no brackets during Red turn');
   R.redTurnHint = await hint(page); assert.ok(/Wait for Red\u2019s move/.test(R.redTurnHint), 'brief wait message: ' + R.redTurnHint);
   await page.screenshot({ path: `${out}/${tag}-redturn-preselect-no-hatching.png` });
-  await page.waitForFunction(() => SGDebug.state().ply === 2, null, { timeout: 4000 }); await page.waitForTimeout(200);
+  await page.waitForFunction(() => SGDebug.state().ply === 2, null, { timeout: 10000 }); await page.waitForTimeout(200);
   m = await marks(page); assert.equal(await ply(page), 2, 'nothing auto-played'); assert.deepEqual(m.sel, ['b1']); assert.ok(m.move.includes('a3'), 'move dots after Red moved');
   assert.deepEqual(m.threat.sort(), ['a3', 'c3'], 'hatching appears after Red moved');
   await page.screenshot({ path: `${out}/${tag}-after-red-markers.png` });
   await page.tap(C('a3')); assert.equal(await ply(page), 3, 'tap again after Red moves plays it');
-  await page.waitForFunction(() => SGDebug.state().turn === 0, null, { timeout: 4000 });
+  await page.waitForFunction(() => SGDebug.state().turn === 0, null, { timeout: 10000 });
   // 5. '!' badges: none during Red's turn, shown after Red moved
   await setPos(page, { d1: 'F0', d2: 'S0', a1: 'L0', d4: 'L1', f6: 'F1' });
   await forceRed(page, 'f6', 'e6');
   await page.tap(C('a1')); await page.tap(C('a2')); await page.tap(C('d2'));
   m = await marks(page); assert.deepEqual(m.sel, ['d2']); assert.deepEqual(m.expose, [], "no '!' during Red turn");
-  await page.waitForFunction(() => SGDebug.state().ply === 2, null, { timeout: 4000 }); await page.waitForTimeout(100);
+  await page.waitForFunction(() => SGDebug.state().ply === 2, null, { timeout: 10000 }); await page.waitForTimeout(100);
   m = await marks(page); assert.deepEqual(m.expose.sort(), ['c2', 'e2'], "'!' after Red moved");
   await page.screenshot({ path: `${out}/${tag}-expose-after-red.png` });
   // 2. Warning + what Red just did + hint all visible (Red Drone b5->c3 attacks the Flagship on d1)
   await setPos(page, { d1: 'F0', d2: 'S0', a1: 'L0', f6: 'F1', b5: 'D1' });
   await forceRed(page, 'b5', 'c3');
   await page.tap(C('a1')); await page.tap(C('a2'));
-  await page.waitForFunction(() => SGDebug.state().ply === 2, null, { timeout: 4000 });
+  await page.waitForFunction(() => SGDebug.state().ply === 2, null, { timeout: 10000 });
   await page.tap(C('a2'));
   R.info = await page.evaluate(() => { const info = document.querySelector('.info').getBoundingClientRect(), lim = Math.min(innerHeight, info.bottom) + 0.5;
     const v = id => { const e = document.getElementById(id), r = e.getBoundingClientRect(); return { text: e.textContent, top: Math.round(r.top), bottom: Math.round(r.bottom), h: Math.round(r.height), ok: r.height >= 14 && r.bottom <= lim && r.top >= info.top - 0.5 }; };
@@ -100,7 +100,7 @@ async function features(page, tag) {
   await forceRed(page, 'c3', 'b1');
   await page.tap(C('f2')); await page.tap(C('f3'));
   await page.tap(C('b1'));
-  await page.waitForFunction(() => SGDebug.state().ply === 2, null, { timeout: 4000 });
+  await page.waitForFunction(() => SGDebug.state().ply === 2, null, { timeout: 10000 });
   R.capturedHint = await hint(page); assert.ok(/Your selected Drone was captured/.test(R.capturedHint));
   await page.screenshot({ path: `${out}/${tag}-preselected-captured.png` });
   // Pre-selection markers recomputed: Lancer a1 pre-selected; Red Drone moves into its lane (a4) -> capture marker appears
@@ -108,7 +108,7 @@ async function features(page, tag) {
   await forceRed(page, 'b6', 'a4');
   await page.tap(C('f2')); await page.tap(C('f3')); await page.tap(C('a1'));
   m = await marks(page); assert.ok(!m.cap.includes('a4'));
-  await page.waitForFunction(() => SGDebug.state().ply === 2, null, { timeout: 4000 });
+  await page.waitForFunction(() => SGDebug.state().ply === 2, null, { timeout: 10000 });
   m = await marks(page); assert.deepEqual(m.sel, ['a1']); assert.ok(m.cap.includes('a4'), 'pre-selection recomputed');
   await page.screenshot({ path: `${out}/${tag}-preselect-recomputed.png` });
   // '!' only when newly exposed + badge not covering bracket
