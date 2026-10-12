@@ -1,0 +1,2 @@
+{ "name": "Starfall Gambit", "short_name": "Starfall", "start_url": "./", "display": "standalone", "orientation": "portrait", "background_color": "#060914", "theme_color": "#060914",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" }] }

@@ -317,3 +317,32 @@ h1{color:#f6f8ff}
    (hit testing follows border-radius). Painted below the cells; transparent. */
 #boardWrap{position:relative;isolation:isolate}
 #boardWrap::after{content:'';position:absolute;inset:-2px;z-index:-1;border-radius:0;background:transparent}
+
+/* ===== M3: 3D view (body.v3d). The DOM grid stays as the hit/marker layer, mapped onto the projected board by a CSS homography. ===== */
+#gl3d{position:fixed;left:0;top:0;width:100vw;height:100vh;z-index:0;display:block;pointer-events:none}
+body.v3d{background:#02030a}
+body.v3d #app{position:relative;z-index:1;background:transparent}
+body.v3d #boardWrap{background:transparent;box-shadow:none;border-color:transparent}
+body.v3d #board{background:transparent;overflow:visible;border-radius:0;box-shadow:none;will-change:transform}
+body.v3d #board::before,body.v3d #board::after{display:none}
+body.v3d .rowlbls,body.v3d .collbls,body.v3d .corner{visibility:hidden}
+body.v3d #board .cell,body.v3d #board .cell.alt,body.v3d #board .cell.nebula{background:transparent !important;box-shadow:none !important}
+body.v3d #board .pc .shp{visibility:hidden}                 /* ships are drawn in 3D; the under-fire ring (.pc.danger::before) stays */
+body.v3d #board .ov.threat,body.v3d #board .ov.sel{opacity:0}  /* drawn in-scene on the tile surface (under ships) */
+body.v3d #board .cell.boom{animation:none}                  /* the battle VFX replaces the 2D flash */
+body.v3d #board .cell.press{filter:none;background:rgba(255,255,255,.08) !important}
+body.v3d #board .mk.expose{left:auto;right:1px;top:1px;transform:none}   /* '!' in the top-right corner, clear of the centred move dot */
+body.v3d #board .mk.cap.withexpose{top:12%;left:12%;right:12%;bottom:12%}
+body.sg-battle #board .mk,body.sg-battle #board .ov{opacity:0 !important;transition:none}
+#fpshud{position:fixed;left:4px;bottom:4px;z-index:50;font:600 10px ui-monospace,monospace;color:#9ff;background:rgba(0,0,0,.6);padding:2px 5px;border-radius:4px;pointer-events:none}
+/* cancel cue: dark + white double ring, readable on every tile type (M2.1 open item) */
+.cell.nogo::after{border:2.5px solid #fff;box-shadow:0 0 0 2px rgba(0,0,0,.9),inset 0 0 0 2px rgba(0,0,0,.9)}
+/* settings */
+.setrow{display:flex;flex-direction:column;gap:6px;margin:10px 0}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg button{flex:1;min-height:40px;border-radius:10px;border:1px solid rgba(160,190,255,.35);background:rgba(20,26,50,.8);color:inherit;font:inherit;font-weight:700}
+.seg button[aria-pressed="true"]{background:#2bd9c4;color:#04201c;border-color:#2bd9c4}
+@media (prefers-reduced-motion: reduce){.cell.nogo::after{opacity:1}}
+
+#btnSettings .bt{display:none}#btnSettings .bi{display:inline}#btnSettings{padding:0;width:44px}
+body.v3d #board .mk.expose{--bs:min(17px, 30%);width:var(--bs);height:var(--bs);font-size:calc(var(--bs) * .62);line-height:var(--bs);border-width:1.5px}

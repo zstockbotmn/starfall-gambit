@@ -91,6 +91,7 @@
   }
   wrapEl.addEventListener('pointerdown', function (e) {
     if (e.pointerType === 'mouse' && e.button !== 0) return;
+    viewSkip();                                            // a tap during a battle skips to its end (and still counts as a tap)
     // Rounded board corners / hairline gaps: fall back to the nearest cell.
     var t = e.target.closest('.cell'), i0 = t ? +t.dataset.i : cellNear(e.clientX, e.clientY);
     if (i0 < 0) return;
@@ -150,6 +151,7 @@
     // Only clicks aimed at a cell button (keyboard, VoiceOver, plain click). Pointer presses are handled above;
     // their echo clicks land on the board/wrap (pointer capture) or are swallowed as ghosts below.
     var t = e.target.closest('.cell'); if (!t) return;
+    if (e.detail === 0) viewSkip();
     var i = +t.dataset.i, now = Date.now();
     ghosts = ghosts.filter(function (g) { return now - g.t < GHOST_MS; });
     // detail === 0: keyboard, VoiceOver or programmatic activation, never an echo of a finger/mouse tap.
@@ -168,8 +170,13 @@
 
   function firstGame() { try { return !localStorage.getItem('sg_played'); } catch (e) { return false; } }
 
+  // 3D view hooks (src/view3d.js sets window.SGView when the 3D renderer is up; 2D works without it).
+  function afterView(fn) { if (window.SGView && SGView.battling()) SGView.onIdle(fn); else fn(); }
+  function viewSkip() { if (window.SGView && SGView.battling()) SGView.skip(); }
+  window.SGGame = { render: function () { if (st) render(); } };
+
   function start() {
-    clearTimeout(aiTimer); clearTimeout(overTimer); aiTimer = overTimer = null; movedAt = null; flashUntil = 0; fxClear();
+    viewSkip(); clearTimeout(aiTimer); clearTimeout(overTimer); aiTimer = overTimer = null; movedAt = null; flashUntil = 0; fxClear();
     gameId++;
     st = SG.newGame(); clearSel(); busy = false; overShown = false;
     hide('overModal');
@@ -263,7 +270,11 @@
     if (!redMove) { try { localStorage.setItem('sg_played', '1'); } catch (e) {} }
     var keep = redMove && sel !== null ? sel : null;           // a pre-selection survives Red's move
     var keepType = keep !== null ? st.board[keep].t : null;
+    var prev = st;
     st = SG.applyMove(st, m);
+    if (window.SGView && m.cap) SGView.battle(prev, m, st);   // cinematic battle; the state is already final
+    // 'Wait for Red' belongs to Red's turn: once Red has moved it clears at once (the 1.2s minimum only applies during Red's turn).
+    if (redMove) flashUntil = 0;
     clearSel(); hintMsg = '';
     if (keep !== null && st.winner === null) {
       if (st.board[keep] && st.board[keep].s === HUMAN) {
@@ -279,19 +290,19 @@
     if (wasShot || m.cap) flash(target);
     if (st.winner !== null) {
       var id = gameId;
-      overTimer = setTimeout(function () { overTimer = null; if (id === gameId && st.winner !== null) gameOver(); }, OVER_DELAY);
+      afterView(function () { if (id !== gameId) return; overTimer = setTimeout(function () { overTimer = null; if (id === gameId && st.winner !== null) gameOver(); }, OVER_DELAY); });
       return;
     }
     if (st.turn === AI_SIDE) {
       busy = true;
       var gid = gameId;
-      aiTimer = setTimeout(function () {
+      afterView(function () { if (gid !== gameId) return; aiTimer = setTimeout(function () {
         aiTimer = null;
         if (gid !== gameId || st.winner !== null) return;
         var am = SGAI.safeChooseMove(st, LEVEL);
         busy = false;
         if (am) commit(am);
-      }, AI_DELAY);
+      }, AI_DELAY); });
     }
   }
 
@@ -348,6 +359,7 @@
     infoEl.classList.toggle('haswarn', !!wtxt);   // short screens: hint drops to 1 line so 'what Red did' stays visible
     var htxt = Date.now() < flashUntil ? flashMsg : hintMsg;
     if ($('hint').textContent !== htxt) $('hint').textContent = htxt;
+    if (window.SGView) SGView.sync(st, { sel: sel, insp: insp, danger: danger });
     tray('trayRed', st.captured[HUMAN], 'r', 'Captured:');
     tray('trayBlue', st.captured[AI_SIDE], 'b', 'Lost:');
   }
@@ -403,10 +415,12 @@
   if (DEBUG) {
     window.SGDebug = {
       state: function () { return st; },
-      setState: function (s) { clearTimeout(aiTimer); clearTimeout(overTimer); aiTimer = overTimer = null; movedAt = null; flashUntil = 0; fxClear(); busy = false; gameId++;
+      setState: function (s) { viewSkip(); clearTimeout(aiTimer); clearTimeout(overTimer); aiTimer = overTimer = null; movedAt = null; flashUntil = 0; fxClear(); busy = false; gameId++;
         st = s; clearSel(); hintMsg = ''; overShown = false; hide('overModal'); },
       stats: function () { return JSON.parse(JSON.stringify(stats)); },
-      busy: function () { return busy; }
+      busy: function () { return busy; },
+      view: function () { return window.SGView ? '3d' : '2d'; },
+      cellCenter: function (i) { var r = cells[i].getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2, w: r.width, h: r.height }; }
     };
   }
   start();
