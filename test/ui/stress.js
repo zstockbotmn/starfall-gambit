@@ -69,7 +69,10 @@ const pick = a => a[Math.floor(Math.random() * a.length)];
       R.maxRedWaitMs = Math.max(R.maxRedWaitMs || 0, Date.now() - t0);
     } catch (e) { console.error('STUCK', JSON.stringify(await page.evaluate(() => ({ s: SGDebug.state(), busy: SGDebug.busy(), stats: SGDebug.stats(), log: document.getElementById('tapLog').textContent, modal: !document.getElementById('overModal').classList.contains('hidden') })))); throw e; }
   }
-  async function drop(kind, info) { R.dropped++; let log = ''; try { log = await page.evaluate(() => (document.getElementById('tapLog') || {}).textContent || ''); } catch (e) {} R.drops.push({ kind, ...info, log }); }
+  async function drop(kind, info) { let log = ''; try { log = await page.evaluate(() => (document.getElementById('tapLog') || {}).textContent || ''); } catch (e) {}
+    // by design a tap during a battle only skips it (and is swallowed): expected, not a drop; the loop simply taps again
+    if (/^[\d.]+ ok: battle skipped/.test(log.split('\n')[0] || '')) { R.battleSkips = (R.battleSkips || 0) + 1; return; }
+    R.dropped++; R.drops.push({ kind, ...info, log }); }
   for (let g = 0; g < GAMES; g++) {
     await page.evaluate(seed => SGDebug.setState(SG.newGame(seed)), 500 + g);
     let guard = 0;
@@ -106,7 +109,7 @@ const pick = a => a[Math.floor(Math.random() * a.length)];
                   // Red's reply landed first and the tap then hit a square that is no longer this ship's destination: a plain deselect is correct
                   if (u.ply === ply0 + 1 && u.turn === 0 && u.sel === null && diag.lastMove && diag.lastMove.side === 1 && !diag.stillLegal) { R.redTurnRace = (R.redTurnRace || 0) + 1; R.raceDeselect = (R.raceDeselect || 0) + 1; R.raceDiag = diag; }
                   // Red's reply landed while the tap gesture was in flight (after our state read): the tap then came in Blue's turn, so the move is legit
-                  else if (u.ply === ply0 + 2 && diag.lastMove && diag.lastMove.side === 0 && await page.evaluate(t => SGDebug.redMovedAt() >= t, tTap)) { R.redTurnRace = (R.redTurnRace || 0) + 1; R.raceLateMove = (R.raceLateMove || 0) + 1; }
+                  else if (u.ply === ply0 + 2 && (u.turn === 1 || (diag.lastMove && diag.lastMove.side === 0)) && await page.evaluate(t => SGDebug.redMovedAt() >= t, tTap)) { R.redTurnRace = (R.redTurnRace || 0) + 1; R.raceLateMove = (R.raceLateMove || 0) + 1; }
                   else drop('red-turn destination made a move', { i, dst, u, ply0, diag });
                 }
               }
@@ -186,7 +189,7 @@ const pick = a => a[Math.floor(Math.random() * a.length)];
       } else {
         await page.waitForTimeout(Math.max(0, 160 - (Date.now() - t0))); await touchPath([[x, y]]); await settle();
         const t = await S(); R.edge.retap160++; R.taps++;
-        if (t.w === null && t.sel !== mv.to) drop('re-tap at ~160ms on the moved ship', { mv, t });
+        if (t.w === null && t.sel !== mv.to && await page.evaluate(i => { const p = SGDebug.state().board[i]; return !!p && p.s === 0; }, mv.to)) drop('re-tap at ~160ms on the moved ship', { mv, t });   // Red may have captured it meanwhile
       }
     }
   }
@@ -232,5 +235,5 @@ const pick = a => a[Math.floor(Math.random() * a.length)];
   assert.equal(R.dropped, 0, 'dropped taps');
   assert.equal(R.accidentalMoves, 0, 'swipes made moves');
   assert.equal(R.accidentalChanges, 0, 'swipes changed selection');
-  console.log(`STRESS PASSED: ${R.taps} taps (max drift ${R.maxDriftCells} cell), 0 dropped; edge ${JSON.stringify(R.edge)}; red-turn destination taps ${R.kinds.redTurnDestination || 0}; ${R.swipes} swipes, 0 moves, 0 changes`);
+  console.log(`STRESS PASSED: ${R.taps} taps (${R.battleSkips || 0} battle-skip taps, expected) (max drift ${R.maxDriftCells} cell), 0 dropped; edge ${JSON.stringify(R.edge)}; red-turn destination taps ${R.kinds.redTurnDestination || 0}; ${R.swipes} swipes, 0 moves, 0 changes`);
 })().catch(async e => { console.error('FAIL', e.stack); process.exit(1); });
