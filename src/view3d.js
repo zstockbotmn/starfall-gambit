@@ -309,7 +309,7 @@ export async function start(opts = {}) {
 
   const ro = new ResizeObserver(() => { fit(); }); addEventListener('resize', fit); addEventListener('orientationchange', () => setTimeout(fit, 200));
   if (sessionStorage.getItem && autoTier) { const s = sessionStorage.getItem('sg_auto_tier'); if (s && TIERS[s] && (s === 'low' || (s === 'medium' && tier === 'high'))) tier = s; }
-  function prewarm() { fillDebris(); for (const tx of [fireTex, smokeTex, T.softDot]) try { renderer.initTexture(tx); } catch (e) {}   // compile every VFX / debris shader once, so a battle's first frame does not stall on shader compilation
+  function prewarm() { fillDebris(); for (const tx of [fireTex, smokeTex]) try { renderer.initTexture(tx); } catch (e) {}   // compile every VFX / debris shader once, so a battle's first frame does not stall on shader compilation
     const at0 = new THREE.Vector3(0, -5, 0); sprite(T.softDot, 0xffffff, at0, .1); sprite(smokeTex, 0x302838, at0, .1, THREE.NormalBlending, .5); burst(at0, 4, 0xffffff, 1, 100);
     beamMesh(at0, at0.clone().setY(-4), 0xffffff, 0x43f7e2, .02); ring(at0, 0xffffff, .1, .2); for (const [bl, tm] of [[THREE.AdditiveBlending, false], [THREE.NormalBlending, true]]) { const ns = new THREE.Sprite(new THREE.SpriteMaterial({ color: 0xffffff, transparent: true, blending: bl, depthWrite: false, toneMapped: tm })); ns.position.copy(at0); fx.add(ns); }   // map-less sprite variants
     { const sg = selG.clone(); sg.position.copy(at0); fx.add(sg); const hm = new THREE.Mesh(new THREE.PlaneGeometry(.1, .1), hatchMat); hm.position.copy(at0); fx.add(hm); }   // selection frame + hatching (first tap)
