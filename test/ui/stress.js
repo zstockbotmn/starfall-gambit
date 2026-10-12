@@ -164,6 +164,10 @@ const pick = a => a[Math.floor(Math.random() * a.length)];
       if (!edgeOwn.length) continue;
       const i = pick(edgeOwn), [x, y, w] = await geo(i), r = Math.floor(i / 6), c = i % 6, sides = [];
       if (r === 0) sides.push([0, -1, g.t]); if (r === 5) sides.push([0, 1, g.b]); if (c === 0) sides.push([-1, 0, g.l]); if (c === 5) sides.push([1, 0, g.r]);
+      // 3D: the board is a trapezoid, so the board-wide bounding edge (cell 0 / cell 35 boxes) lies outside this square's real edge;
+      // measure from this square's own projected edge instead (a 2D-era assumption that made a legit rejection look like a drop)
+      const own3d = await page.evaluate(i => window.SGView && SGView.cellSize ? SGView.cellSize(i) : null, i);
+      if (own3d) for (const sd of sides) sd[2] = sd[0] ? own3d.x + sd[0] * own3d.w / 2 : own3d.y + sd[1] * own3d.h / 2;
       const [dx, dy, edge] = pick(sides), inset = rnd(0.12, 0.3) * w, out = rnd(1, 7.5), along = rnd(-0.3, 0.3) * w;
       const sx = dx ? edge - dx * inset : x + along, sy = dy ? edge - dy * inset : y + along;
       const ex = dx ? edge + dx * out : sx, ey = dy ? edge + dy * out : sy;
