@@ -56,12 +56,14 @@
   var DRAG_CELLS = 0.6, SLOP_CELLS = 0.25, SLOP_MIN_PX = 12, EDGE_PX = 8;   // tap tolerance = max(12px, 0.25 cell)
   var down = null, lpTimer = null, ghosts = [];
   function cellFrom(x, y) {
+    if (window.SGView && SGView.pick) return SGView.pick(x, y, 0);   // 3D: raycast the projected board, never the DOM overlay
     var el = document.elementFromPoint(x, y);
     el = el && el.closest ? el.closest('.cell') : null;
     return el && boardEl.contains(el) ? +el.dataset.i : -1;
   }
   // Square under (x, y), or the nearest square if the point is at most EDGE_PX outside the grid; else -1.
   function cellNear(x, y) {
+    if (window.SGView && SGView.pick) { var s0 = SGView.cellSize(0).w || 40; return SGView.pick(x, y, EDGE_PX / s0); }
     var i = cellFrom(x, y); if (i >= 0) return i;
     var a = cells[0].getBoundingClientRect(), b = cells[35].getBoundingClientRect();
     if (x < a.left - EDGE_PX || x > b.right + EDGE_PX || y < a.top - EDGE_PX || y > b.bottom + EDGE_PX) return -1;
@@ -95,7 +97,7 @@
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     viewSkip();                                            // a tap during a battle skips to its end (and still counts as a tap)
     // Rounded board corners / hairline gaps: fall back to the nearest cell.
-    var t = e.target.closest('.cell'), i0 = t ? +t.dataset.i : cellNear(e.clientX, e.clientY);
+    var t = e.target.closest('.cell'), i0 = (window.SGView && SGView.pick) ? cellNear(e.clientX, e.clientY) : t ? +t.dataset.i : cellNear(e.clientX, e.clientY);
     if (i0 < 0) return;
     t = cells[i0];
     if (down) cancelPress('second finger');
