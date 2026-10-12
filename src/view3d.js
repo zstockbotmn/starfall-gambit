@@ -216,8 +216,14 @@ export async function start(opts = {}) {
     // Full mode: a close-up. The camera pushes in toward the attacker/target pair during the charge, holds through the strike and
     // explosion, and is back on its play pose by the end (battleEnd also restores it exactly, so skip/cut never leave it moved).
     const cam0 = { pos: camera.position.clone(), q: camera.quaternion.clone() };
-    if (kind === 'full') { const focus = from.clone().add(to).multiplyScalar(.5).setY(SHIP_Y * .5), push = finale ? .5 : .42, aim = new THREE.Vector3();
-      const camAt = k => { camera.position.copy(cam0.pos).lerp(focus, push * k); aim.set(0, 0, 0).lerp(focus, k); camera.lookAt(aim); camera.updateMatrixWorld(); };
+    // Dolly only: the camera slides straight toward the pair's midpoint with its orientation frozen (no lookAt swing), so the
+    // focus stays on the same screen spot and just grows. The push is capped so the board's far edge never rises under the header.
+    let pushUsed = 0; if (kind === 'full') { const focus = from.clone().add(to).multiplyScalar(.5).setY(SHIP_Y * .5);
+      const hdr = document.querySelector('header.top'), lim = hdr ? hdr.getBoundingClientRect().bottom + 4 : 0;
+      const far = [new THREE.Vector3(-3.08, 0, -3.08), new THREE.Vector3(3.08, 0, -3.08)];
+      const place = k => { camera.position.copy(cam0.pos).lerp(focus, k); camera.quaternion.copy(cam0.q); camera.updateMatrixWorld(); };
+      let push = 0; for (let k = .02, max = finale ? .5 : .42; k <= max + 1e-9; k += .02) { place(k); if (Math.min(...far.map(v => project(v)[1])) < lim) break; push = k; }
+      place(0); const camAt = k => place(push * k); pushUsed = push;
       over(0, P.c, u => camAt(u * u * (3 - 2 * u))); over(P.c, P.e, () => camAt(1)); over(P.e, 1, u => camAt(1 - u * u * (3 - 2 * u))); }
     if (kind !== 'reduced') {
       // 1 charge-up
@@ -251,8 +257,8 @@ export async function start(opts = {}) {
     });
     // 5 return: attacker settles on its square (moving captures) — the camera never left the play pose (shake is a 2D view offset)
     if (moving) over(P.e, 1, u => A.position.lerpVectors(to.clone().sub(from).multiplyScalar(.82).add(from), to, u));
-    return new Promise(res => { battle = { t0: now(), called: now(), T: DUR, ev, ups, prevU: 0, res, A, from, to, moving, kind, finale, mode: kind, cam0 }; }), DUR; }
-  function battleEnd() { if (!battle) return; const b = battle; battle = null; fx.clear(); if (b.cam0) { camera.position.copy(b.cam0.pos); camera.quaternion.copy(b.cam0.q); camera.updateMatrixWorld(); } const bt0 = b.called; stats.lastBattle = { evMs: b.evMs, rms: b.rms, cut: b.cut, gaps: b.gaps, ms: Math.round(now() - bt0), startupMs: b.startup, maxFrameMs: Math.round(b.maxDt || 0), planned: b.T, kind: b.kind, finale: b.finale, skipped: !b.cut && now() - bt0 < b.T * (window.SG3D_TS || 1) - 30, shook: b.shook }; impactLight.intensity = 0; shake = 0; applyOffset(0, 0);
+    return new Promise(res => { battle = { t0: now(), called: now(), T: DUR, ev, ups, prevU: 0, res, A, from, to, moving, kind, finale, mode: kind, cam0, push: +pushUsed.toFixed(2) }; }), DUR; }
+  function battleEnd() { if (!battle) return; const b = battle; battle = null; fx.clear(); if (b.cam0) { camera.position.copy(b.cam0.pos); camera.quaternion.copy(b.cam0.q); camera.updateMatrixWorld(); } const bt0 = b.called; stats.lastBattle = { push: b.push, evMs: b.evMs, rms: b.rms, cut: b.cut, gaps: b.gaps, ms: Math.round(now() - bt0), startupMs: b.startup, maxFrameMs: Math.round(b.maxDt || 0), planned: b.T, kind: b.kind, finale: b.finale, skipped: !b.cut && now() - bt0 < b.T * (window.SG3D_TS || 1) - 30, shook: b.shook }; impactLight.intensity = 0; shake = 0; applyOffset(0, 0);
     document.body.classList.remove('sg-battle'); haze.forEach(h => h.material.opacity = .28);
     // the captured ship is gone; the attacker (if it moved) now belongs to the target square
     for (const k of Object.keys(shown)) if (shown[k].obj === b.A && b.moving) { delete shown[k]; root.remove(b.A); }
