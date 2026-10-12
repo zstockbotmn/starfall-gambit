@@ -191,7 +191,11 @@ export async function start(opts = {}) {
     g.position.copy(from).add(to).multiplyScalar(.5); g.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize()); fx.add(g); return g; }
   function ring(at, color, r0, r1) { const m = new THREE.Mesh(new THREE.RingGeometry(.8, 1, 48).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false, side: THREE.DoubleSide }));
     m.position.copy(at).setY(.03); m.renderOrder = 12; fx.add(m); return { upd(dt, u) { m.scale.setScalar(r0 + (r1 - r0) * u); m.material.opacity = 1 - u; } }; }
-  function debris(at, id, loser) { const src = frac[id]; if (!src) return []; const g = src.clone(); g.scale.setScalar(SHIP_SCALE * (shipFit[id] || 1)); if (id[0] === 'r') g.rotation.y = Math.PI; g.position.copy(at); fx.add(g);
+  // debris is pre-allocated: two ready clones of every ship's pre-broken pieces, refilled in idle time after use, so the
+  // impact frame never pays for cloning (and the textures behind the sprites are uploaded up front, see prewarm)
+  const debrisPool = {}; const idleDo = f => (window.requestIdleCallback ? requestIdleCallback(f, { timeout: 3000 }) : setTimeout(f, 200));
+  function fillDebris() { for (const id of IDS) if (frac[id]) { const q = debrisPool[id] ||= []; while (q.length < 2) q.push(frac[id].clone()); } }
+  function debris(at, id, loser) { const src = frac[id]; if (!src) return []; const g = (debrisPool[id] && debrisPool[id].pop()) || src.clone(); idleDo(fillDebris); g.scale.setScalar(SHIP_SCALE * (shipFit[id] || 1)); if (id[0] === 'r') g.rotation.y = Math.PI; g.position.copy(at); fx.add(g);
     return g.children.map(ch => { const dir = ch.position.clone().setY(0).normalize(); const v = dir.multiplyScalar(1.2 + Math.random() * 1.6).add(new THREE.Vector3(0, 1.2 + Math.random() * 1.8, 0)); const w = new THREE.Vector3(Math.random() - .5, Math.random() - .5, Math.random() - .5).multiplyScalar(14);
       return { upd(dt, u) { v.y -= 6 * dt; ch.position.addScaledVector(v, dt / SHIP_SCALE); const wy = (g.position.y + ch.position.y * SHIP_SCALE); if (wy < .03 && v.y < 0) { v.y *= -.35; v.x *= .6; v.z *= .6; w.multiplyScalar(.6); }
         ch.rotation.x += w.x * dt; ch.rotation.y += w.y * dt; ch.rotation.z += w.z * dt; const s = u > .7 ? 1 - (u - .7) / .3 : 1; ch.scale.setScalar(Math.max(.001, s)); } }; }); }
@@ -248,7 +252,7 @@ export async function start(opts = {}) {
     // 5 return: attacker settles on its square (moving captures) — the camera never left the play pose (shake is a 2D view offset)
     if (moving) over(P.e, 1, u => A.position.lerpVectors(to.clone().sub(from).multiplyScalar(.82).add(from), to, u));
     return new Promise(res => { battle = { t0: now(), called: now(), T: DUR, ev, ups, prevU: 0, res, A, from, to, moving, kind, finale, mode: kind, cam0 }; }), DUR; }
-  function battleEnd() { if (!battle) return; const b = battle; battle = null; fx.clear(); if (b.cam0) { camera.position.copy(b.cam0.pos); camera.quaternion.copy(b.cam0.q); camera.updateMatrixWorld(); } const bt0 = b.called; stats.lastBattle = { cut: b.cut, gaps: b.gaps, ms: Math.round(now() - bt0), startupMs: b.startup, maxFrameMs: Math.round(b.maxDt || 0), planned: b.T, kind: b.kind, finale: b.finale, skipped: !b.cut && now() - bt0 < b.T * (window.SG3D_TS || 1) - 30, shook: b.shook }; impactLight.intensity = 0; shake = 0; applyOffset(0, 0);
+  function battleEnd() { if (!battle) return; const b = battle; battle = null; fx.clear(); if (b.cam0) { camera.position.copy(b.cam0.pos); camera.quaternion.copy(b.cam0.q); camera.updateMatrixWorld(); } const bt0 = b.called; stats.lastBattle = { evMs: b.evMs, rms: b.rms, cut: b.cut, gaps: b.gaps, ms: Math.round(now() - bt0), startupMs: b.startup, maxFrameMs: Math.round(b.maxDt || 0), planned: b.T, kind: b.kind, finale: b.finale, skipped: !b.cut && now() - bt0 < b.T * (window.SG3D_TS || 1) - 30, shook: b.shook }; impactLight.intensity = 0; shake = 0; applyOffset(0, 0);
     document.body.classList.remove('sg-battle'); haze.forEach(h => h.material.opacity = .28);
     // the captured ship is gone; the attacker (if it moved) now belongs to the target square
     for (const k of Object.keys(shown)) if (shown[k].obj === b.A && b.moving) { delete shown[k]; root.remove(b.A); }
@@ -282,7 +286,7 @@ export async function start(opts = {}) {
       else if (!reduced() && !(battle && o === battle.A)) o.position.y = SHIP_Y + Math.sin(t / 900 + o.userData.phase) * .012; }
     if (!reduced()) { T.scan.offset.y = (t / 4000) % 1; if (rain.visible) rain.position.y = -((t / 900) % 1) * .6; }
     if (shake) { const e = (t - shakeT0) / 180; if (e >= 1) { shake = 0; applyOffset(0, 0); } else { const a = view.H * .006 * (1 - e); applyOffset((Math.random() - .5) * 2 * a, (Math.random() - .5) * 2 * a); } }
-    updateBatches(); renderer.info.reset(); composer.render(); stats.frames++; if (drawCbs.length) drawCbs.splice(0).forEach(f => f()); autoTune(); if (hud) drawHud(); }
+    updateBatches(); renderer.info.reset(); const rq = performance.now(); composer.render(); if (battle) (battle.rms = battle.rms || []).push([+(battle.prevU || 0).toFixed(2), Math.round(performance.now() - rq), renderer.info.programs ? renderer.info.programs.length : 0]); stats.frames++; if (drawCbs.length) drawCbs.splice(0).forEach(f => f()); autoTune(); if (hud) drawHud(); }
   // Quality step-down. Safe by construction: never during a battle, never with a finger down or within 300 ms of a pointer
   // event, and the rebuild itself runs in an idle callback after re-checking those conditions. ?nostep turns it off (tests).
   // Fast path: 8 rendered frames in a row slower than 150 ms (wall clock); slow path: p50 over the last 90 frames.
@@ -305,7 +309,7 @@ export async function start(opts = {}) {
 
   const ro = new ResizeObserver(() => { fit(); }); addEventListener('resize', fit); addEventListener('orientationchange', () => setTimeout(fit, 200));
   if (sessionStorage.getItem && autoTier) { const s = sessionStorage.getItem('sg_auto_tier'); if (s && TIERS[s] && (s === 'low' || (s === 'medium' && tier === 'high'))) tier = s; }
-  function prewarm() {   // compile every VFX / debris shader once, so a battle's first frame does not stall on shader compilation
+  function prewarm() { fillDebris(); for (const tx of [fireTex, smokeTex, T.softDot]) try { renderer.initTexture(tx); } catch (e) {}   // compile every VFX / debris shader once, so a battle's first frame does not stall on shader compilation
     const at0 = new THREE.Vector3(0, -5, 0); sprite(T.softDot, 0xffffff, at0, .1); sprite(smokeTex, 0x302838, at0, .1, THREE.NormalBlending, .5); burst(at0, 4, 0xffffff, 1, 100);
     beamMesh(at0, at0.clone().setY(-4), 0xffffff, 0x43f7e2, .02); ring(at0, 0xffffff, .1, .2); for (const [bl, tm] of [[THREE.AdditiveBlending, false], [THREE.NormalBlending, true]]) { const ns = new THREE.Sprite(new THREE.SpriteMaterial({ color: 0xffffff, transparent: true, blending: bl, depthWrite: false, toneMapped: tm })); ns.position.copy(at0); fx.add(ns); }   // map-less sprite variants
     { const sg = selG.clone(); sg.position.copy(at0); fx.add(sg); const hm = new THREE.Mesh(new THREE.PlaneGeometry(.1, .1), hatchMat); hm.position.copy(at0); fx.add(hm); }   // selection frame + hatching (first tap)
