@@ -24,6 +24,8 @@ function blade(g, shape, depth, y = 0, rim = 1.045, mir = false) { const c = P(n
 const curve = (pts) => { const s = new THREE.Shape(); s.moveTo(...pts[0]); for (let k = 1; k < pts.length; k += 2) s.quadraticCurveTo(...pts[k], ...pts[k + 1]); return s; };
 const port = (g, x, y, z, r = .025, ry = 0, rx = 0) => { const o = new THREE.Group(); o.add(P(new THREE.TorusGeometry(r, r * .28, S(10), S(28)), 'gold')); o.add(P(new THREE.CircleGeometry(r * .8, S(24)), 'tealGlow'));
   const gl = P(new THREE.SphereGeometry(r * .82, S(16), S(10), 0, Math.PI * 2, 0, Math.PI / 2), 'glass'); gl.rotation.x = Math.PI / 2; gl.scale.z = .5; o.add(gl); o.position.set(x, y, z); o.rotation.set(rx, ry, 0); g.add(o); return o; };
+// sculpted gold filigree: a smooth tube along a Catmull-Rom curve (optionally mirrored in x)
+function filigree(g, pts, r = .005, mir = true, slot = 'gold') { const c = new THREE.CatmullRomCurve3(pts.map(p => new THREE.Vector3(...p))); const m = P(new THREE.TubeGeometry(c, S(40), r, S(6), false), slot); if (mir) mirror(g, m); else g.add(m); return m; }
 function blueFlagship() { const g = new THREE.Group();
   // slender core hull
   const body = P(lathe([[0, .46], [.025, .40], [.06, .26], [.085, .05], [.09, -.12], [.075, -.26], [.05, -.34], [0, -.36]], 48), 'ceramic'); body.scale.y = .62; g.add(body);
@@ -52,8 +54,6 @@ function blueDrone() { const g = new THREE.Group();   // cross frame with four e
     const seam = P(new THREE.TorusGeometry(.081, .006, S(8), S(36)), 'gold'); seam.rotation.x = Math.PI / 2; seam.position.set(x, 0, z); g.add(seam);
     port(g, x * 1.3, 0, z * 1.3, .036, Math.PI / 2 - a, 0); port(g, x, .075, z, .03, 0, -Math.PI / 2); }
   return g; }
-// sculpted gold filigree: a smooth tube along a Catmull-Rom curve (optionally mirrored in x)
-function filigree(g, pts, r = .005, mir = true, slot = 'gold') { const c = new THREE.CatmullRomCurve3(pts.map(p => new THREE.Vector3(...p))); const m = P(new THREE.TubeGeometry(c, S(40), r, S(6), false), slot); if (mir) mirror(g, m); else g.add(m); return m; }
 function blueLancer() { const g = new THREE.Group();   // spear: thicker sculpted ceramic hull, heavy gold lance, four swept gold fins, gold filigree
   const hull = P(lathe([[0, .2], [.04, .14], [.08, .02], [.095, -.1], [.088, -.2], [.06, -.28], [.03, -.33], [0, -.34]], 40), 'ceramic'); hull.scale.y = .72; hull.position.z = .1; g.add(hull);
   const lance = P(new THREE.ConeGeometry(.05, .5, S(18)), 'gold'); lance.rotation.x = -Math.PI / 2; lance.position.z = -.38; g.add(lance);
@@ -69,15 +69,20 @@ function blueLancer() { const g = new THREE.Group();   // spear: thicker sculpte
   const bell = P(new THREE.CylinderGeometry(.05, .036, .045, S(20), 1, true), 'gold'); bell.rotation.x = Math.PI / 2; bell.position.z = .45; g.add(bell);
   g.add(at(P(new THREE.CircleGeometry(.04, S(20)), 'tealGlow'), 0, 0, .44));
   return g; }
-function blueShield() { const g = new THREE.Group();   // domed saucer with flared rim wings and a teal eye port (concept)
-  const dome = P(new THREE.LatheGeometry(V2([[0, .2], [.08, .19], [.16, .15], [.22, .09], [.26, .03], [.27, 0]]), S(56)), 'ceramic'); g.add(dome);
-  const rim = P(new THREE.LatheGeometry(V2([[.27, 0], [.36, -.015], [.40, -.035], [.33, -.05], [.22, -.06], [0, -.07]]), S(56)), 'ceramic'); g.add(rim);
-  for (const [y, r] of [[.0, .27], [.12, .2], [-.034, .40]]) { const s = P(new THREE.TorusGeometry(r, .007, S(8), S(56)), 'gold'); s.rotation.x = Math.PI / 2; s.position.y = y; g.add(s); }
-  g.add(at(P(new THREE.CylinderGeometry(.05, .05, .02, S(20)), 'gold'), 0, .2, 0)); g.add(at(P(new THREE.CylinderGeometry(.03, .03, .025, S(20)), 'tealGlow'), 0, .205, 0));
-  port(g, 0, .09, -.24, .05, 0, 0); for (const s of [1, -1]) port(g, s * .2, .07, -.15, .028, s * .7, 0);
-  blade(g, curve([[.28, -.06], [.48, -.02], [.5, .16], [.4, .06], [.3, .05]]), .02, -.03, 1.05, true);
-  for (let k = 0; k < 10; k++) { const a = k / 10 * Math.PI * 2; g.add(at(P(new THREE.BoxGeometry(.03, .006, .012), 'tealGlow'), Math.cos(a) * .34, -.02, Math.sin(a) * .34)).children.at(-1).rotation.y = -a; }
-  g.scale.setScalar(1.05); return g; }
+function blueShield() { const g = new THREE.Group();   // tall domed bastion: larger, taller dome with gold ribs, crown spire, flared rim wings, teal eye ports
+  const dome = P(new THREE.LatheGeometry(V2([[0, .34], [.06, .335], [.13, .3], [.19, .24], [.24, .15], [.27, .06], [.28, 0]]), S(64)), 'ceramic'); g.add(dome);
+  const rim = P(new THREE.LatheGeometry(V2([[.28, 0], [.37, -.015], [.42, -.04], [.35, -.06], [.22, -.075], [0, -.085]]), S(64)), 'ceramic'); g.add(rim);
+  for (const [y, r] of [[.0, .28], [.15, .24], [.26, .16], [-.038, .42]]) { const s = P(new THREE.TorusGeometry(r, .008, S(8), S(64)), 'gold'); s.rotation.x = Math.PI / 2; s.position.y = y; g.add(s); }
+  // sculpted gold ribs sweeping up the dome
+  for (let k = 0; k < 8; k++) { const a = k / 8 * Math.PI * 2 + Math.PI / 8, pts = [[.292, .0], [.278, .1], [.226, .2], [.142, .295], [.058, .342]].map(([r, y]) => [Math.cos(a) * r, y, Math.sin(a) * r]); filigree(g, pts, .007, false); }
+  // crown spire
+  g.add(at(P(new THREE.CylinderGeometry(.055, .065, .025, S(24)), 'gold'), 0, .345, 0)); g.add(at(P(new THREE.CylinderGeometry(.035, .035, .03, S(20)), 'tealGlow'), 0, .36, 0));
+  const sp = P(new THREE.ConeGeometry(.02, .14, S(12)), 'gold'); sp.position.y = .44; g.add(sp); const hr = P(new THREE.TorusGeometry(.05, .006, S(8), S(32)), 'gold'); hr.position.y = .41; g.add(hr);
+  port(g, 0, .14, -.25, .055, 0, 0); for (const s of [1, -1]) port(g, s * .2, .11, -.17, .032, s * .7, 0);
+  blade(g, curve([[.29, -.07], [.52, -.03], [.56, .2], [.43, .07], [.31, .06]]), .022, -.03, 1.05, true);
+  blade(g, curve([[.2, .2], [.3, .3], [.28, .42], [.22, .3], [.15, .26]]), .016, -.02, 1.06, true);
+  for (let k = 0; k < 12; k++) { const a = k / 12 * Math.PI * 2; g.add(at(P(new THREE.BoxGeometry(.032, .006, .012), 'tealGlow'), Math.cos(a) * .35, -.024, Math.sin(a) * .35)).children.at(-1).rotation.y = -a; }
+  g.scale.setScalar(1.22); return g; }
 
 // ================= RED: gritty neon cyberpunk (matches concept-red + red-flagship-ref): long, angular, heavily greebled black hulls =================
 // 'redSkin' faces get a planar projection of the AI top-view reference (greebles + neon) in tools/bake.html.
