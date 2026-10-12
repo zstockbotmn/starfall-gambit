@@ -127,7 +127,7 @@ export async function start(opts = {}) {
   // ---------- post / tiers ----------
   let composer = null, bloom = null;
   function applyTier() { const cfg = TIERS[tier];
-    const shadowOn = !!cfg.shadow && caps.depthTex; renderer.shadowMap.enabled = shadowOn; key.castShadow = shadowOn; if (cfg.shadow) { key.shadow.mapSize.set(cfg.shadow, cfg.shadow); key.shadow.map && key.shadow.map.dispose(); key.shadow.map = null; }
+    const shadowOn = !!cfg.shadow && caps.depthTex; renderer.shadowMap.enabled = shadowOn; key.castShadow = shadowOn; if (cfg.shadow) { key.shadow.mapSize.set(cfg.shadow, cfg.shadow); key.shadow.map && key.shadow.map.dispose(); key.shadow.map = null; } renderer.shadowMap.needsUpdate = true;
     rain.visible = cfg.rain;
     if (composer) composer.dispose();
     const rt = new THREE.WebGLRenderTarget(1, 1, { type: caps.half ? THREE.HalfFloatType : THREE.UnsignedByteType, samples: Math.min(cfg.msaa, caps.samples) });
@@ -314,10 +314,12 @@ export async function start(opts = {}) {
     beamMesh(at0, at0.clone().setY(-4), 0xffffff, 0x43f7e2, .02); ring(at0, 0xffffff, .1, .2); for (const [bl, tm] of [[THREE.AdditiveBlending, false], [THREE.NormalBlending, true]]) { const ns = new THREE.Sprite(new THREE.SpriteMaterial({ color: 0xffffff, transparent: true, blending: bl, depthWrite: false, toneMapped: tm })); ns.position.copy(at0); fx.add(ns); }   // map-less sprite variants
     { const sg = selG.clone(); sg.position.copy(at0); fx.add(sg); const hm = new THREE.Mesh(new THREE.PlaneGeometry(.1, .1), hatchMat); hm.position.copy(at0); fx.add(hm); }   // selection frame + hatching (first tap)
     for (const id of IDS) { if (frac[id]) fx.add(frac[id].clone()); fx.add(makeShipMesh(id)); }
-    fx.traverse(o => o.frustumCulled = false); try { renderer.compile(scene, camera); if (composer) { renderer.setRenderTarget(composer.renderTarget1); renderer.compile(scene, camera); renderer.setRenderTarget(null); composer.render(); } else renderer.render(scene, camera); } catch (e) {} fx.clear(); renderer.info.reset(); dirty = true; }   // compile for the canvas AND the bloom render target (linear output = separate programs)
+    fx.traverse(o => o.frustumCulled = false); renderer.shadowMap.needsUpdate = true;   // the shadow map must exist before any lit draw: an unallocated map leaves the shadow sampler on a colour texture (GL_INVALID_OPERATION sampler mismatch on real GPUs)
+    try { renderer.compile(scene, camera); if (composer) { renderer.setRenderTarget(composer.renderTarget1); renderer.compile(scene, camera); renderer.setRenderTarget(null); composer.render(); } else renderer.render(scene, camera); } catch (e) {} fx.clear(); renderer.info.reset(); dirty = true; }   // compile for the canvas AND the bloom render target (linear output = separate programs)
   document.body.classList.add('v3d'); applyTier(); ro.observe(document.getElementById('boardWrap'));
   prewarm(); fracP.then(() => { if (!battle) prewarm(); }); requestAnimationFrame(frame);
   const api = window.SGView = {
+    ...(/debug/.test(Q) ? { _three: { renderer, scene, camera, THREE } } : {}),   // debug-only handle for GL diagnostics
     // the board is drawn in the same task as the DOM/status update, so the canvas never paints a frame behind the status line
     // no synchronous draw here: on slow GPUs it pushed a battle's first frame back by a whole extra frame. The next rAF draws it
     // (dirty bypasses the idle throttles), and game.js shows the status text only once that frame is in (SGView.afterDraw).
