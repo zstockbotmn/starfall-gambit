@@ -23,5 +23,5 @@ const lum = (r, g, b) => { const f = c => (c /= 255) <= .03928 ? c / 12.92 : ((c
         res[t + i] = { ratio: +((Math.max(Lh, Lb) + .05) / (Math.min(Lh, Lb) + .05)).toFixed(2), px: hull.length }; }
       out[tier] = res; await ctx.close(); }
     console.log(JSON.stringify(out));
-    const bad = Object.values(out).flatMap(r => Object.entries(r)).filter(([, v]) => v.ratio < 3); console.log(bad.length ? 'FAIL < 3:1 ' + JSON.stringify(bad) : 'PASS all Red hulls >= 3:1');
+    const bad = Object.values(out).flatMap(r => Object.entries(r)).filter(([k, v]) => v.ratio < (k[0] === 'L' ? 3.5 : 3)); console.log(bad.length ? 'FAIL < 3:1 ' + JSON.stringify(bad) : 'PASS all Red hulls >= 3:1, Lancers >= 3.5:1');
   } finally { await b.close(); } })();
