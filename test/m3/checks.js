@@ -60,9 +60,9 @@ const tap = async (p, i) => { const c = await p.evaluate(i => SGDebug.cellCenter
     await p.waitForFunction(() => SGDebug.state().turn === 0 && !SGDebug.busy(), null, { timeout: 30000 }).catch(() => {});
     // real-time Full duration
     await setS(p, 'shot'); await tap(p, 30); await p.waitForTimeout(120); await tap(p, 18); await p.waitForFunction(() => !SGView.battling(), null, { timeout: 20000 });
-    let lb = await p.evaluate(() => SGView.stats().lastBattle); const fp = await p.evaluate(() => SGView.stats().p90); lb.frameP90 = fp; ok('battle-full-1.3s', lb.planned === 1300 && lb.ms >= 1250 && lb.ms <= 1300 + lb.maxFrameMs + 50 && lb.shook, lb);   // wall clock from the tap; may overrun only by its last frame
+    let lb = await p.evaluate(() => SGView.stats().lastBattle); const fp = await p.evaluate(() => SGView.stats().p90); lb.frameP90 = fp; ok('battle-full-1.3s', lb.planned === 1300 && lb.ms >= 1250 && lb.ms <= 1300 + Math.min(lb.maxFrameMs, 100) + 50 && lb.shook, lb);   // wall clock from the tap; may overrun only by its last frame
     await setS(p, 'shot'); await p.evaluate(() => localStorage.setItem('sg_battle', 'fast')); await tap(p, 30); await p.waitForTimeout(120); await tap(p, 18); await p.waitForFunction(() => !SGView.battling(), null, { timeout: 20000 });
-    lb = await p.evaluate(() => SGView.stats().lastBattle); ok('battle-fast-0.5s', lb.planned === 500 && lb.ms <= 500 + lb.maxFrameMs + 50, lb);
+    lb = await p.evaluate(() => SGView.stats().lastBattle); ok('battle-fast-0.5s', lb.planned === 500 && lb.ms <= 500 + Math.min(lb.maxFrameMs, 100) + 50, lb);
     await p.evaluate(() => localStorage.setItem('sg_battle', 'full')); await setS(p, 'shot'); await tap(p, 30); await p.waitForTimeout(120); await tap(p, 18); await p.waitForTimeout(250);
     const before = await p.evaluate(() => SGView.battling()); await tap(p, 35); await p.waitForTimeout(50); lb = await p.evaluate(() => SGView.stats().lastBattle);
     ok('battle-tap-to-skip', before && lb.skipped && lb.ms < 700, lb);

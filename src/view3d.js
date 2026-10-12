@@ -219,12 +219,12 @@ export async function start(opts = {}) {
     // 5 return: attacker settles on its square (moving captures) — the camera never left the play pose (shake is a 2D view offset)
     if (moving) over(P.e, 1, u => A.position.lerpVectors(to.clone().sub(from).multiplyScalar(.82).add(from), to, u));
     return new Promise(res => { battle = { t0: now(), called: now(), T, ev, ups, prevU: 0, res, A, from, to, moving, kind, finale, mode: kind }; }), T; }
-  function battleEnd() { if (!battle) return; const b = battle; battle = null; fx.clear(); const bt0 = b.t0 === null ? now() : b.t0; stats.lastBattle = { ms: Math.round(now() - bt0), startupMs: b.startup, maxFrameMs: Math.round(b.maxDt || 0), planned: b.T, kind: b.kind, finale: b.finale, skipped: now() - bt0 < b.T * (window.SG3D_TS || 1) - 30, shook: b.shook }; impactLight.intensity = 0; shake = 0; applyOffset(0, 0);
+  function battleEnd() { if (!battle) return; const b = battle; battle = null; fx.clear(); const bt0 = b.called; stats.lastBattle = { ms: Math.round(now() - bt0), startupMs: b.startup, maxFrameMs: Math.round(b.maxDt || 0), planned: b.T, kind: b.kind, finale: b.finale, skipped: now() - bt0 < b.T * (window.SG3D_TS || 1) - 30, shook: b.shook }; impactLight.intensity = 0; shake = 0; applyOffset(0, 0);
     document.body.classList.remove('sg-battle'); haze.forEach(h => h.material.opacity = .28);
     // the captured ship is gone; the attacker (if it moved) now belongs to the target square
     for (const k of Object.keys(shown)) if (shown[k].obj === b.A && b.moving) { delete shown[k]; root.remove(b.A); }
     stats.battles++; b.res && b.res(); if (lastSt) sync(lastSt, lastUi); idle.splice(0).forEach(f => { try { f(); } catch (e) { console.error(e); } }); }
-  function battleTick(t) { if (battle.startup === undefined) battle.startup = Math.round(t - battle.called); const b = battle; b.maxDt = Math.max(b.maxDt || 0, t - (b.lastT || b.called)); const ts = window.SG3D_TS || 1, u = Math.min(1, (t - b.t0) / (b.T * ts)), dtS = Math.min(.05, (t - (b.lastT || b.t0)) / 1000) / ts; b.lastT = t;
+  function battleTick(t) { if (battle.startup === undefined) battle.startup = Math.round(t - battle.called); const b = battle; b.maxDt = Math.max(b.maxDt || 0, t - (b.lastT || b.called)); const ts = window.SG3D_TS || 1, u = Math.min(1, (t - b.called) / (b.T * ts))  /* clock starts at the tap: startup/shader stalls eat into the 1.3 s, they never extend it */, dtS = Math.min(.05, (t - (b.lastT || b.t0)) / 1000) / ts; b.lastT = t;
     for (const e of b.ev) if (!e.done && u >= e.u) { e.done = true; e.fn(); }
     for (const p of b.ups) if (u >= p.u0 && b.prevU <= p.u1) { const lu = p.u1 > p.u0 ? Math.min(1, Math.max(0, (u - p.u0) / (p.u1 - p.u0))) : 1; p.fn(lu, dtS); }
     b.prevU = u; if (u >= 1) battleEnd(); }
