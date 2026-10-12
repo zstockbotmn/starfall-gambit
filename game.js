@@ -36,10 +36,11 @@
     dbgBox.appendChild(dbgBtn); dbgBox.appendChild(dbgEl);
     var stRow = document.querySelector('.status'); stRow.insertBefore(dbgBox, stRow.querySelector('.meta'));   // in the status row: never over the title
   }
+  var pressAt = null;   // debug: where the press landed (CSS px, and offset from the square's centre in square widths)
   function dlog(kind, msg) {
     if (kind === 'ignored') { stats.ignored++; stats.reasons[msg] = (stats.reasons[msg] || 0) + 1; }
     if (!DEBUG) return;
-    dbgLines.unshift(new Date().toISOString().slice(17, 23) + ' ' + kind + ': ' + msg);
+    dbgLines.unshift(new Date().toISOString().slice(17, 23) + ' ' + kind + ': ' + msg + (pressAt || ''));
     dbgLines.length = Math.min(dbgLines.length, 5);
     dbgEl.textContent = dbgLines.join('\n');
   }
@@ -161,7 +162,9 @@
     }
     clearPress();
     // judge timing (double-tap echo) by when the finger lifted, not when a busy main thread got round to it (3D frames can lag)
-    inputTime = performance.timeOrigin + e.timeStamp; try { tap(d.i, d.type); } finally { inputTime = null; }
+    if (DEBUG) { var cs = window.SGView && SGView.cellSize ? SGView.cellSize(d.i) : null;
+      pressAt = ' @' + Math.round(d.x) + ',' + Math.round(d.y) + (cs ? ' d' + ((d.x - cs.x) / cs.w).toFixed(2) + ',' + ((d.y - cs.y) / cs.h).toFixed(2) : '') + ' up+' + Math.round(e.timeStamp - d.t0) + 'ms'; }
+    inputTime = performance.timeOrigin + e.timeStamp; try { tap(d.i, d.type); } finally { inputTime = null; pressAt = null; }
     // the echo window starts once the tap's work (render, 3D sync) is done, not at pointerup
     var done = Date.now(); ghosts.forEach(function (g) { if (g.t === now) g.t = done; }); if (e.pointerType === 'touch') lastTouchEnd = done;
   });
