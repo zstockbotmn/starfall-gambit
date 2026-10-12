@@ -265,7 +265,7 @@ export async function start(opts = {}) {
 
   // ---------- loop (on-demand: 30 fps idle cap, full rate while animating) ----------
   const bench = /bench/.test(Q); let pressing = false;
-  addEventListener('pointerdown', () => { pressing = true; }, true); for (const ev of ['pointerup', 'pointercancel']) addEventListener(ev, () => { pressing = false; dirty = true; }, true);
+  let lastPtr = -1e9; addEventListener('pointerdown', () => { pressing = true; lastPtr = performance.now(); }, true); for (const ev of ['pointerup', 'pointercancel']) addEventListener(ev, () => { pressing = false; lastPtr = performance.now(); dirty = true; }, true);
   let dirty = true, lastFrame = 0, contextLost = false, rafPrevRendered = false, rafPrevAt = 0; const drawCbs = []; const ft = [], stats = { frames: 0, battles: 0 };
   function frame(t) { requestAnimationFrame(frame); const wall = performance.now(); if (rafPrevRendered) { ft.push(Math.min(wall - rafPrevAt, 10000)); if (ft.length > 120) ft.shift(); } rafPrevRendered = false; rafPrevAt = wall; if (contextLost || document.hidden) return;
     const anim = bench || battle || Object.values(shown).some(s => s.obj.userData.glide);
@@ -283,13 +283,20 @@ export async function start(opts = {}) {
     if (!reduced()) { T.scan.offset.y = (t / 4000) % 1; if (rain.visible) rain.position.y = -((t / 900) % 1) * .6; }
     if (shake) { const e = (t - shakeT0) / 180; if (e >= 1) { shake = 0; applyOffset(0, 0); } else { const a = view.H * .006 * (1 - e); applyOffset((Math.random() - .5) * 2 * a, (Math.random() - .5) * 2 * a); } }
     updateBatches(); renderer.info.reset(); composer.render(); stats.frames++; if (drawCbs.length) drawCbs.splice(0).forEach(f => f()); autoTune(); if (hud) drawHud(); }
-  let tuneFrames = 0; function autoTune() { if (battle) return; ++tuneFrames; const r = ft.slice(-4), stuck = r.length === 4 && r.every(x => x > 150);   // multi-hundred-ms frames: act now, don't wait 90 frames
-    if (tuneFrames % 90 && !stuck) return; if (stuck) { tuneFrames = 0; } const s = (stuck ? r : [...ft]).sort((a, b) => a - b), p50 = s[s.length >> 1]; if (stuck) ft.length = 0;
-    const cap = battle ? 18 : 36;   // idle frames are capped at ~33 ms
-    // steps down even when a tier was forced (?tier= / settings): a forced High that can't hold the budget would starve input.
-    // Forced choices aren't persisted. Below Low, the frame time is capped by shrinking the drawing buffer (down to 0.6x).
-    if (p50 > cap * 1.15 && tier !== 'low') { tier = tier === 'high' ? 'medium' : 'low'; if (autoTier) try { sessionStorage.setItem('sg_auto_tier', tier); } catch (e) {} stats.stepDowns = (stats.stepDowns || 0) + 1; applyTier(); }
-    else if (p50 > cap * 1.5 && tier === 'low' && dprScale > .6) { dprScale = Math.max(.6, dprScale - .2); stats.stepDowns = (stats.stepDowns || 0) + 1; fit(); } }
+  // Quality step-down. Safe by construction: never during a battle, never with a finger down or within 300 ms of a pointer
+  // event, and the rebuild itself runs in an idle callback after re-checking those conditions. ?nostep turns it off (tests).
+  // Fast path: 8 rendered frames in a row slower than 150 ms (wall clock); slow path: p50 over the last 90 frames.
+  const NOSTEP = /nostep/.test(Q); let tuneFrames = 0, tunePending = false;
+  const quiet = () => !battle && !pressing && performance.now() - lastPtr > 300;
+  function autoTune() { if (NOSTEP || tunePending || !quiet()) return; ++tuneFrames; const r = ft.slice(-8), stuck = r.length === 8 && r.every(x => x > 150);
+    if (tuneFrames % 90 && !stuck) return; const s = (stuck ? r : [...ft]).sort((a, b) => a - b), p50 = s[s.length >> 1];
+    const cap = 36;   // idle frames are capped at ~33 ms
+    const step = p50 > cap * 1.15 && tier !== 'low' ? 'tier' : p50 > cap * 1.5 && tier === 'low' && dprScale > .6 ? 'dpr' : null; if (!step) return;
+    tunePending = true; const run = () => { tunePending = false; if (!quiet()) return; ft.length = 0; tuneFrames = 0; stats.stepDowns = (stats.stepDowns || 0) + 1;
+      // forced High steps down too (not persisted); below Low the drawing buffer shrinks (to 0.6x) to cap frame time
+      if (step === 'tier') { tier = tier === 'high' ? 'medium' : 'low'; if (autoTier) try { sessionStorage.setItem('sg_auto_tier', tier); } catch (e) {} applyTier(); }
+      else { dprScale = Math.max(.6, dprScale - .2); fit(); } };
+    if (window.requestIdleCallback) requestIdleCallback(run, { timeout: 2000 }); else setTimeout(run, 50); }
   const hud = /debug/.test(Q) && /fps/.test(Q) ? Object.assign(document.createElement('div'), { id: 'fpshud' }) : null; if (hud) document.body.append(hud);
   function drawHud() { const s = [...ft].sort((a, b) => a - b), p = q => s[Math.floor(s.length * q)] || 0; hud.textContent = `${tier} p50 ${p(.5).toFixed(1)}ms p90 ${p(.9).toFixed(1)}ms calls ${renderer.info.render.calls} tris ${renderer.info.render.triangles}`; }
   canvas.addEventListener('webglcontextlost', e => { e.preventDefault(); contextLost = true; disable('context lost'); });

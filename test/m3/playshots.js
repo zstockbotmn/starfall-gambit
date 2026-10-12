@@ -7,7 +7,7 @@ const ARGS = ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignor
   const open = async q => { const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, hasTouch: true, isMobile: true, serviceWorkers: 'block' });
     await ctx.addInitScript(() => localStorage.setItem('sg_seen_rules', '1')); const p = await ctx.newPage();
     p.on('response', r => { if (r.status() >= 400) bad.push(r.status() + ' ' + r.url()); });
-    await p.goto(BASE + '?view=3d&nosw' + q + '&x=?debug'); await p.waitForFunction(() => window.SG3D && SG3D.state !== 'loading', null, { timeout: 120000 }); await p.waitForTimeout(2500); return p; };
+    await p.goto(BASE + '?view=3d&nosw&nostep' + q + '&x=?debug'); await p.waitForFunction(() => window.SG3D && SG3D.state !== 'loading', null, { timeout: 120000 }); await p.waitForTimeout(2500); return p; };
   for (const t of ['high', 'low']) { const p = await open('&tier=' + t); const s = await p.evaluate(() => SGView.stats()); await p.screenshot({ path: `${OUT}/play-390x844-${t}.png`, timeout: 180000 }); console.log(t, JSON.stringify({ tier: s.tier, calls: s.calls, tris: s.tris })); await p.context().close(); }
   { const p = await open('&tier=high'); await p.evaluate(`SGDebug.setState((() => { const s = SG.newGame(); s.board[24] = null; s.board[18] = { t: 'D', s: 1 }; return s; })()); SGGame.render();`);
     const tap = async i => { const c = await p.evaluate(i => SGDebug.cellCenter(i), i); await p.mouse.click(c.x, c.y); };

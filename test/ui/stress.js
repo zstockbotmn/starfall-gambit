@@ -12,7 +12,7 @@ const pick = a => a[Math.floor(Math.random() * a.length)];
   const ctx = await browser.newContext({ viewport: { width: W, height: H }, hasTouch: true, isMobile: true, deviceScaleFactor: 3 });
   const page = await ctx.newPage();
   const errs = []; page.on('pageerror', e => errs.push(String(e)));
-  await page.goto(BASE + '?debug', { waitUntil: 'networkidle' });
+  await page.goto(BASE + '?debug' + (process.env.SG_NOSTEP ? '&nostep' : ''), { waitUntil: 'networkidle' });
   await page.evaluate(() => { localStorage.setItem('sg_seen_rules', '1'); document.querySelectorAll('.modal').forEach(m => m.classList.add('hidden')); });
   const cdp = await ctx.newCDPSession(page);
   const R = { taps: 0, dropped: 0, byType: {}, drops: [], kinds: {} };
