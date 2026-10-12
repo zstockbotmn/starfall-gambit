@@ -1,0 +1,5 @@
+{"thr":1,"stall":0,"clicks":[],"log":"20.374 ok: select [touch d2]\n09.590 ok: new game (medium)","cls":"cell alt"}
+{"thr":1,"stall":400,"clicks":[],"log":"24.825 ok: select [touch d2]\n20.374 ok: select [touch d2]\n09.590 ok: new game (medium)","cls":"cell alt"}
+{"thr":1,"stall":700,"clicks":[],"log":"30.559 ok: select [touch d2]\n24.825 ok: select [touch d2]\n20.374 ok: select [touch d2]\n09.590 ok: new game (medium)","cls":"cell alt"}
+{"thr":4,"stall":1500,"clicks":[],"log":"36.712 ok: select [touch d2]\n30.559 ok: select [touch d2]\n24.825 ok: select [touch d2]\n20.374 ok: select [touch d2]\n09.590 ok: new game (medium)","cls":"cell alt"}
+{"thr":1,"stall":3000,"clicks":[],"log":"44.570 ok: select [touch d2]\n36.712 ok: select [touch d2]\n30.559 ok: select [touch d2]\n24.825 ok: select [touch d2]\n20.374 ok: select [touch d2]","cls":"cell alt"}
