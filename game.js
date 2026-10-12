@@ -98,7 +98,8 @@
     t = cells[i0];
     if (down) cancelPress('second finger');
     ghosts = [];                                           // a new press means any pending echo click is stale
-    var size = t.getBoundingClientRect().width;
+    // In 3D the DOM square is a projected trapezoid whose bounding box is wider than the square itself; tolerances use the real width
+    var size = (window.SGView && SGView.cellSize) ? SGView.cellSize(i0).w : t.getBoundingClientRect().width;
     down = { id: e.pointerId, i: +t.dataset.i, x: e.clientX, y: e.clientY, long: false, type: e.pointerType, max: DRAG_CELLS * size, slop: Math.max(SLOP_MIN_PX, SLOP_CELLS * size), ply: st.ply, gid: gameId };
     try { wrapEl.setPointerCapture(e.pointerId); } catch (err) {}   // keep getting move/up even off the board
     fxAdd(i0, 'press');
