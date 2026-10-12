@@ -100,7 +100,12 @@ const pick = a => a[Math.floor(Math.random() * a.length)];
                   // Red moved in between (and maybe captured the pre-selected ship): fine, nothing of ours played
                   R.redTurnRace = (R.redTurnRace || 0) + 1;      // Red moved in between: fine, nothing of ours played
                   const lm = await page.evaluate(() => SGDebug.state().lastMove.side); if (lm !== 1) drop('blue move played during Red turn', { i, dst });
-                } else drop('red-turn destination made a move', { i, dst, u, ply0 });
+                } else {
+                  const diag = await page.evaluate(([i, dst]) => { const s = SGDebug.state(); return { lastMove: s.lastMove, atDst: s.board[dst], atI: s.board[i], stillLegal: SG.pieceMoves(s, i).some(m => m.to === dst), hint: document.getElementById('hint').textContent, log: ((document.getElementById('tapLog') || {}).textContent || '').slice(-500) }; }, [i, dst]);
+                  // Red's reply landed first and the tap then hit a square that is no longer this ship's destination: a plain deselect is correct
+                  if (u.ply === ply0 + 1 && u.turn === 0 && u.sel === null && diag.lastMove && diag.lastMove.side === 1 && !diag.stillLegal) { R.redTurnRace = (R.redTurnRace || 0) + 1; R.raceDeselect = (R.raceDeselect || 0) + 1; R.raceDiag = diag; }
+                  else drop('red-turn destination made a move', { i, dst, u, ply0, diag });
+                }
               }
             }
           }

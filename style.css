@@ -251,6 +251,7 @@ h1{color:#f6f8ff}
 .legend span{gap:4px;white-space:nowrap}
 .legend .lg{width:16px;height:16px}
 .legend b{font-weight:inherit}
+.legend em{font-style:normal}
 .legend .lgs{display:none}
 @media (max-height: 640px) {
   :root{ --vover: calc(268px + env(safe-area-inset-top) + env(safe-area-inset-bottom)); --legh: 30px; }
