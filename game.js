@@ -4,6 +4,8 @@
   var HUMAN = SG.BLUE, AI_SIDE = SG.RED, LEVEL = 'easy', AI_DELAY = 650, OVER_DELAY = 250, LONG_PRESS = 500, LONG_PRESS_CAP = 900;   // hold-to-inspect; longer on a Red ship you could capture
   var GHOST_MS = 600;            // a pointer-generated click within this time of a pointer tap on the same square is its echo
   var DEBUG = /[?&]debug(=|&|$)/.test(location.search);
+  // test harness only: ?aidelay=ms stretches Red's think time so scripted taps fit inside it on a slow software renderer
+  (function (m) { if (m) AI_DELAY = Math.min(5000, +m[1]); })(location.search.match(/[?&]aidelay=(\d+)/));
   var st, sel = null, insp = null, marks = null, danger = [], opts = [], exposed = [];
   var busy = false, aiTimer = null, overTimer = null, gameId = 0, hintMsg = '', overShown = false;
   var $ = function (id) { return document.getElementById(id); };
