@@ -258,12 +258,15 @@ export async function start(opts = {}) {
     });
     // 5 return: attacker settles on its square (moving captures) — the camera never left the play pose (shake is a 2D view offset)
     if (moving) over(P.e, 1, u => A.position.lerpVectors(to.clone().sub(from).multiplyScalar(.82).add(from), to, u));
-    return new Promise(res => { battle = { t0: now(), called: now(), T: DUR, ev, ups, prevU: 0, res, A, from, to, moving, kind, finale, mode: kind, cam0, push: +pushUsed.toFixed(2) }; }), DUR; }
+    return new Promise(res => { battle = { t0: now(), called: now(), T: DUR, ev, ups, prevU: 0, res, A, from, to, moving, kind, finale, mode: kind, cam0, mFrom: m.from, mTo: m.to, push: +pushUsed.toFixed(2) }; }), DUR; }
   function battleEnd() { if (!battle) return; const b = battle; battle = null; fx.clear(); camera.position.copy(rest.pos); camera.quaternion.copy(rest.q); camera.updateMatrixWorld(); shake = 0; applyOffset(0, 0); dirty = true;  /* skip/interrupt: back to the play pose at once, shake cleared */ const bt0 = b.called; stats.lastBattle = { push: b.push, evMs: b.evMs, rms: b.rms, cut: b.cut, gaps: b.gaps, ms: Math.round(now() - bt0), startupMs: b.startup, maxFrameMs: Math.round(b.maxDt || 0), planned: b.T, kind: b.kind, finale: b.finale, skipped: !b.cut && now() - bt0 < b.T * (window.SG3D_TS || 1) - 30, shook: b.shook }; impactLight.intensity = 0; shake = 0; applyOffset(0, 0);
     document.body.classList.remove('sg-battle'); haze.forEach(h => h.material.opacity = .28);
     // the captured ship is gone; the attacker (if it moved) now belongs to the target square
-    for (const k of Object.keys(shown)) if (shown[k].obj === b.A && b.moving) { delete shown[k]; root.remove(b.A); }
-    stats.battles++; b.res && b.res(); if (lastSt) sync(lastSt, lastUi); idle.splice(0).forEach(f => { try { f(); } catch (e) { console.error(e); } }); }
+    // keep the attacker's model and hand it to the target square (it already stands there): deleting it and re-syncing from a
+    // state that still had it on its old square drew it back there for a frame before the post-move sync (the 'snap back')
+    if (b.moving) for (const k of Object.keys(shown)) if (shown[k].obj === b.A) { const e = shown[k]; delete shown[k]; if (shown[b.mTo] && shown[b.mTo].obj !== b.A) root.remove(shown[b.mTo].obj); shown[b.mTo] = e; delete b.A.userData.glide; place(b.A, b.mTo); break; }
+    const stale = lastSt && b.moving && lastSt.board[b.mFrom];   // the game has not synced the post-move board yet
+    stats.battles++; b.res && b.res(); if (lastSt && !stale) sync(lastSt, lastUi); idle.splice(0).forEach(f => { try { f(); } catch (e) { console.error(e); } }); }
   function battleTick(t) { if (battle.startup === undefined) battle.startup = Math.round(t - battle.called); const b = battle; b.maxDt = Math.max(b.maxDt || 0, t - (b.lastT || b.called)); if (t - (b.lastT || b.called) > 150) (b.gaps = b.gaps || []).push([+(b.prevU || 0).toFixed(2), Math.round(t - (b.lastT || b.called))]); const ts = window.SG3D_TS || 1, u = Math.min(1, (t - b.called) / (b.T * ts))  /* clock starts at the tap: startup/shader stalls eat into the 1.3 s, they never extend it */, dtS = Math.min(.05, (t - (b.lastT || b.t0)) / 1000) / ts; b.lastT = t;
     for (const e of b.ev) if (!e.done && u >= e.u) { e.done = true; const q = performance.now(); e.fn(); (b.evMs = b.evMs || []).push([+e.u.toFixed(2), Math.round(performance.now() - q)]); }
     for (const p of b.ups) if (u >= p.u0 && b.prevU <= p.u1) { const lu = p.u1 > p.u0 ? Math.min(1, Math.max(0, (u - p.u0) / (p.u1 - p.u0))) : 1; p.fn(lu, dtS); }
@@ -326,7 +329,7 @@ export async function start(opts = {}) {
   document.body.classList.add('v3d'); applyTier(); ro.observe(document.getElementById('boardWrap'));
   prewarm(); fracP.then(() => { if (!battle) prewarm(); }); requestAnimationFrame(frame);
   const api = window.SGView = {
-    ...(/debug/.test(Q) ? { _three: { renderer, scene, camera, THREE } } : {}),   // debug-only handle for GL diagnostics
+    ...(/debug/.test(Q) ? { _three: { renderer, scene, camera, THREE, shown } } : {}),   // debug-only handle for GL diagnostics
     // the board is drawn in the same task as the DOM/status update, so the canvas never paints a frame behind the status line
     // no synchronous draw here: on slow GPUs it pushed a battle's first frame back by a whole extra frame. The next rAF draws it
     // (dirty bypasses the idle throttles), and game.js shows the status text only once that frame is in (SGView.afterDraw).
