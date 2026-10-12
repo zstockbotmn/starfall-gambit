@@ -226,6 +226,7 @@
   // A brief message that falls back to the previous hint unless something else replaced it meanwhile.
   // It is shown on top of the normal hint for FLASH_MS (>= 1.2s) even if Red moves meanwhile; the normal
   // hint (possibly updated underneath) comes back afterwards.
+  var redMovedAt = 0;
   var FLASH_MS = 1500, flashMsg = '', flashUntil = 0;
   function flashHint(msg) {
     flashMsg = msg; flashUntil = Date.now() + FLASH_MS; render();
@@ -275,7 +276,7 @@
     st = SG.applyMove(st, m);
     if (window.SGView && m.cap) SGView.battle(prev, m, st);   // cinematic battle; the state is already final
     // 'Wait for Red' belongs to Red's turn: once Red has moved it clears at once (the 1.2s minimum only applies during Red's turn).
-    if (redMove) flashUntil = 0;
+    if (redMove) { flashUntil = 0; redMovedAt = Date.now(); }
     clearSel(); hintMsg = '';
     if (keep !== null && st.winner === null) {
       if (st.board[keep] && st.board[keep].s === HUMAN) {
@@ -416,6 +417,7 @@
   if (DEBUG) {
     window.SGDebug = {
       state: function () { return st; },
+      redMovedAt: function () { return redMovedAt; },
       setState: function (s) { viewSkip(); clearTimeout(aiTimer); clearTimeout(overTimer); aiTimer = overTimer = null; movedAt = null; flashUntil = 0; fxClear(); busy = false; gameId++;
         st = s; clearSel(); hintMsg = ''; overShown = false; hide('overModal'); },
       stats: function () { return JSON.parse(JSON.stringify(stats)); },

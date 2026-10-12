@@ -89,7 +89,7 @@ const pick = a => a[Math.floor(Math.random() * a.length)];
             else if (t.turn === 1 && t.busy && Math.random() < 0.85) {
               const dst = await page.evaluate(i => { const m = SG.pieceMoves(SGDebug.state(), i); return m.length ? m[Math.floor(Math.random() * m.length)].to : -1; }, i);
               if (dst >= 0) {
-                const ply0 = t.ply; await tapCell(dst, pick(['touch', 'touch', 'mouse'])); await settle();
+                const ply0 = t.ply, tTap = Date.now(); await tapCell(dst, pick(['touch', 'touch', 'mouse'])); await settle();
                 const u = await S(); R.kinds.redTurnDestination = (R.kinds.redTurnDestination || 0) + 1;
                 // read markers and state atomically (Red's reply may land between two separate reads)
                 const ov = await page.evaluate(ply0 => { const s = SGDebug.state(); if (s.ply !== ply0 || s.turn !== 1) return 0; return document.querySelectorAll('.ov.threat, .mk.expose, .ov.queued, .mk.move, .mk.lane, .mk.cap').length; }, ply0);
@@ -105,6 +105,8 @@ const pick = a => a[Math.floor(Math.random() * a.length)];
                   const diag = await page.evaluate(([i, dst]) => { const s = SGDebug.state(); return { lastMove: s.lastMove, atDst: s.board[dst], atI: s.board[i], stillLegal: SG.pieceMoves(s, i).some(m => m.to === dst), hint: document.getElementById('hint').textContent, log: ((document.getElementById('tapLog') || {}).textContent || '').slice(-500) }; }, [i, dst]);
                   // Red's reply landed first and the tap then hit a square that is no longer this ship's destination: a plain deselect is correct
                   if (u.ply === ply0 + 1 && u.turn === 0 && u.sel === null && diag.lastMove && diag.lastMove.side === 1 && !diag.stillLegal) { R.redTurnRace = (R.redTurnRace || 0) + 1; R.raceDeselect = (R.raceDeselect || 0) + 1; R.raceDiag = diag; }
+                  // Red's reply landed while the tap gesture was in flight (after our state read): the tap then came in Blue's turn, so the move is legit
+                  else if (u.ply === ply0 + 2 && diag.lastMove && diag.lastMove.side === 0 && await page.evaluate(t => SGDebug.redMovedAt() >= t, tTap)) { R.redTurnRace = (R.redTurnRace || 0) + 1; R.raceLateMove = (R.raceLateMove || 0) + 1; }
                   else drop('red-turn destination made a move', { i, dst, u, ply0, diag });
                 }
               }
