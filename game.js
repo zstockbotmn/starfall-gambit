@@ -93,7 +93,9 @@
     dlog('cancelled', reason + (detail ? ' (' + detail + ')' : '') + ' [' + d.type + ' from ' + SG.coord(d.i) + ']');
     return d;
   }
-  wrapEl.addEventListener('pointerdown', function (e) {
+  // listen on the document: in 3D the board's near corners can project a few px outside #boardWrap's box
+  document.addEventListener('pointerdown', function (e) {
+    if (!wrapEl.contains(e.target) && (!(window.SGView && SGView.pick) || (e.target.closest && e.target.closest('button, a, input, select, .modal, header')))) return;
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     if (e.pointerType !== 'touch') lastTouchEnd = -1e9;          // a real mouse/pen press after a touch: its click is genuine
     // a tap during a battle only skips it: it is swallowed (no select), along with its echo click
