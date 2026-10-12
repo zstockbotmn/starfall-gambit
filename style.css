@@ -6,7 +6,7 @@
   /* board squares: Blue half (bottom) teal-navy glass, Red half (top) dark plum with scanlines */
   --sqb:#0b1a31; --sqb2:#10233f; --sqr:#170a26; --sqr2:#200e34;
   /* markers */
-  --mk-move:#5cffc8; --mk-lane:#ffe680; --mk-cap:#ffffff; --mk-cap-b:#e0005a; --mk-foe:#ff8fe0; --mk-foesel:#ff9de6; --mk-danger:#e5452e; --mk-warn:#ffffff; --mk-warn-rim:#d4004a;
+  --mk-move:#5cffc8; --mk-lane:#ffe680; --mk-cap:#ffffff; --mk-cap-b:#ff4f8b; --mk-foe:#ff8fe0; --mk-foesel:#ff9de6; --mk-danger:#e5452e; --mk-warn:#ffffff; --mk-warn-rim:#d4004a;
   --pad: 10px; --gut: 14px;
   /* Vertical space used by everything except the board cells (header, status, trays, legend, a little info). */
   --vover: calc(318px + env(safe-area-inset-top) + env(safe-area-inset-bottom));
@@ -283,7 +283,7 @@ h1{color:#f6f8ff}
 .ov.sel.foe{background:none;box-shadow:inset 0 0 0 2px rgba(0,0,0,.85),inset 0 0 0 5px var(--mk-foesel),inset 0 0 0 7px rgba(0,0,0,.7)}
 .mk.move.foe{border-color:var(--mk-foe)}
 /* capture brackets on a (white) Blue ship, i.e. Red's captures while inspecting: deep pink-red instead of white */
-.pc.b ~ .mk.cap{--c:var(--mk-cap-b)}
+.pc.b ~ .mk.cap{--c:var(--mk-cap-b);filter:drop-shadow(1.5px 0 0 #000) drop-shadow(-1.5px 0 0 #000) drop-shadow(0 1.5px 0 #000) drop-shadow(0 -1.5px 0 #000)}
 /* '!' = white badge, red rim and glyph: 17px badge, 12.5px glyph, clearly unlike the yellow lane plus */
 .mk.expose{--bs:17px;top:0;left:50%;right:auto;transform:translateX(-50%);width:var(--bs);height:var(--bs);box-sizing:border-box;
   background:var(--mk-warn);color:var(--mk-warn-rim);border:2px solid var(--mk-warn-rim);border-radius:50%;
