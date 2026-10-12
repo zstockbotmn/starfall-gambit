@@ -297,9 +297,9 @@ function redShield() { const g = new THREE.Group();   // broad angular bulwark: 
 export const BUILDERS = { bF: blueFlagship, bD: blueDrone, bL: blueLancer, bS: blueShield, rF: redFlagship, rD: redDrone, rL: redLancer, rS: redShield };
 // Red ships: ~1.4x larger and lifted so they hover over the base like the Blue fleet. The long hulls (Flagship, Lancer) are capped
 // at 1.25 units of length so they don't swallow neighbouring squares; width and height still get the full 1.4x.
-const RED_FIT = { rF: [1.08, .95, 1.55], rL: [.95, .92, 1.5], rD: [1.3, 1.05, 1.3], rS: [1.4, 1.1, 1.4] }   /* daggers: Flagship and Lancer long and flat */, RED_LIFT = .06;
+const RED_FIT = { rF: [1.08, .95, 1.55], rL: [1.35, .95, 1.5], rD: [1.3, 1.05, 1.3], rS: [1.4, 1.1, 1.4] }   /* daggers: Flagship and Lancer long and flat */, RED_LIFT = .06;
 export function buildShip(id, q = 1) { Q = q; let g = BUILDERS[id](); g.name = id; Q = 1;
-  if (RED_FIT[id]) { const RS = { gunmetal: 'rGun', plate: 'rPlate', neonM: 'rNeonM', neonC: 'rNeonC' }; g.traverse(o => { if (o.isMesh && RS[o.userData.slot]) o.userData.slot = RS[o.userData.slot]; });   // Red-only materials (glossy wet gunmetal, half-strength neon)
+  if (RED_FIT[id]) { const RS = { gunmetal: 'rGun', plate: 'rPlate', neonM: 'rNeonM', neonC: 'rNeonC', ...(id === 'rL' ? { redSkin: 'rPlate' } : {}) };   /* thin Lancer: lighter plate on its hull for contrast */ g.traverse(o => { if (o.isMesh && RS[o.userData.slot]) o.userData.slot = RS[o.userData.slot]; });   // Red-only materials (glossy wet gunmetal, half-strength neon)
     const w = new THREE.Group(); w.name = id; g.scale.set(...RED_FIT[id]); g.position.y = RED_LIFT; w.add(g); g = w; }
   return g; }
 
