@@ -249,7 +249,8 @@ export async function start(opts = {}) {
     const anim = bench || battle || Object.values(shown).some(s => s.obj.userData.glide);
     // Input first: no idle frames while a finger is down (a slow GPU frame must never delay pointer events and turn a swipe into a
     // 0.5 s hold), and on the Low tier the scene is static between changes (no idle bob), so the main thread stays free for taps.
-    if (!anim && (pressing || (tier === 'low' && !dirty))) return;
+    // a selected ship means a move/attack tap is imminent: hold the idle bob (redraw only on change) so no slow idle frame is still queued on the GPU when the battle's first frame is due
+    if (!anim && (pressing || ((tier === 'low' || selG.visible) && !dirty))) return;
     if (!anim && !dirty && t - lastFrame < 33) return;
     const dt = t - lastFrame; lastFrame = t; dirty = false; if (dt < 200) { ft.push(dt); if (ft.length > 120) ft.shift(); }
     // shadow map: every idle frame, but during a battle only every 3rd frame (never on its first) - a 2048 shadow pass per frame was the heaviest part of a battle frame
