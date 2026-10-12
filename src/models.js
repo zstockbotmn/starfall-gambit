@@ -197,13 +197,24 @@ function redLancer() { const g = new THREE.Group();   // long spear with a ram: 
   for (const s of [1, -1]) holoFlush(g, .16, .022, s * .072, .03, .0, s * (Math.PI / 2 - .3), s > 0 ? 10 : 11);
   g.add(underglow([[0, .5], [.09, .33], [.085, -.33], [-.085, -.33], [-.09, .33]], .6));
   return g; }
-function redDrone() { const g = new THREE.Group();   // X-frame hunter: four long angular arms around an armoured core (concept top-right)
-  const core = [[0, .1], [.08, .04], [.08, -.06], [0, -.1], [-.08, -.06], [-.08, .04]]; let y = deck(g, core, .06, -.03, 'redSkin'); y = deck(g, scaleP(core, .7, .7), .03, y, 'plate'); hexCore(g, 0, y, 0, .03);
-  const arm = [[0, .07], [.035, .14], [.03, .4], [0, .44], [-.03, .4], [-.035, .14]];
-  for (let k = 0; k < 4; k++) { const b = new THREE.Group(); deck(b, arm, .04, -.02); deck(b, scaleP(arm, .6, .92, .01), .02, .02, 'plate'); b.add(underglow(arm, 1.08));
-    edgeStrips(b, arm, .0, k % 2 ? 'neonM' : 'neonC', 1.03, .004); greeble(b, scaleP(arm, .6, .9, .02), 10, .04, 11 + k, .014);
-    b.add(at(P(new THREE.BoxGeometry(.03, .016, .03), 'neonC'), 0, .045, -.38)); b.rotation.y = Math.PI / 4 + k * Math.PI / 2; g.add(b); }
-  holoPanel(g, .08, .045, 0, .15, .0, 0, 3);
+function redDrone() { const g = new THREE.Group();   // compact hunter with a spiky claw: stubby armoured wedge body, two jagged pincers forward, rear spikes
+  const H = [SEC(.2, .03, .01, .015, .03, .036, .02, .02), SEC(.1, .11, .016, .05, .06, .07, .06, .035), SEC(-.06, .14, .02, .065, .075, .088, .075, .04), SEC(-.18, .1, .02, .05, .06, .07, .06, .034), SEC(-.24, .05, .018, .03, .04, .046, .035, .026)];
+  loft(g, H);
+  bigHex(g, 0, .082, .03, .03);
+  // claw: each pincer is a thick jagged blade curving inward, with inner teeth and a neon edge
+  for (const s of [1, -1]) { const C = [[.07, .06], [.17, .16], [.19, .3], [.13, .43], [.05, .47], [.11, .36], [.12, .25], [.08, .16], [.04, .1]].map(([x, f]) => [s * x, f]);
+    const pts = s > 0 ? C.slice().reverse() : C; const cl = P(ext(pts, .03, .004, 1), 'redSkin'); cl.position.y = .0; g.add(cl);
+    const top = P(ext((s > 0 ? [[.09, .1], [.16, .18], [.17, .3], [.12, .38], [.1, .26], [.08, .16]].reverse() : [[.09, .1], [.16, .18], [.17, .3], [.12, .38], [.1, .26], [.08, .16]].map(([x, f]) => [-x, f])), .012, .002, 1), 'plate'); top.position.y = .024; g.add(top);
+    for (let k = 0; k < 4; k++) { const f = .18 + k * .065, x = s * (.09 + (k === 3 ? .02 : .0)); spike(g, [x, f], [x - s * .05, f + .025], [x, f + .04], .016, -.008, k % 2 ? 'neonC' : 'neonM', false); }
+    for (const [a, b] of [[[.17, .16], [.19, .3]], [[.19, .3], [.13, .43]], [[.13, .43], [.05, .47]]]) { const ax = s * a[0], bx = s * b[0], L = Math.hypot(bx - ax, b[1] - a[1]); const e = P(new THREE.BoxGeometry(.004, .004, L * .9), 'neonM'); e.position.set((ax + bx) / 2, .02, -(a[1] + b[1]) / 2); e.rotation.y = Math.atan2(bx - ax, -(b[1] - a[1])); g.add(e); }
+    const tipS = P(new THREE.ConeGeometry(.008, .05, 5), 'chrome'); tipS.rotation.set(-Math.PI / 2, 0, -s * .9); tipS.position.set(s * .04, .006, -.48); g.add(tipS);
+  }
+  spike(g, [.1, -.08], [.25, -.24], [.08, -.18], .01, .01, 'neonC');
+  const df = P(ext([[0, .04], [0, -.18], [.08, -.24], [.03, -.05]], .006, .002, 1), 'redSkin'); df.rotation.z = Math.PI / 2; df.position.set(0, .085, 0); g.add(df);
+  greebleLoft(g, H, 90, 31, { wFrac: .95, hMax: .016, slits: .45 }); flankSlits(g, H, 30, 32);
+  nozzles(g, [-.03, .03], .01, .245, .02);
+  for (const s of [1, -1]) holoFlush(g, .1, .026, s * .125, .035, .02, s * (Math.PI / 2 - .35), s > 0 ? 3 : 7);
+  g.add(underglow([[0, .2], [.13, -.06], [.05, -.24], [-.05, -.24], [-.13, -.06]], .8));
   return g; }
 function redShield() { const g = new THREE.Group();   // wide swept delta (concept bottom-right) projecting a hologram wall
   const H = [[0, .26], [.2, .14], [.44, -.02], [.46, -.12], [.3, -.1], [.12, -.2], [-.12, -.2], [-.3, -.1], [-.46, -.12], [-.44, -.02], [-.2, .14]];
