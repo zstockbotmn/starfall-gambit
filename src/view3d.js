@@ -276,7 +276,7 @@ export async function start(opts = {}) {
     if (!reduced()) { T.scan.offset.y = (t / 4000) % 1; if (rain.visible) rain.position.y = -((t / 900) % 1) * .6; }
     if (shake) { const e = (t - shakeT0) / 180; if (e >= 1) { shake = 0; applyOffset(0, 0); } else { const a = view.H * .006 * (1 - e); applyOffset((Math.random() - .5) * 2 * a, (Math.random() - .5) * 2 * a); } }
     updateBatches(); renderer.info.reset(); composer.render(); stats.frames++; if (drawCbs.length) drawCbs.splice(0).forEach(f => f()); autoTune(); if (hud) drawHud(); }
-  let tuneFrames = 0; function autoTune() { if (battle) return; ++tuneFrames; const r = ft.slice(-4), stuck = r.length === 4 && r.every(x => x > 400);   // multi-hundred-ms frames: act now, don't wait 90 frames
+  let tuneFrames = 0; function autoTune() { if (battle) return; ++tuneFrames; const r = ft.slice(-4), stuck = r.length === 4 && r.every(x => x > 150);   // multi-hundred-ms frames: act now, don't wait 90 frames
     if (tuneFrames % 90 && !stuck) return; if (stuck) { tuneFrames = 0; } const s = (stuck ? r : [...ft]).sort((a, b) => a - b), p50 = s[s.length >> 1]; if (stuck) ft.length = 0;
     const cap = battle ? 18 : 36;   // idle frames are capped at ~33 ms
     // steps down even when a tier was forced (?tier= / settings): a forced High that can't hold the budget would starve input.
@@ -316,7 +316,7 @@ export async function start(opts = {}) {
       return Math.min(5, Math.max(0, Math.floor(v))) * 6 + Math.min(5, Math.max(0, Math.floor(u))); },
     project: (i, y = 0) => { const p = cellPos(i).setY(y); camera.updateMatrixWorld(); return project(p); },
     fit: () => ({ ...shipFit }),
-    stats: () => { const s = [...ft].sort((a, b) => a - b), p = q => +(s[Math.floor(s.length * q)] || 0).toFixed(1); return { tier, gpu, caps, software, p50: p(.5), p90: p(.9), calls: renderer.info.render.calls, tris: renderer.info.render.triangles, frames: stats.frames, battles: stats.battles, lastBattle: stats.lastBattle, battling: !!battle, battleU: battle ? +(battle.prevU || 0).toFixed(3) : null, hazeTarget: battle ? haze.filter(h => h.material.opacity < .2).length : 0, fit: fitInfo, fracLoaded: Object.keys(frac).length }; },
+    stats: () => { const s = [...ft].sort((a, b) => a - b), p = q => +(s[Math.floor(s.length * q)] || 0).toFixed(1); return { tier, gpu, caps, stepDowns: stats.stepDowns || 0, dprScale, software, p50: p(.5), p90: p(.9), calls: renderer.info.render.calls, tris: renderer.info.render.triangles, frames: stats.frames, battles: stats.battles, lastBattle: stats.lastBattle, battling: !!battle, battleU: battle ? +(battle.prevU || 0).toFixed(3) : null, hazeTarget: battle ? haze.filter(h => h.material.opacity < .2).length : 0, fit: fitInfo, fracLoaded: Object.keys(frac).length }; },
     setTier: t => { tier = t; applyTier(); }, disable, renderNow: () => { dirty = true; updateBatches(); composer.render(); },
   };
   window.SGGame && window.SGGame.render(); fit();
