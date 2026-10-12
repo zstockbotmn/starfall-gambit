@@ -83,13 +83,13 @@ const pick = a => a[Math.floor(Math.random() * a.length)];
           if (own.length) {
             const i = pick(own), type = pick(['touch', 'touch', 'mouse', 'click']);
             await tapCell(i, type); await settle();
-            const t = await S(); R.kinds.preselect = (R.kinds.preselect || 0) + 1;
+            const tRead = Date.now(), t = await S(); R.kinds.preselect = (R.kinds.preselect || 0) + 1;
             if (t.turn === 1 && t.w === null && t.sel !== i) drop('preselect-during-delay', { i, type, t });
             // ...and sometimes tap one of its destinations: must do nothing (no move, selection kept, no hatching / '!')
             else if (t.turn === 1 && t.busy && Math.random() < 0.85) {
               const dst = await page.evaluate(i => { const m = SG.pieceMoves(SGDebug.state(), i); return m.length ? m[Math.floor(Math.random() * m.length)].to : -1; }, i);
               if (dst >= 0) {
-                const ply0 = t.ply, tTap = Date.now(); await tapCell(dst, pick(['touch', 'touch', 'mouse'])); await settle();
+                const ply0 = t.ply, tTap = tRead; await tapCell(dst, pick(['touch', 'touch', 'mouse'])); await settle();
                 const u = await S(); R.kinds.redTurnDestination = (R.kinds.redTurnDestination || 0) + 1;
                 // read markers and state atomically (Red's reply may land between two separate reads)
                 const ov = await page.evaluate(ply0 => { const s = SGDebug.state(); if (s.ply !== ply0 || s.turn !== 1) return 0; return document.querySelectorAll('.ov.threat, .mk.expose, .ov.queued, .mk.move, .mk.lane, .mk.cap').length; }, ply0);
