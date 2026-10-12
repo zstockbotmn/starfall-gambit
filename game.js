@@ -55,6 +55,7 @@
   // crossed a border; a lift up to EDGE_PX outside the board is treated as being on the nearest edge square.
   // Between SLOP_CELLS and DRAG_CELLS the press must still end on its start square; beyond DRAG_CELLS it cancels.
   var DRAG_CELLS = 0.6, SLOP_CELLS = 0.25, SLOP_MIN_PX = 12, EDGE_PX = 8;   // tap tolerance = max(12px, 0.25 cell)
+  var SKIP_QUIET_MS = 150, skipTs = -1e9;
   var down = null, lpTimer = null, ghosts = [], skipPtr = null, lastTouchEnd = -1e9;
   function cellFrom(x, y) {
     if (window.SGView && SGView.pick) return SGView.pick(x, y, 0);   // 3D: raycast the projected board, never the DOM overlay
@@ -100,7 +101,10 @@
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     if (e.pointerType !== 'touch') lastTouchEnd = -1e9;          // a real mouse/pen press after a touch: its click is genuine
     // a tap during a battle only skips it: it is swallowed (no select), along with its echo click
-    if (window.SGView && SGView.battling()) { viewSkip(); skipPtr = e.pointerId; dlog('ok', 'battle skipped'); return; }
+    if (window.SGView && SGView.battling()) { viewSkip(); skipPtr = e.pointerId; skipTs = e.timeStamp; dlog('ok', 'battle skipped'); return; }
+    // presses within SKIP_QUIET_MS of a skip (by the event clock, so taps that queued up behind a busy frame count by when they
+    // happened) are dropped: a skip never also selects or moves
+    if (e.timeStamp - skipTs < SKIP_QUIET_MS) { if (skipPtr === null) skipPtr = e.pointerId; dlog('ignored', 'press right after a battle skip'); return; }
     // Rounded board corners / hairline gaps: fall back to the nearest cell.
     var t = e.target.closest('.cell'), i0 = (window.SGView && SGView.pick) ? cellNear(e.clientX, e.clientY) : t ? +t.dataset.i : cellNear(e.clientX, e.clientY);
     if (i0 < 0) { if (DEBUG) dlog('ignored', 'press off the board (' + Math.round(e.clientX) + ',' + Math.round(e.clientY) + ')'); return; }
