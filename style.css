@@ -350,3 +350,9 @@ body.v3d #board .mk.expose{--bs:max(12px, min(17px, 30%));width:var(--bs);height
 
 .levels{display:flex;gap:8px;margin-top:12px}.levels .lvl{flex:1;min-height:48px}.levels .lvl[aria-checked="true"]{border-color:var(--gold2);background:linear-gradient(180deg,#2bb7ad,#16707a);color:#fff}
 #newWarn.hidden{display:none}
+/* m3 tester fixes: '!' badge never below 17px; visible cancel ring; debug log clear of the header */
+body.v3d #board .mk.expose{--bs:17px;font-size:11.5px}
+body.v3d #board .mk.cap.withexpose{top:20px}
+.cell.nogo::after{inset:8%;border:3px solid #fff;box-shadow:0 0 0 2px rgba(0,0,0,.9),inset 0 0 0 2px rgba(0,0,0,.9),0 0 10px 2px rgba(255,255,255,.6);animation:nogo2 .6s ease-out forwards}
+@keyframes nogo2{0%{opacity:1;transform:scale(.85)}60%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(1.06)}}
+.taplog{top:auto;bottom:calc(env(safe-area-inset-bottom) + 8px);max-height:30vh;overflow:auto}

@@ -184,8 +184,8 @@ export async function start(opts = {}) {
   // battle(prev, move, next): returns its duration (ms). The state is already applied by game.js; the view animates the change.
   function battleStart(prev, m, next) {
     const mode = LS('sg_battle', 'full'), rm = reduced(); const atk = prev.board[m.from], tgt = prev.board[m.to] || m.cap; if (!atk || !tgt) return 0;
-    const finale = tgt.t === 'F'; let kind = rm && mode !== 'off' ? 'reduced' : mode; const T = (finale ? FINALE_MS : BATTLE_MS)[kind] || 0;
-    if (!T || !shown[m.from] || !shown[m.to]) return 0;
+    const finale = tgt.t === 'F'; let kind = rm && mode !== 'off' ? 'reduced' : mode; const DUR = (finale ? FINALE_MS : BATTLE_MS)[kind] || 0;
+    if (!DUR || !shown[m.from] || !shown[m.to]) return 0;
     const A = shown[m.from].obj, B = shown[m.to].obj, aId = idOf(atk), bId = idOf(tgt), side = aId[0], loser = bId[0];
     const from = A.position.clone(), to = B.position.clone(), shot = m.kind === 'shot', moving = !shot;
     const col = side === 'b' ? { core: 0xffffff, glow: 0x43f7e2, spark: 0x7ff7ea } : { core: 0xffd0f6, glow: 0xff2bd6, spark: 0x19f0ff };
@@ -197,7 +197,7 @@ export async function start(opts = {}) {
     if (kind !== 'reduced') {
       // 1 charge-up
       at(0, () => { const g = sprite(T.softDot, col.glow, nose, .05); over(0, P.c, u => g.scale.setScalar(.05 + .5 * u)); over(P.c, P.c + .08, u => g.material.opacity = 1 - u);
-        const b = burst(nose, 60, col.spark, 1, (P.c * T) || 200, .5, .04, true); over(0, P.c, (u, dt) => b.upd(dt, u * .6)); over(P.c, P.c + .01, () => fx.remove(b.obj)); });
+        const b = burst(nose, 60, col.spark, 1, (P.c * DUR) || 200, .5, .04, true); over(0, P.c, (u, dt) => b.upd(dt, u * .6)); over(P.c, P.c + .01, () => fx.remove(b.obj)); });
       // 2 strike
       if (shot) at(P.c, () => { if (side === 'b') { const bm = beamMesh(nose, to.clone().setY(SHIP_Y), col.core, col.glow, .03); over(P.c, P.i + .12, u => { bm.scale.set(1 - u * .7, 1, 1 - u * .7); bm.children.forEach(c => c.material.opacity *= .97); }); over(P.i + .12, P.i + .13, () => fx.remove(bm)); }
         else { const slug = sprite(T.softDot, 0xff6ae6, nose, .22), trail = burst(nose, 30, 0x19f0ff, .3, 300, .2, .035); over(P.c, P.s, (u, dt) => { slug.position.lerpVectors(nose, to.clone().setY(SHIP_Y), u); slug.position.y += Math.sin(u * 40) * .015; trail.obj.position.copy(slug.position).sub(nose); trail.upd(dt, u); });
@@ -225,7 +225,7 @@ export async function start(opts = {}) {
     });
     // 5 return: attacker settles on its square (moving captures) — the camera never left the play pose (shake is a 2D view offset)
     if (moving) over(P.e, 1, u => A.position.lerpVectors(to.clone().sub(from).multiplyScalar(.82).add(from), to, u));
-    return new Promise(res => { battle = { t0: now(), called: now(), T, ev, ups, prevU: 0, res, A, from, to, moving, kind, finale, mode: kind }; }), T; }
+    return new Promise(res => { battle = { t0: now(), called: now(), T: DUR, ev, ups, prevU: 0, res, A, from, to, moving, kind, finale, mode: kind }; }), DUR; }
   function battleEnd() { if (!battle) return; const b = battle; battle = null; fx.clear(); const bt0 = b.called; stats.lastBattle = { cut: b.cut, gaps: b.gaps, ms: Math.round(now() - bt0), startupMs: b.startup, maxFrameMs: Math.round(b.maxDt || 0), planned: b.T, kind: b.kind, finale: b.finale, skipped: !b.cut && now() - bt0 < b.T * (window.SG3D_TS || 1) - 30, shook: b.shook }; impactLight.intensity = 0; shake = 0; applyOffset(0, 0);
     document.body.classList.remove('sg-battle'); haze.forEach(h => h.material.opacity = .28);
     // the captured ship is gone; the attacker (if it moved) now belongs to the target square

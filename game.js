@@ -88,7 +88,7 @@
   function cancelPress(reason, detail) {
     if (!down) return;
     var d = down; clearPress();
-    if (!NO_CUE[reason]) { fxDel(d.i, 'nogo'); void cells[d.i].offsetWidth; fxAdd(d.i, 'nogo', 450); }   // brief faint ring: "that didn't count"
+    if (!NO_CUE[reason]) { fxDel(d.i, 'nogo'); void cells[d.i].offsetWidth; fxAdd(d.i, 'nogo', 650); }   // brief faint ring: "that didn't count"
     stats.cancelled++; stats.cancelReasons[reason] = (stats.cancelReasons[reason] || 0) + 1;
     dlog('cancelled', reason + (detail ? ' (' + detail + ')' : '') + ' [' + d.type + ' from ' + SG.coord(d.i) + ']');
     return d;
