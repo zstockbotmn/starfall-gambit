@@ -216,15 +216,28 @@ function redDrone() { const g = new THREE.Group();   // compact hunter with a sp
   for (const s of [1, -1]) holoFlush(g, .1, .026, s * .125, .035, .02, s * (Math.PI / 2 - .35), s > 0 ? 3 : 7);
   g.add(underglow([[0, .2], [.13, -.06], [.05, -.24], [-.05, -.24], [-.13, -.06]], .8));
   return g; }
-function redShield() { const g = new THREE.Group();   // wide swept delta (concept bottom-right) projecting a hologram wall
-  const H = [[0, .26], [.2, .14], [.44, -.02], [.46, -.12], [.3, -.1], [.12, -.2], [-.12, -.2], [-.3, -.1], [-.46, -.12], [-.44, -.02], [-.2, .14]];
-  let y = deck(g, H, .045, -.03); g.add(underglow(H, 1.03)); edgeStrips(g, H, .0, 'neonM', 1.02, .006, k => k > 4 && k < 7);
-  y = deck(g, scaleP(H, .7, .78, -.02), .03, y); edgeStrips(g, scaleP(H, .7, .78, -.02), y, 'neonC', 1, .004, k => k % 2);
-  y = deck(g, scaleP(H, .32, .6, -.03), .03, y, 'plate'); hexCore(g, 0, y, .04, .035);
-  greeble(g, scaleP(H, .68, .75, -.02), 50, .05, 13, .02);
-  for (const a of [-.32, 0, .32]) { const x = Math.sin(a * Math.PI) * .5, z = .3 - Math.cos(a * Math.PI) * .5; g.add(at(P(new THREE.CylinderGeometry(.008, .012, .22, 6), 'chrome'), x * .9, .08, z - .05)); g.add(at(P(new THREE.SphereGeometry(.012, 8, 6), 'neonM'), x * .9, .2, z - .05)); }
-  const wall = P(new THREE.CylinderGeometry(.5, .5, .2, S(48), 1, true, -Math.PI * .3, Math.PI * .6), 'holoPink'); wall.position.set(0, .12, .26); g.add(wall);
-  holoPanel(g, .12, .07, 0, .2, .1, 0, 5);
+function redShield() { const g = new THREE.Group();   // broad angular bulwark: wide faceted armour wedge, buttress spikes, tall tilted emitter plate projecting a hologram wall
+  const H = [SEC(.2, .16, .014, .07, .05, .06, .1, .03), SEC(.1, .4, .016, .14, .07, .085, .2, .04), SEC(-.06, .46, .018, .16, .08, .095, .22, .042), SEC(-.18, .3, .018, .12, .07, .08, .16, .036), SEC(-.24, .14, .016, .07, .05, .058, .08, .03)];
+  loft(g, H);
+  // emitter plate: tall angled armoured frame at the bow, glowing pink emitter face with a neon grid
+  const E = new THREE.Group(); E.position.set(0, .06, -.14); E.rotation.x = -.42;
+  const frame = [[0, .2], [.2, .17], [.3, .06], [.28, 0], [-.28, 0], [-.3, .06], [-.2, .17]];
+  const fr = P(new THREE.ExtrudeGeometry(new THREE.Shape(V2(frame)), { depth: .025, bevelEnabled: true, bevelThickness: .004, bevelSize: .004, bevelSegments: 1 }), 'gunmetal'); fr.position.z = -.0125; E.add(fr);
+  const inner = P(new THREE.ShapeGeometry(new THREE.Shape(V2(frame.map(([x, y]) => [x * .84, y * .8 + .02])))), 'holoPink'); inner.position.z = -.016; inner.rotation.y = Math.PI; E.add(inner); const inner2 = inner.clone(); inner2.rotation.y = 0; inner2.position.z = .016; E.add(inner2);
+  for (let k = 1; k < 4; k++) E.add(at(P(new THREE.BoxGeometry(.44 - k * .06, .003, .003), 'neonM'), 0, k * .045, -.018));
+  for (const x of [-.12, 0, .12]) E.add(at(P(new THREE.BoxGeometry(.003, .14, .003), 'neonC'), x, .09, -.018));
+  for (let k = 0; k < frame.length; k++) { const a = frame[k], b = frame[(k + 1) % frame.length], L = Math.hypot(b[0] - a[0], b[1] - a[1]); const e = P(new THREE.BoxGeometry(L * .9, .004, .004), k % 2 ? 'neonC' : 'neonM'); e.position.set((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, -.02); e.rotation.z = Math.atan2(b[1] - a[1], b[0] - a[0]); E.add(e); }
+  for (const s of [1, -1]) { const st = P(new THREE.BoxGeometry(.03, .14, .03), 'plate'); st.position.set(s * .18, .02, .05); st.rotation.x = .42; E.add(st); }
+  g.add(E);
+  // buttress spikes forward from the wing tips + aft fins
+  spike(g, [.36, .08], [.5, .3], [.44, -.02], .014, .006, 'neonM');
+  spike(g, [.4, -.1], [.5, -.26], [.3, -.18], .01, .006, 'neonC');
+  spike(g, [.12, -.22], [.18, -.36], [.06, -.25], .008, .006, 'neonM');
+  greebleLoft(g, H, 170, 41, { wFrac: .95, fMax: .02, hMax: .018, slits: .4 }); flankSlits(g, H, 50, 42);
+  nozzles(g, [-.08, 0, .08], .01, .25, .018);
+  for (const s of [1, -1]) holoFlush(g, .14, .03, s * .4, .03, .04, s * (Math.PI / 2 - .9), s > 0 ? 5 : 12);
+  antenna(g, .2, .1, .08, .07, 'neonM'); antenna(g, -.2, .1, .08, .07, 'neonC');
+  g.add(underglow([[0, .2], [.46, -.06], [.14, -.24], [-.14, -.24], [-.46, -.06]], .75));
   return g; }
 
 export const BUILDERS = { bF: blueFlagship, bD: blueDrone, bL: blueLancer, bS: blueShield, rF: redFlagship, rD: redDrone, rL: redLancer, rS: redShield };
