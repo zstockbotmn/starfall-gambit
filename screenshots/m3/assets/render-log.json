@@ -1,5 +1,5 @@
 {
- "ship-bS": {
+ "ship-rF": {
   "info": {
    "calls": 1,
    "tris": 1
@@ -7,12 +7,5 @@
   "errs": [
    "Failed to load resource: the server responded with a status of 404 (File not found)"
   ]
- },
- "fleet-blue": {
-  "info": {
-   "calls": 1,
-   "tris": 1
-  },
-  "errs": []
  }
 }

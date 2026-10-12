@@ -56,8 +56,9 @@ export function applyHullTextures(M, H) {
   if (H.blue) Object.assign(M.ceramic, { map: H.blue, emissive: new THREE.Color(0xffffff), emissiveMap: H.blueE, emissiveIntensity: 1.4 });
   if (H.red) Object.assign(M.plate, { map: H.red, color: new THREE.Color(0xb8b4c4), emissive: new THREE.Color(0xffffff), emissiveMap: H.redE, emissiveIntensity: 2.2 });
   if (H.skin) Object.assign(M.redSkin, { map: H.skin, emissiveMap: H.skinE });
+  if (H.red) Object.assign(M.rPlate, { map: H.red, color: new THREE.Color(0x5a5866), emissive: new THREE.Color(0xffffff), emissiveMap: H.redE, emissiveIntensity: .7 });
   if (H.holo) M.holoAtlas.map = H.holo;
-  for (const k of ['ceramic', 'plate', 'redSkin', 'holoAtlas']) M[k].needsUpdate = true; }
+  for (const k of ['ceramic', 'plate', 'redSkin', 'rPlate', 'holoAtlas']) M[k].needsUpdate = true; }
 export function makeMaterials(T, tier = 'high') { const hi = tier !== 'low';
   const Phys = hi ? THREE.MeshPhysicalMaterial : THREE.MeshStandardMaterial;
   const M = {
@@ -84,7 +85,13 @@ export function makeMaterials(T, tier = 'high') { const hi = tier !== 'low';
   };
   M.holoGlyph = new THREE.MeshBasicMaterial({ color: 0x8affff, map: T.glyph, transparent: true, opacity: .85, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, toneMapped: false });
   M.holoGlyphPink = M.holoGlyph.clone(); M.holoGlyphPink.color.set(0xff7ae8);
-  M.redSkin = new THREE.MeshStandardMaterial({ color: 0xd0ccd8, metalness: .55, roughness: .42, emissive: 0xffffff, emissiveIntensity: 2.4 });
+  // Red hulls: dark, glossy, rain-slick gunmetal (low roughness, clearcoat, strong reflections); neon at half strength so slits read as accents
+  const wet = hi ? { clearcoat: 1, clearcoatRoughness: .06 } : {};
+  M.redSkin = new Phys({ color: 0x4c4a58, metalness: .88, roughness: .18, emissive: 0xffffff, emissiveIntensity: .9, envMapIntensity: 2.2, ...wet });
+  M.rGun = new Phys({ color: 0x1e2028, metalness: .92, roughness: .16, envMapIntensity: 2.4, ...wet });
+  M.rPlate = new Phys({ color: 0x17161d, metalness: .85, roughness: .22, envMapIntensity: 2.2, ...wet });
+  M.rNeonM = new THREE.MeshStandardMaterial({ color: 0x30001f, emissive: 0xff2bd6, emissiveIntensity: 1.5 });
+  M.rNeonC = new THREE.MeshStandardMaterial({ color: 0x00262a, emissive: 0x19f0ff, emissiveIntensity: 1.5 });
   M.holoAtlas = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: .95, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, toneMapped: false });
   M.holoPink = M.holo.clone(); M.holoPink.color.set(0xff6ae6); M.holoPink.opacity = .35;
   for (const [k, m] of Object.entries(M)) m.name = k;

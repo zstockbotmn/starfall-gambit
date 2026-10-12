@@ -6,7 +6,7 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 
-export const SLOTS = ['ceramic', 'gold', 'tealGlow', 'glass', 'chrome', 'plate', 'neonM', 'neonC', 'holo', 'holoPink', 'holoGlyph', 'holoGlyphPink', 'holoAtlas', 'redSkin', 'energy', 'gunmetal', 'rubber'];
+export const SLOTS = ['ceramic', 'gold', 'tealGlow', 'glass', 'chrome', 'plate', 'neonM', 'neonC', 'holo', 'holoPink', 'holoGlyph', 'holoGlyphPink', 'holoAtlas', 'redSkin', 'energy', 'gunmetal', 'rubber', 'rGun', 'rPlate', 'rNeonM', 'rNeonC'];
 let Q = 1; const S = n => Math.max(6, Math.round(n * Q));
 const P = (geo, slot) => { const m = new THREE.Mesh(geo); m.userData.slot = slot; return m; };
 const V2 = a => a.map(p => new THREE.Vector2(p[0], p[1]));
@@ -264,7 +264,8 @@ export const BUILDERS = { bF: blueFlagship, bD: blueDrone, bL: blueLancer, bS: b
 // at 1.25 units of length so they don't swallow neighbouring squares; width and height still get the full 1.4x.
 const RED_FIT = { rF: [1.4, 1.4, 1.25], rL: [1.4, 1.4, 1.12], rD: [1.4, 1.4, 1.4], rS: [1.4, 1.4, 1.4] }, RED_LIFT = .06;
 export function buildShip(id, q = 1) { Q = q; let g = BUILDERS[id](); g.name = id; Q = 1;
-  if (RED_FIT[id]) { const w = new THREE.Group(); w.name = id; g.scale.set(...RED_FIT[id]); g.position.y = RED_LIFT; w.add(g); g = w; }
+  if (RED_FIT[id]) { const RS = { gunmetal: 'rGun', plate: 'rPlate', neonM: 'rNeonM', neonC: 'rNeonC' }; g.traverse(o => { if (o.isMesh && RS[o.userData.slot]) o.userData.slot = RS[o.userData.slot]; });   // Red-only materials (glossy wet gunmetal, half-strength neon)
+    const w = new THREE.Group(); w.name = id; g.scale.set(...RED_FIT[id]); g.position.y = RED_LIFT; w.add(g); g = w; }
   return g; }
 
 // ================= BOARD: slab + trims + grid strips (tiles are instanced at runtime) =================
