@@ -1,0 +1,142 @@
+{
+ "bF": {
+  "tris": 25996,
+  "slots": 4,
+  "raw": 1175824,
+  "packed": 237060
+ },
+ "bF_lod1": {
+  "tris": 8510,
+  "slots": 4,
+  "raw": 382392,
+  "packed": 87820
+ },
+ "bD": {
+  "tris": 22680,
+  "slots": 4,
+  "raw": 573492,
+  "packed": 126988
+ },
+ "bD_lod1": {
+  "tris": 8156,
+  "slots": 4,
+  "raw": 222580,
+  "packed": 57256
+ },
+ "bL": {
+  "tris": 13288,
+  "slots": 4,
+  "raw": 585060,
+  "packed": 115780
+ },
+ "bL_lod1": {
+  "tris": 5144,
+  "slots": 4,
+  "raw": 229356,
+  "packed": 53240
+ },
+ "bS": {
+  "tris": 28880,
+  "slots": 4,
+  "raw": 1085500,
+  "packed": 223720
+ },
+ "bS_lod1": {
+  "tris": 10320,
+  "slots": 4,
+  "raw": 386336,
+  "packed": 89360
+ },
+ "rF": {
+  "tris": 19738,
+  "slots": 8,
+  "raw": 1105668,
+  "packed": 268224
+ },
+ "rF_lod1": {
+  "tris": 10834,
+  "slots": 8,
+  "raw": 735440,
+  "packed": 176752
+ },
+ "rD": {
+  "tris": 6614,
+  "slots": 7,
+  "raw": 398052,
+  "packed": 100720
+ },
+ "rD_lod1": {
+  "tris": 4318,
+  "slots": 7,
+  "raw": 295728,
+  "packed": 75560
+ },
+ "rL": {
+  "tris": 7468,
+  "slots": 7,
+  "raw": 476032,
+  "packed": 111088
+ },
+ "rL_lod1": {
+  "tris": 4776,
+  "slots": 7,
+  "raw": 344224,
+  "packed": 80472
+ },
+ "rS": {
+  "tris": 8584,
+  "slots": 9,
+  "raw": 505452,
+  "packed": 126360
+ },
+ "rS_lod1": {
+  "tris": 4596,
+  "slots": 9,
+  "raw": 328216,
+  "packed": 83320
+ },
+ "bF_frac": {
+  "raw": 432080,
+  "packed": 119352
+ },
+ "bD_frac": {
+  "raw": 264100,
+  "packed": 85036
+ },
+ "bL_frac": {
+  "raw": 264496,
+  "packed": 74996
+ },
+ "bS_frac": {
+  "raw": 441000,
+  "packed": 126728
+ },
+ "rF_frac": {
+  "raw": 824996,
+  "packed": 229740
+ },
+ "rD_frac": {
+  "raw": 362660,
+  "packed": 118816
+ },
+ "rL_frac": {
+  "raw": 408080,
+  "packed": 122912
+ },
+ "rS_frac": {
+  "raw": 405092,
+  "packed": 133584
+ },
+ "board": {
+  "tris": 2280,
+  "slots": 8,
+  "raw": 86788,
+  "packed": 24916
+ },
+ "board_lod1": {
+  "tris": 1608,
+  "slots": 8,
+  "raw": 70464,
+  "packed": 21316
+ }
+}

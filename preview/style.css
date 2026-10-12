@@ -1,0 +1,389 @@
+:root{
+  /* M2 palette. Blue = utopian: white, gold, soft teal. Red = cyberpunk: neon magenta + cyan on near-black. */
+  --bg:#060914; --panel:#0f1830; --line:#2a3a64; --text:#eef3ff; --dim:#97a3cc;
+  --blue:#7ff3e6; --blue2:#1f8f93; --gold:#e8c46a; --gold2:#d4a032;
+  --red:#ff2bd6; --red2:#8a1a78; --cyan:#19f0ff; --neb:#c08cff; --ok:#5cffc8;
+  /* board squares: Blue half (bottom) teal-navy glass, Red half (top) dark plum with scanlines */
+  --sqb:#0b1a31; --sqb2:#10233f; --sqr:#170a26; --sqr2:#200e34;
+  /* markers */
+  --mk-move:#5cffc8; --mk-lane:#ffe680; --mk-cap:#ffffff; --mk-cap-b:#ff4f8b; --mk-foe:#ff8fe0; --mk-foesel:#ff9de6; --mk-danger:#e5452e; --mk-warn:#ffffff; --mk-warn-rim:#d4004a;
+  --pad: 10px; --gut: 14px;
+  /* Vertical space used by everything except the board cells (header, status, trays, legend, a little info). */
+  --vover: calc(318px + env(safe-area-inset-top) + env(safe-area-inset-bottom));
+  --wcell: calc((100vw - 2 * var(--pad) - 16px - var(--gut) - env(safe-area-inset-left) - env(safe-area-inset-right)) / 6);
+  --cell: min(var(--wcell), calc((100vh - var(--vover)) / 6), 72px);
+  --trayh: 34px; --legh: 26px; --stm: 8px;
+}
+@supports (height: 100dvh) {
+  :root{ --cell: min(var(--wcell), calc((100dvh - var(--vover)) / 6), 72px); }
+}
+/* Short screens (iPhone SE with Safari bars ~375x548, 320x568): trays/legend/status shrink so cells stay >= 44px. */
+@media (max-height: 640px) {
+  :root{ --vover: calc(258px + env(safe-area-inset-top) + env(safe-area-inset-bottom)); --trayh: 26px; --legh: 20px; --stm: 3px; }
+  .top h1{margin:0}
+  .legend{margin-top:2px !important}
+  .info{margin-top:2px !important}
+  .last{font-size:13px} .hint{font-size:12px;margin-top:1px}
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;
+  touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-text-size-adjust:100%;overscroll-behavior:none}
+html{background:var(--bg)}
+body{background:
+  repeating-linear-gradient(0deg,rgba(255,43,214,.045) 0 1px,transparent 1px 4px) top/100% 34% no-repeat,
+  radial-gradient(ellipse 90% 38% at 50% 0%,rgba(255,43,214,.20),rgba(25,240,255,.06) 55%,transparent 75%) no-repeat,
+  radial-gradient(ellipse 90% 40% at 50% 100%,rgba(127,243,230,.16),rgba(232,196,106,.06) 50%,transparent 75%) no-repeat,
+  radial-gradient(1px 1px at 12px 18px,rgba(255,255,255,.75) 50%,transparent 51%) 0 0/97px 89px,
+  radial-gradient(1px 1px at 61px 47px,rgba(200,255,250,.6) 50%,transparent 51%) 0 0/131px 113px,
+  radial-gradient(1.5px 1.5px at 33px 71px,rgba(255,240,200,.55) 50%,transparent 51%) 0 0/173px 151px,
+  var(--bg)}
+#app{height:100vh;height:100dvh;overflow:hidden;display:flex;flex-direction:column;align-items:center;
+  padding:calc(env(safe-area-inset-top) + 6px) calc(env(safe-area-inset-right) + var(--pad)) calc(env(safe-area-inset-bottom) + 6px) calc(env(safe-area-inset-left) + var(--pad))}
+.top{width:100%;max-width:470px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+h1{font-size:clamp(17px,5.6vw,22px);letter-spacing:.05em;margin:4px 0;white-space:nowrap;text-transform:uppercase;font-weight:800}
+h1 span{color:var(--gold);text-shadow:0 0 10px rgba(232,196,106,.35)}
+h1{color:#f6f8ff}
+.topbtns{display:flex;gap:8px}
+.btn{font:inherit;font-weight:700;border-radius:12px;border:1px solid var(--line);min-height:44px;min-width:44px;padding:0 14px;color:var(--text);background:var(--panel);cursor:pointer}
+.btn:active{transform:scale(.97);filter:brightness(1.2)}
+.btn.small{min-height:44px;font-size:14px;padding:0 12px;margin-left:6px;border-color:var(--gold2);color:var(--gold)}
+.hidden{display:none !important}
+.turnwrap{display:flex;align-items:center;flex:none}
+.btn.small{height:44px}
+.btn .bi{display:none;font-size:20px}
+@media (max-width:360px){.btn .bt{display:none}.btn .bi{display:inline}.topbtns .btn{padding:0;width:44px}.turn{font-size:15px;padding:8px 10px}.legend{gap:7px;font-size:11px}}
+.tray .pc.mini{width:calc(var(--trayh) - 6px);height:calc(var(--trayh) - 6px);margin-right:0}
+.tray .pc.mini.F{width:calc(var(--trayh) - 4px);height:calc(var(--trayh) - 4px);margin:0 2px}
+.btn.primary{background:linear-gradient(180deg,#2bb7ad,#16707a);border-color:var(--gold2);color:#fff}
+.btn.wide{width:100%;margin-top:10px;min-height:50px;font-size:17px}
+.status{width:100%;max-width:470px;margin:var(--stm) 0 var(--stm);display:flex;justify-content:space-between;align-items:center;gap:8px;height:48px;flex:none;white-space:nowrap;overflow:hidden}
+.turn{white-space:nowrap;flex:none;font-size:17px;font-weight:800;padding:8px 12px;border-radius:12px;background:var(--panel);border:1px solid var(--line)}
+.turn.you{color:var(--blue);border-color:var(--gold2);box-shadow:0 0 12px rgba(127,243,230,.18)}
+.turn.ai{color:var(--red);border-color:var(--red2);text-shadow:0 0 6px rgba(255,43,214,.6);box-shadow:0 0 12px rgba(255,43,214,.2)}
+.meta{display:flex;flex-direction:column;align-items:flex-end;font-size:13px;color:var(--dim);gap:2px;min-width:0;overflow:hidden}
+.meta span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;line-height:18px;height:18px}
+.neb{color:var(--neb);font-weight:700}
+.neb.warn{color:#fff;background:var(--neb);padding:0 6px;border-radius:6px;animation:blink 1s infinite}
+.tray{width:100%;max-width:470px;height:var(--trayh);flex:none;overflow:hidden;display:flex;flex-wrap:nowrap;gap:4px;align-items:center;font-size:13px;color:var(--dim)}
+#boardWrap{flex:none;display:grid;grid-template-columns:var(--gut) auto;grid-template-rows:auto var(--gut);padding:6px 6px 2px 2px;border-radius:16px;touch-action:none;
+  background:linear-gradient(180deg,rgba(70,12,80,.55),rgba(12,14,36,.7) 50%,rgba(10,48,62,.55));border:1px solid rgba(127,243,230,.28);
+  box-shadow:0 0 26px rgba(255,43,214,.10),0 0 26px rgba(127,243,230,.12),inset 0 0 18px rgba(127,243,230,.06)}
+/* Holographic grid: hairline glowing grid lines, Red half tinted magenta with scanlines, Blue half teal glass. */
+#board{touch-action:none;display:grid;grid-template-columns:repeat(6,var(--cell));grid-template-rows:repeat(6,var(--cell));gap:0;border-radius:10px;overflow:hidden;position:relative;
+  box-shadow:0 0 0 1px rgba(127,243,230,.35),0 0 14px rgba(127,243,230,.18)}
+.cell{position:relative;display:flex;align-items:center;justify-content:center;border:0;padding:0;margin:0;font:inherit;color:inherit;
+  background:var(--sqb) linear-gradient(180deg,rgba(127,243,230,.06),rgba(232,196,106,.03));box-shadow:inset 0 0 0 .5px rgba(127,243,230,.22)}
+.cell.alt{background-color:var(--sqb2)}
+.cell:nth-child(-n+18){background:var(--sqr) repeating-linear-gradient(0deg,rgba(255,43,214,.08) 0 1px,transparent 1px 4px);box-shadow:inset 0 0 0 .5px rgba(255,43,214,.26)}
+.cell.alt:nth-child(-n+18){background-color:var(--sqr2)}
+/* centre line between the halves, and a slow scan sweep over the Red half */
+#board::after{content:"";position:absolute;left:0;right:0;top:calc(50% - 1px);height:2px;z-index:1;pointer-events:none;
+  background:linear-gradient(90deg,var(--red),var(--cyan) 50%,var(--blue));opacity:.75;box-shadow:0 0 8px rgba(25,240,255,.6)}
+#board::before{content:"";position:absolute;left:0;right:0;top:0;height:8%;z-index:1;pointer-events:none;
+  background:linear-gradient(180deg,transparent,rgba(255,43,214,.18),transparent);animation:sweep 5s linear infinite}
+@keyframes sweep{0%{transform:translateY(-100%)}100%{transform:translateY(560%)}}
+.cell{touch-action:none;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;cursor:pointer}
+.cell.press{filter:brightness(1.3)}
+.rowlbls{display:grid;grid-template-rows:repeat(6,var(--cell));font-size:11px;font-weight:700;color:#8a95c9;align-items:center;justify-items:center}
+.collbls{display:grid;grid-template-columns:repeat(6,var(--cell));font-size:11px;font-weight:700;color:#8a95c9;justify-items:center;align-items:center;height:var(--gut)}
+/* Nebula: violet gas cloud with teal wisps and a few stars */
+#board .cell.nebula,#sheet .cell.nebula{background:
+  radial-gradient(circle at 26% 30%,rgba(255,255,255,.95) 0 1px,transparent 1.6px),
+  radial-gradient(circle at 74% 66%,rgba(255,255,255,.8) 0 1px,transparent 1.6px),
+  radial-gradient(circle at 62% 22%,rgba(127,243,230,.9) 0 1px,transparent 1.6px),
+  radial-gradient(ellipse 75% 55% at 32% 40%,rgba(226,170,255,.9),transparent 70%),
+  radial-gradient(ellipse 60% 75% at 72% 72%,rgba(70,210,235,.55),transparent 70%),
+  linear-gradient(135deg,#3c1872,#5b2c9c 50%,#1e0b46);
+  box-shadow:inset 0 0 0 .5px rgba(226,170,255,.5),inset 0 0 10px rgba(20,0,40,.6);animation:nebdrift 5s ease-in-out infinite}
+@keyframes nebdrift{0%,100%{filter:brightness(1)}50%{filter:brightness(1.22) saturate(1.15)}}
+.ov,.mk{position:absolute;pointer-events:none;font-style:normal}
+.ov.threat{inset:0;z-index:0;background:repeating-linear-gradient(135deg,rgba(255,90,60,.85) 0 3px,rgba(0,0,0,.45) 3px 5px,transparent 5px 9px)}
+.ov.last{inset:0;z-index:1;box-shadow:inset 0 0 0 2px rgba(255,214,90,.75)}
+.ov.sel{inset:0;z-index:1;box-shadow:inset 0 0 0 3px var(--ok);background:rgba(88,245,195,.12)}
+.ov.sel.foe{box-shadow:inset 0 0 0 3px var(--red),inset 0 0 0 5px rgba(0,0,0,.65);background:rgba(255,43,214,.14)}
+/* dark inner band keeps the selection rings readable on bright nebula squares too */
+.ov.sel:not(.foe){box-shadow:inset 0 0 0 3px var(--ok),inset 0 0 0 5px rgba(0,0,0,.55)}
+.ov.forecast{inset:5px;z-index:1;border:2px dashed var(--neb);border-radius:8px;background:rgba(180,108,255,.15);animation:blink .9s infinite}
+.mk{z-index:3}
+/* Move = dot */
+.mk.move{width:24%;height:24%;border-radius:50%;background:var(--mk-move);box-shadow:0 0 0 2px rgba(0,0,0,.6),0 0 6px rgba(92,255,200,.5)}
+/* enemy moves (inspect) = hollow ring, a different SHAPE, not just colour */
+.mk.move.foe{width:32%;height:32%;background:transparent;border:3px solid var(--mk-foe);box-shadow:0 0 0 1.5px rgba(0,0,0,.7),inset 0 0 0 1.5px rgba(0,0,0,.7)}
+/* Fire lane = plus */
+.mk.lane{width:44%;height:44%;background:
+  linear-gradient(var(--mk-lane),var(--mk-lane)) center/100% 3px no-repeat,
+  linear-gradient(var(--mk-lane),var(--mk-lane)) center/3px 100% no-repeat;filter:drop-shadow(0 0 1px #000) drop-shadow(0 0 1px #000)}
+.mk.lane.withmove{width:62%;height:62%;opacity:.8}
+/* Capture = corner brackets (targeting reticle) */
+.mk.cap{inset:12%;--c:var(--mk-cap);--t:4px;--l:34%;background:
+  linear-gradient(var(--c),var(--c)) top left/var(--l) var(--t) no-repeat, linear-gradient(var(--c),var(--c)) top left/var(--t) var(--l) no-repeat,
+  linear-gradient(var(--c),var(--c)) top right/var(--l) var(--t) no-repeat, linear-gradient(var(--c),var(--c)) top right/var(--t) var(--l) no-repeat,
+  linear-gradient(var(--c),var(--c)) bottom left/var(--l) var(--t) no-repeat, linear-gradient(var(--c),var(--c)) bottom left/var(--t) var(--l) no-repeat,
+  linear-gradient(var(--c),var(--c)) bottom right/var(--l) var(--t) no-repeat, linear-gradient(var(--c),var(--c)) bottom right/var(--t) var(--l) no-repeat;
+  filter:drop-shadow(0 0 1px #000) drop-shadow(0 0 1px #000) drop-shadow(0 0 2px rgba(0,0,0,.8))}
+/* Legend icons reuse the marker shapes */
+.legend{width:100%;max-width:470px;height:var(--legh);flex:none;display:flex;justify-content:center;gap:10px;align-items:center;font-size:12px;color:var(--dim);white-space:nowrap;margin-top:4px}
+.legend span{display:inline-flex;align-items:center;gap:4px}
+.lg{display:inline-block;position:relative;width:18px;height:18px;flex:none;border-radius:4px;background:var(--sqb);border:1px solid rgba(127,243,230,.35)}
+.lg::after{content:"";position:absolute}
+.lg.move::after{left:5px;top:5px;width:7px;height:7px;border-radius:50%;background:var(--mk-move);box-shadow:0 0 0 1px #000}
+.lg.foemove::after{left:3px;top:3px;width:10px;height:10px;border-radius:50%;border:2px solid var(--mk-foe);box-sizing:border-box}
+.lg.lane::after{inset:3px;background:linear-gradient(var(--mk-lane),var(--mk-lane)) center/100% 2px no-repeat,linear-gradient(var(--mk-lane),var(--mk-lane)) center/2px 100% no-repeat}
+.lg.cap::after{inset:1px;--c:var(--mk-cap);filter:drop-shadow(0 0 1px #000);--t:2px;--l:40%;background:
+  linear-gradient(var(--c),var(--c)) top left/var(--l) var(--t) no-repeat, linear-gradient(var(--c),var(--c)) top left/var(--t) var(--l) no-repeat,
+  linear-gradient(var(--c),var(--c)) top right/var(--l) var(--t) no-repeat, linear-gradient(var(--c),var(--c)) top right/var(--t) var(--l) no-repeat,
+  linear-gradient(var(--c),var(--c)) bottom left/var(--l) var(--t) no-repeat, linear-gradient(var(--c),var(--c)) bottom left/var(--t) var(--l) no-repeat,
+  linear-gradient(var(--c),var(--c)) bottom right/var(--l) var(--t) no-repeat, linear-gradient(var(--c),var(--c)) bottom right/var(--t) var(--l) no-repeat}
+.lg.danger{background:repeating-linear-gradient(135deg,var(--mk-danger) 0 2px,#000 2px 3px,var(--sqb) 3px 5px)}
+.card .legendlist .lg{margin:2px 8px 0 0}
+.cell.boom{animation:boom .5s ease-out}
+/* Ships: inline SVG symbols (index.html). Blue points up; Red is rotated to point down. */
+.pc{z-index:2;width:84%;height:84%;display:flex;align-items:center;justify-content:center;position:relative;pointer-events:none}
+.pc.F{width:94%;height:94%}
+.pc .shp{width:100%;height:100%;display:block;overflow:visible}
+.pc.b .shp{filter:drop-shadow(0 0 2.5px rgba(127,243,230,.7)) drop-shadow(0 0 1px rgba(232,196,106,.6))}
+.pc.r .shp{transform:rotate(180deg);filter:drop-shadow(0 0 2.5px rgba(255,43,214,.75));animation:glitch 4.7s steps(1) infinite}
+.cell:nth-child(3n) .pc.r .shp{animation-delay:-1.6s} .cell:nth-child(3n+1) .pc.r .shp{animation-delay:-3.1s}
+@keyframes glitch{0%,90%,100%{translate:0 0;filter:drop-shadow(0 0 2.5px rgba(255,43,214,.75))}
+  92%{translate:1.5px 0;filter:drop-shadow(-1.5px 0 0 rgba(25,240,255,.9)) drop-shadow(1.5px 0 0 rgba(255,43,214,.9))}
+  94%{translate:-1.5px .5px;filter:drop-shadow(1.5px 0 0 rgba(25,240,255,.9))}
+  96%{translate:.5px 0;filter:drop-shadow(0 0 2.5px rgba(255,43,214,.75))}}
+.pc.jam .shp{filter:grayscale(.75) brightness(.7)}
+/* Flagship under fire: dashed red ring (shape, not just colour) */
+.pc.danger::before{content:"";position:absolute;inset:-4%;border-radius:50%;border:3px dashed #ff4d4d;box-shadow:0 0 0 1px rgba(0,0,0,.6);animation:blink .8s infinite}
+.pc.mini{display:inline-flex;width:30px;height:30px;vertical-align:middle;margin-right:6px;flex:none}
+.pc.mini.F{width:30px;height:30px}
+.card .pair{display:inline-flex;gap:2px;margin-right:6px;flex:none}
+.card .pair .pc.mini{margin:0;width:32px;height:32px;border-radius:8px}
+.card .pair .pc.mini.b{background:var(--sqb2)} .card .pair .pc.mini.r{background:var(--sqr2)}
+.tray .pc.mini{margin-right:2px}
+.tray .tlabel{margin-right:4px}
+.info{width:100%;max-width:470px;margin-top:6px;text-align:center;flex:1 1 auto;min-height:0;overflow:hidden}
+.last{font-size:14px;color:var(--text);min-height:20px}
+.hint{font-size:13px;color:var(--dim);min-height:18px;margin-top:4px}
+.modal{position:fixed;inset:0;background:rgba(3,5,15,.78);display:flex;align-items:center;justify-content:center;z-index:10;
+  padding:calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 16px)}
+.modal.hidden{display:none}
+.card{background:linear-gradient(180deg,#121c38,#0c1428);border:1px solid var(--line);border-radius:18px;padding:18px;max-width:440px;width:100%;max-height:100%}
+.card.scroll{overflow-y:auto;-webkit-overflow-scrolling:touch;user-select:text;-webkit-user-select:text}
+.card h2{margin:0 0 8px} .card h3{margin:14px 0 6px;font-size:16px;color:var(--gold)}
+.card p,.card li{font-size:15px;line-height:1.45}
+.card ul{padding-left:18px;margin:6px 0} .card ul.pieces{list-style:none;padding:0}
+.card ul.pieces li{display:flex;gap:4px;align-items:flex-start;margin-bottom:8px}
+.card .small{font-size:13px;color:var(--dim)}
+.card.center{text-align:center}
+.blue{color:var(--blue)} .red{color:var(--red)}
+.card ul.pieces li .lg{margin:2px 8px 0 0}
+.overicon{font-size:56px;line-height:1}
+@keyframes pulse{0%,100%{filter:brightness(1)}50%{filter:brightness(1.35)}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
+@keyframes boom{0%{background:#ffb703}100%{}}
+
+/* Landscape on phones: ask to rotate instead of showing a tiny board. */
+.rotate{display:none}
+@media (orientation: landscape) and (max-height: 540px) and (pointer: coarse){
+  .rotate{display:flex;position:fixed;inset:0;z-index:50;background:var(--bg);align-items:center;justify-content:center;text-align:center}
+  .rotcard{display:flex;flex-direction:column;gap:6px;font-size:18px;padding:20px}
+  .rotcard span{color:var(--dim);font-size:15px}
+  .rotic{font-size:54px;transform:rotate(-90deg);animation:rot 2s ease-in-out infinite}
+  #app,.modal{visibility:hidden}
+}
+@keyframes rot{0%,30%{transform:rotate(-90deg)}60%,100%{transform:rotate(0deg)}}
+/* Reduced motion: no glitch, pulse, blink, sweep or nebula drift (static scanlines stay). */
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation:none !important;transition:none !important}
+  #board::before{display:none}
+}
+
+/* Flagship-exposure warning: a '!' badge in the top-right corner of the destination (shape + text, not colour alone). */
+.mk.expose{top:2px;right:2px;width:16px;height:16px;z-index:4;border-radius:50%;background:var(--mk-warn);color:#1a1200;
+  font-size:12px;font-weight:900;line-height:16px;text-align:center;box-shadow:0 0 0 2px rgba(0,0,0,.6)}
+/* ?debug tap log */
+/* ?debug tap log: collapsible panel pinned to the top, so it never covers the warning/info area at the bottom */
+.taplogbox{position:relative;flex:none;margin:0 auto;z-index:5;display:flex;flex-direction:column;align-items:center;pointer-events:none;opacity:.9}
+.taplogbtn{pointer-events:auto;font:10px/1 ui-monospace,Menlo,monospace;color:#cfe;background:rgba(0,0,0,.8);border:1px solid #456;
+  border-radius:8px;padding:3px 8px;min-height:20px}
+.taplog{position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top) + 112px);z-index:5;
+  font:10px/1.3 ui-monospace,Menlo,monospace;color:#cfe;background:rgba(0,0,0,.85);padding:3px 5px;border-radius:6px;
+  white-space:pre;overflow:hidden;max-width:96vw;text-overflow:ellipsis;pointer-events:none}
+.taplog:empty,.taplogbox.collapsed .taplog{display:none}
+.lg.expose{background:#ffd23f;color:#1a1200;border-radius:50%;font-size:12px;font-weight:900;text-align:center;line-height:18px;font-style:normal}
+
+/* Info area, same order on every screen: warning > what just happened (1 line) > hint (max 2 lines). */
+.info{display:flex;flex-direction:column;align-items:center;gap:2px}
+.warnline{flex:none;color:#ff6b81;font-weight:800;font-size:14px;line-height:18px;white-space:nowrap}
+.warnline:empty{display:none}
+.hint{flex:none;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:16px;margin-top:0 !important}
+.last{flex:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;line-height:17px;min-height:17px}
+/* '!' badge sits top-centre; when the square also has capture brackets they shrink inward so nothing overlaps */
+.mk.expose{top:1px;left:50%;right:auto;transform:translateX(-50%);--bs:min(13px, calc(var(--cell) * 0.27));width:var(--bs);height:var(--bs);font-size:10px;line-height:var(--bs)}
+.mk.cap.withexpose{inset:auto;top:calc(min(13px, var(--cell) * 0.27) + 3px);left:18%;right:18%;bottom:10%;--l:30%;--t:3px}
+/* Very short screens (e.g. 320x460): legend lives in Rules only, trays shrink. */
+@media (max-height: 500px) {
+  :root{ --vover: calc(226px + env(safe-area-inset-top) + env(safe-area-inset-bottom)); --trayh: 22px; }
+  .legend{display:none}
+}
+/* Short screens: the info area must always fit warning + what Red just did + hint. Tighter lines, the
+   last-move line comes before the hint, and while the Flagship warning shows the hint is cut to 1 line. */
+@media (max-height: 640px) {
+  .info{gap:0;min-height:48px}
+  .warnline{font-size:13px;line-height:16px}
+  .last{font-size:13px;line-height:16px;min-height:16px}
+  .hint{font-size:12px;line-height:15px;min-height:15px}
+  .info.haswarn .hint{-webkit-line-clamp:1}
+}
+@media (max-height: 500px) {
+  :root{ --vover: calc(230px + env(safe-area-inset-top) + env(safe-area-inset-bottom)); }
+}
+.sprite{position:absolute;width:0;height:0;overflow:hidden}
+.pc.jam .shp{animation:none}
+
+/* ===================== M2.1 ===================== */
+/* Tall screens: the whole game column is centred vertically (fixed-height blocks => no layout shift). */
+@media (min-height: 641px) {
+  :root{ --vover: calc(332px + env(safe-area-inset-top) + env(safe-area-inset-bottom)); --legh: 40px; }
+  #app{justify-content:center}
+  .info{flex:0 0 auto;height:76px;min-height:76px;margin-top:6px}
+}
+/* Legend: all 8 markers, 2 rows x 4. Short screens: smaller text, short labels. <=500px tall: Rules only. */
+.legend{display:grid;grid-template-columns:repeat(4,auto);grid-auto-rows:1fr;justify-content:center;align-items:center;column-gap:12px;row-gap:2px;font-size:12px}
+.legend span{gap:4px;white-space:nowrap}
+.legend .lg{width:16px;height:16px}
+.legend b{font-weight:inherit}
+.legend em{font-style:normal}
+.legend .lgs{display:none}
+@media (max-height: 640px) {
+  :root{ --vover: calc(268px + env(safe-area-inset-top) + env(safe-area-inset-bottom)); --legh: 30px; }
+  .legend{font-size:10.5px;column-gap:8px;row-gap:0}
+  .legend .lg{width:13px;height:13px}
+  .legend .lgl{display:none} .legend .lgs{display:inline}
+}
+@media (max-height: 500px) {
+  :root{ --vover: calc(230px + env(safe-area-inset-top) + env(safe-area-inset-bottom)); }
+  .legend{display:none}
+}
+@media (max-width: 360px) { .legend{column-gap:6px} }
+.lg.lock{background:none;border:0} .lg.lock svg{width:100%;height:100%;display:block}
+.lg.underfire{border-radius:50%;background:var(--sqb)} .lg.underfire::after{inset:0;border-radius:50%;border:2px dashed #ff4d4d}
+.lg.foemove::after{left:50%;top:50%;width:70%;height:70%;transform:translate(-50%,-50%)}
+.lg.move::after{left:50%;top:50%;width:42%;height:42%;transform:translate(-50%,-50%)}
+
+/* Markers: dark outlines everywhere so they read on hatching, nebula and white hulls. */
+.ov.threat{background:repeating-linear-gradient(135deg,rgba(229,69,46,.9) 0 3px,rgba(0,0,0,.5) 3px 5px,transparent 5px 9px)}
+.lg.danger{background:repeating-linear-gradient(135deg,var(--mk-danger) 0 2px,#000 2px 3px,var(--sqb) 3px 5px)}
+.mk.move{box-shadow:0 0 0 3px rgba(0,0,0,.75)}
+.mk.lane{background:
+  linear-gradient(var(--mk-lane),var(--mk-lane)) center/calc(100% - 4px) 3px no-repeat,
+  linear-gradient(var(--mk-lane),var(--mk-lane)) center/3px calc(100% - 4px) no-repeat,
+  linear-gradient(rgba(0,0,0,.8),rgba(0,0,0,.8)) center/100% 7px no-repeat,
+  linear-gradient(rgba(0,0,0,.8),rgba(0,0,0,.8)) center/7px 100% no-repeat;filter:none}
+.mk.lane.withmove{opacity:.9}
+/* selection rings: coloured band between two dark bands, no tint fill */
+.ov.sel:not(.foe){background:none;box-shadow:inset 0 0 0 2px rgba(0,0,0,.85),inset 0 0 0 5px var(--ok),inset 0 0 0 7px rgba(0,0,0,.7)}
+.ov.sel.foe{background:none;box-shadow:inset 0 0 0 2px rgba(0,0,0,.85),inset 0 0 0 5px var(--mk-foesel),inset 0 0 0 7px rgba(0,0,0,.7)}
+.mk.move.foe{border-color:var(--mk-foe)}
+/* capture brackets on a (white) Blue ship, i.e. Red's captures while inspecting: deep pink-red instead of white */
+.pc.b ~ .mk.cap{--c:var(--mk-cap-b);filter:drop-shadow(1.5px 0 0 #000) drop-shadow(-1.5px 0 0 #000) drop-shadow(0 1.5px 0 #000) drop-shadow(0 -1.5px 0 #000)}
+/* '!' = white badge, red rim and glyph: 17px badge, 12.5px glyph, clearly unlike the yellow lane plus */
+.mk.expose{--bs:17px;top:0;left:50%;right:auto;transform:translateX(-50%);width:var(--bs);height:var(--bs);box-sizing:border-box;
+  background:var(--mk-warn);color:var(--mk-warn-rim);border:2px solid var(--mk-warn-rim);border-radius:50%;
+  font-size:12.5px;font-weight:900;line-height:13px;text-align:center;box-shadow:0 0 0 1.5px rgba(0,0,0,.8)}
+.mk.cap.withexpose{top:19px;left:20%;right:20%;bottom:5%;--l:30%;--t:3px}
+.lg.expose{background:var(--mk-warn);color:var(--mk-warn-rim);border:2px solid var(--mk-warn-rim);border-radius:50%;font-size:11px;line-height:12px;font-weight:900;text-align:center}
+/* Flagship under fire ring */
+.pc.danger::before{border-color:#ff4d4d;box-shadow:0 0 0 1.5px rgba(0,0,0,.75),inset 0 0 0 1.5px rgba(0,0,0,.6)}
+/* Jammed ships keep their side's colours; a lock badge marks them */
+.pc.b.jam .shp{filter:drop-shadow(0 0 2.5px rgba(127,243,230,.7)) drop-shadow(0 0 1px rgba(232,196,106,.6))}
+.pc.r.jam .shp{filter:drop-shadow(0 0 2.5px rgba(255,43,214,.75))}
+.mk.lock{right:2%;bottom:2%;width:max(14px,calc(var(--cell) * .32));height:max(14px,calc(var(--cell) * .32));z-index:4}
+.mk.lock svg{width:100%;height:100%;display:block}
+.pc.F{width:90%;height:90%}
+
+/* Tap feedback: cancelled press = brief faint ring; hold on a Red ship = ring filling up before inspect. */
+.cell.nogo::after{content:"";position:absolute;inset:12%;border-radius:50%;border:2px solid rgba(255,255,255,.55);z-index:5;pointer-events:none;animation:nogo .4s ease-out forwards}
+@keyframes nogo{0%{opacity:.9;transform:scale(.8)}100%{opacity:0;transform:scale(1.08)}}
+@property --p{syntax:'<number>';inherits:false;initial-value:0}
+.cell.holding::before{content:"";position:absolute;inset:5%;border-radius:50%;z-index:5;pointer-events:none;opacity:0;
+  background:conic-gradient(var(--mk-foesel) calc(var(--p) * 1turn),rgba(255,255,255,.15) 0);
+  -webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 calc(100% - 3.5px));mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 calc(100% - 3.5px));
+  animation:holdfill var(--hold,350ms) linear 150ms forwards}
+@keyframes holdfill{from{--p:0;opacity:1}to{--p:1;opacity:1}}
+@media (prefers-reduced-motion: reduce){
+  .cell.holding::before{opacity:.9;--p:1}            /* static ring while holding */
+  .cell.nogo::after{opacity:.6}                      /* static faint ring for ~0.45s */
+}
+/* Square hit area round the rounded board frame, so corner taps up to 8px outside the grid still land on the frame
+   (hit testing follows border-radius). Painted below the cells; transparent. */
+#boardWrap{position:relative;isolation:isolate}
+#boardWrap::after{content:'';position:absolute;inset:-2px;z-index:-1;border-radius:0;background:transparent}
+
+/* ===== M3: 3D view (body.v3d). The DOM grid stays as the hit/marker layer, mapped onto the projected board by a CSS homography. ===== */
+#gl3d{position:fixed;left:0;top:0;width:100vw;height:100vh;z-index:0;display:block;pointer-events:none}
+body.v3d{background:#02030a}
+body.v3d #app{position:relative;z-index:1;background:transparent}
+body.v3d #boardWrap{background:transparent;box-shadow:none;border-color:transparent}
+body.v3d #board{background:transparent;overflow:visible;border-radius:0;box-shadow:none;will-change:transform}
+body.v3d #board::before,body.v3d #board::after{display:none}
+body.v3d .rowlbls,body.v3d .collbls,body.v3d .corner{visibility:hidden}
+body.v3d #board .cell,body.v3d #board .cell.alt,body.v3d #board .cell.nebula{background:transparent !important;box-shadow:none !important}
+body.v3d #board .pc .shp{visibility:hidden}                 /* ships are drawn in 3D; the under-fire ring (.pc.danger::before) stays */
+body.v3d #board .ov.threat,body.v3d #board .ov.sel{opacity:0}  /* drawn in-scene on the tile surface (under ships) */
+body.v3d #board .cell.boom{animation:none}                  /* the battle VFX replaces the 2D flash */
+body.v3d #board .cell.press{filter:none;background:rgba(255,255,255,.08) !important}
+body.v3d #board .mk.expose{left:auto;right:1px;top:1px;transform:none}   /* '!' in the top-right corner, clear of the centred move dot */
+body.v3d #board .mk.cap.withexpose{top:calc(max(12px, min(17px, 30%)) + 3px);left:14%;right:14%;bottom:8%}   /* bracket starts below the corner badge */
+body.sg-battle #board .mk,body.sg-battle #board .ov{opacity:0 !important;transition:none}
+#fpshud{position:fixed;left:4px;bottom:4px;z-index:50;font:600 10px ui-monospace,monospace;color:#9ff;background:rgba(0,0,0,.6);padding:2px 5px;border-radius:4px;pointer-events:none}
+/* cancel cue: dark + white double ring, readable on every tile type (M2.1 open item) */
+.cell.nogo::after{border:2.5px solid #fff;box-shadow:0 0 0 2px rgba(0,0,0,.9),inset 0 0 0 2px rgba(0,0,0,.9)}
+/* settings */
+.setrow{display:flex;flex-direction:column;gap:6px;margin:10px 0}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg button{flex:1;min-height:40px;border-radius:10px;border:1px solid rgba(160,190,255,.35);background:rgba(20,26,50,.8);color:inherit;font:inherit;font-weight:700}
+.seg button[aria-pressed="true"]{background:#2bd9c4;color:#04201c;border-color:#2bd9c4}
+@media (prefers-reduced-motion: reduce){.cell.nogo::after{opacity:1}}
+
+#btnSettings .bt{display:none}#btnSettings .bi{display:inline}#btnSettings{padding:0;width:44px}
+body.v3d #board .mk.expose{--bs:max(12px, min(17px, 30%));width:var(--bs);height:var(--bs);font-size:max(9px, min(11px, calc(var(--cell, 40px) * .19)));line-height:var(--bs);border-width:1.5px}   /* not calc(--bs*.62): --bs can be a %, which in font-size resolves against the parent font (gave a 3px glyph) */
+@media (max-width:430px){.topbtns .btn .bt{display:none}.topbtns .btn .bi{display:inline}.topbtns .btn{padding:0;width:44px}}
+
+.levels{display:flex;gap:8px;margin-top:12px}.levels .lvl{flex:1;min-height:48px}.levels .lvl[aria-checked="true"]{border-color:var(--gold2);background:linear-gradient(180deg,#2bb7ad,#16707a);color:#fff}
+#newWarn.hidden{display:none}
+/* m3 tester fixes: '!' badge never below 17px; visible cancel ring; debug log clear of the header */
+body.v3d #board .mk.expose{--bs:17px;font-size:11.5px}
+body.v3d #board .mk.cap.withexpose{top:20px}
+.cell.nogo::after{inset:8%;border:3px solid #fff;box-shadow:0 0 0 2px rgba(0,0,0,.9),inset 0 0 0 2px rgba(0,0,0,.9),0 0 10px 2px rgba(255,255,255,.6);animation:nogo2 .6s ease-out forwards}
+@keyframes nogo2{0%{opacity:1;transform:scale(.85)}60%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(1.06)}}
+.taplog{top:auto;bottom:calc(env(safe-area-inset-bottom) + 8px);max-height:30vh;overflow:auto}
+body.v3d #board .mk.move.withexpose{left:32%;top:64%;transform:translate(-50%,-50%)}   /* small squares: move dot steps down-left, clear of the 17px corner badge */
+/* M4 capture upgrade: gold glow + star badge; a gold ring bursts out when it triggers */
+.pc.up .shp{filter:drop-shadow(0 0 3px #ffd36a) drop-shadow(0 0 1.5px #fff2c4)}
+.pc.r.up .shp{filter:drop-shadow(0 0 3px #ffd36a) drop-shadow(0 0 2px rgba(255,43,214,.8))}
+.mk.upb{position:absolute;left:3%;top:3%;width:30%;height:30%;min-width:13px;min-height:13px;border-radius:50%;background:#ffd36a;color:#3a2600;font:700 clamp(9px,2.6vw,13px)/1 system-ui,sans-serif;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 1.5px #000,0 0 6px #ffd36a;z-index:4;pointer-events:none}
+.mk.upb.spent{background:#b8a271;box-shadow:0 0 0 1.5px #000}
+.cell.upfx::after{content:"";position:absolute;inset:10%;border-radius:50%;border:3px solid #ffd36a;box-shadow:0 0 12px #ffd36a,inset 0 0 10px #ffd36a;animation:upfx 1.2s ease-out forwards;pointer-events:none;z-index:5}
+@keyframes upfx{0%{transform:scale(.3);opacity:1}100%{transform:scale(1.6);opacity:0}}
+@media (prefers-reduced-motion:reduce){.cell.upfx::after{animation-duration:.4s}}
+/* M4 fleet pick */
+.fleetpick{margin-top:14px;text-align:left;border-top:1px solid rgba(255,255,255,.12);padding-top:10px}
+.fleethead{display:flex;justify-content:space-between;align-items:baseline;font-weight:700;margin-bottom:8px}
+#fleetPts{font-weight:600;font-size:.9em;color:var(--gold2,#ffd36a)} #fleetPts.bad{color:#ff8a8a}
+.fleetpick .std{width:100%;min-height:44px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;margin-bottom:8px}
+.fleetpick .std[aria-pressed="true"]{border-color:var(--gold2);background:linear-gradient(180deg,#2bb7ad,#16707a)}
+.fleetpick .std small{font-weight:400;opacity:.85;font-size:.78em}
+.frow{display:flex;align-items:center;gap:8px;min-height:44px}
+.frow .pc.mini{width:34px;height:34px;margin:0;border-radius:8px;background:var(--sqb2)}
+.frow .fname{flex:1} .frow .fname small{opacity:.7;margin-left:4px;font-size:.8em}
+.frow .fcount{min-width:22px;text-align:center;font-weight:700;font-size:1.1em}
+.frow .step{width:44px;height:40px;min-height:40px;padding:0;font-size:1.3em;line-height:1}
+.frow .step:disabled{opacity:.35}
+.frow.fixed .fcount{margin-right:96px}
+.fleetnote{font-size:.8em;opacity:.8;margin:6px 0 0}
+#btnStart:disabled{opacity:.45}
+.lg.upb{background:#ffd36a;border-radius:50%;color:#3a2600;font:700 12px/18px system-ui,sans-serif;text-align:center;box-shadow:0 0 0 1px #000}
+/* M4 pinch zoom: reset button while zoomed */
+.zoomreset{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom));z-index:40;min-height:44px;padding:0 16px;border-radius:22px;font-weight:700;box-shadow:0 4px 14px rgba(0,0,0,.5)}
+.zoomreset.hidden{display:none}
+/* M4 setting: the city planet shows through behind the HUD - a dark glass backing keeps legend/status text readable (no layout change) */
+body.v3d .legend,body.v3d .info{background:rgba(12,8,26,.72);border-radius:10px;box-shadow:0 0 0 5px rgba(12,8,26,.72)}
