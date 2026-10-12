@@ -118,10 +118,15 @@
       var capTarget = sel !== null && st.turn === HUMAN && opts.some(function (o) { return o.to === i0; });
       var hold = capTarget ? LONG_PRESS_CAP : LONG_PRESS;
       d.hold = hold; t.style.setProperty('--hold', (hold - 150) + 'ms'); fxAdd(i0, 'holding');
-      lpTimer = setTimeout(function () {
-        if (down !== d || performance.now() - d.t0 < hold) return;   // timers can fire early relative to queued input under load
+      var fire = function (late) {
+        if (down !== d) return;
+        // a timer that ran late may have a queued pointerup behind it: yield once so input is handled first, then decide
+        if (!late && performance.now() - d.t0 > hold + 50) { lpTimer = setTimeout(function () { fire(true); }, 0); return; }
+        if (performance.now() - d.t0 < hold) return;
+        d.prevSel = sel;                                        // restored if the lift turns out to have come before the hold time
         fxDel(d.i, 'holding'); d.long = true; inspect(d.i); dlog('ok', 'long-press inspect ' + SG.coord(d.i) + ' (' + hold + 'ms)');
-      }, hold);
+      };
+      lpTimer = setTimeout(function () { fire(false); }, hold);
     }
   });
   wrapEl.addEventListener('pointermove', function (e) {
@@ -144,7 +149,7 @@
     // hold vs tap is decided by the event clock: a finger that lifted before the hold time is a tap even if the
     // (late) hold timer already ran on a busy main thread
     if (d.long && e.timeStamp - d.t0 >= d.hold) { clearPress(); return; }   // the long-press already acted (inspect)
-    if (d.long) { d.long = false; insp = null; marks = null; dlog('ok', 'late hold timer ignored (' + Math.round(e.timeStamp - d.t0) + 'ms press)'); }
+    if (d.long) { d.long = false; clearSel(); if (d.prevSel !== null && d.prevSel !== undefined && st.board[d.prevSel] && st.board[d.prevSel].s === HUMAN) selectOwn(d.prevSel); dlog('ok', 'late hold timer ignored (' + Math.round(e.timeStamp - d.t0) + 'ms press)'); }
     if (dist > d.max) { cancelPress('drag over ' + DRAG_CELLS + ' cell', Math.round(dist) + 'px'); return; }
     // Red moved while the finger was down: the tap was aimed at the old position, so it does nothing.
     if (d.ply !== st.ply || d.gid !== gameId) { cancelPress('board changed during the press'); return; }
