@@ -133,13 +133,15 @@ function loft(g, secs, slot = 'redSkin', x0 = 0, y0 = 0) { const pos = [], rings
 function secAt(secs, f) { for (let i = 0; i + 1 < secs.length; i++) { const a = secs[i], b = secs[i + 1]; if (f <= a.f && f >= b.f) { const u = (a.f - f) / (a.f - b.f || 1), o = {}; for (const k in a) o[k] = a[k] + (b[k] - a[k]) * u; return o; } } return null; }
 // height of the top surface at lateral x on a section, plus its slope angle
 function topAt(s, x) { const ax = Math.abs(x); let y, sl; if (ax <= s.sw) { y = s.r + (s.sh - s.r) * ax / (s.sw || 1); sl = Math.atan2(s.sh - s.r, s.sw || 1); } else { const u = Math.min(1, (ax - s.sw) / ((s.w - s.sw) || 1)); y = s.sh + (s.e - s.sh) * u; sl = Math.atan2(s.e - s.sh, (s.w - s.sw) || 1); } return [y, x < 0 ? -sl : sl]; }
+// bevelled greeble block at close-up detail (rounded edges catch the reflections), plain box at play-view LOD
+const soft = (w, h, l) => Q >= 1 ? new RoundedBoxGeometry(w, h, l, 1, Math.min(w, h, l) * .3) : new THREE.BoxGeometry(w, h, l);
 // greebles that sit on (and tilt with) the lofted top surface: boxes, vent banks, little fins, light slits
 function greebleLoft(g, secs, n, seed, { x0 = 0, y0 = 0, fMin = -1, fMax = 1, wFrac = .92, hMax = .022, slits = .35 } = {}) { gs = seed; n = Math.round(n * (.45 + .55 * Q)); let made = 0, tries = 0;
   const f0 = Math.max(secs.at(-1).f, fMin), f1 = Math.min(secs[0].f, fMax);
   while (made < n && tries++ < n * 30) { const f = f0 + grnd() * (f1 - f0), s = secAt(secs, f); if (!s || s.w < .02) continue; const x = (grnd() * 2 - 1) * s.w * wFrac, [y, sl] = topAt(s, x); made++;
     const kind = grnd(), o = new THREE.Group(); o.position.set(x + x0, y + y0, -f); o.rotation.z = sl;
-    if (kind < .55) { const w = .008 + grnd() * .026, l = .012 + grnd() * .05, h = .004 + grnd() * hMax, r = grnd(); o.add(at(P(new THREE.BoxGeometry(w, h, l), r < .5 ? 'gunmetal' : r < .8 ? 'plate' : 'chrome'), 0, h / 2, 0));
-      if (grnd() < .25) o.add(at(P(new THREE.BoxGeometry(w * .6, h * .7, l * .6), 'plate'), 0, h + h * .35, 0)); }
+    if (kind < .55) { const w = .008 + grnd() * .026, l = .012 + grnd() * .05, h = .004 + grnd() * hMax, r = grnd(); o.add(at(P(soft(w, h, l), r < .5 ? 'gunmetal' : r < .8 ? 'plate' : 'chrome'), 0, h / 2, 0));
+      if (grnd() < .25) o.add(at(P(soft(w * .6, h * .7, l * .6), 'plate'), 0, h + h * .35, 0)); }
     else if (kind < .75) { const k = 3 + Math.floor(grnd() * 3), l = .02 + grnd() * .03; for (let v = 0; v < k; v++) o.add(at(P(new THREE.BoxGeometry(.003, .006, l), 'chrome'), (v - (k - 1) / 2) * .006, .003, 0)); o.add(at(P(new THREE.BoxGeometry(k * .006 + .004, .002, l + .004), 'gunmetal'), 0, .001, 0)); }
     else if (kind < .85) { const fin = P(ext([[0, 0], [0, .03 + grnd() * .03], [.012 + grnd() * .02, 0]], .003, .001, 1), 'gunmetal'); fin.rotation.set(0, 0, Math.PI / 2); fin.position.y = .0; o.add(fin); }
     else { o.add(at(P(new THREE.CylinderGeometry(.004 + grnd() * .006, .006 + grnd() * .006, .006 + grnd() * .012, 6), 'gunmetal'), 0, .006, 0)); }

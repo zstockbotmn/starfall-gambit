@@ -51,13 +51,14 @@ export function loadHullTextures(base) { const L = new THREE.TextureLoader(), H 
   const get = (k, f, srgb, rep) => L.loadAsync(base + 'tex/' + f).then(t => { if (rep) { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(...rep); } t.anisotropy = 8; if (srgb) t.colorSpace = THREE.SRGBColorSpace; H[k] = t; });
   const R = [4, 7.2];   // hull tiles are one period of the AI pattern (aspect 0.56) squeezed to 512x512: repeat v 1.8x u
   return Promise.all([get('blue', 'blue-hull.webp', 1, R), get('blueE', 'blue-hull-emissive.webp', 1, R), get('red', 'red-hull.webp', 1, R), get('redE', 'red-hull-emissive.webp', 1, R),
-    get('skin', 'red-skin-top.webp', 1), get('skinE', 'red-skin-top-emissive.webp', 1), get('holo', 'holo-atlas.webp', 1)]).then(() => H, () => H); }
+    get('skin', 'red-skin-top.webp', 1), get('skinE', 'red-skin-top-emissive.webp', 1), get('holo', 'holo-atlas.webp', 1), get('redN', 'red-hull-normal.webp', 0, [5, 5]), get('redR', 'red-hull-rough.webp', 0, [5, 5])]).then(() => H, () => H); }
 export function applyHullTextures(M, H) {
   if (H.blue) Object.assign(M.ceramic, { map: H.blue, emissive: new THREE.Color(0xffffff), emissiveMap: H.blueE, emissiveIntensity: 1.4 });
   if (H.red) Object.assign(M.plate, { map: H.red, color: new THREE.Color(0xb8b4c4), emissive: new THREE.Color(0xffffff), emissiveMap: H.redE, emissiveIntensity: 2.2 });
   if (H.skin) Object.assign(M.redSkin, { map: H.skin, emissiveMap: H.skinE });
   if (H.red) Object.assign(M.rPlate, { map: H.red, color: new THREE.Color(0x5a5866), emissive: new THREE.Color(0xffffff), emissiveMap: H.redE, emissiveIntensity: .7 });
   if (H.holo) M.holoAtlas.map = H.holo;
+  if (H.redN) for (const k of ['redSkin', 'rGun', 'rPlate']) Object.assign(M[k], { normalMap: H.redN, normalScale: new THREE.Vector2(.9, .9), roughnessMap: H.redR, roughness: 1, needsUpdate: true });   // panel lines + wet/grimy roughness from red-hull.jpg
   for (const k of ['ceramic', 'plate', 'redSkin', 'rPlate', 'holoAtlas']) M[k].needsUpdate = true; }
 export function makeMaterials(T, tier = 'high') { const hi = tier !== 'low';
   const Phys = hi ? THREE.MeshPhysicalMaterial : THREE.MeshStandardMaterial;
