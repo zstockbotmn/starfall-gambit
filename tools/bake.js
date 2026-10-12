@@ -1,7 +1,7 @@
 // Bakes src/models.js + the sky into assets/ (GLB per ship/LOD, meshopt-compressed by gltfpack). Needs a server on :8771 at the repo root.
 const { chromium } = require('/workspace/sg-tools/node_modules/playwright-core'); const fs = require('fs'), path = require('path'), { execFileSync } = require('child_process');
 const ROOT = path.resolve(__dirname, '..'), A = path.join(ROOT, 'assets');
-(async () => { const b = await chromium.launch({ executablePath: '/usr/bin/google-chrome', args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
+(async () => { const b = await require(require('path').join(__dirname, 'guard.js')).launch(chromium, { executablePath: '/usr/bin/google-chrome', args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
   const p = await b.newPage(); p.on('pageerror', e => console.error('pageerror', e)); p.on('console', m => m.type() === 'error' && console.error(m.text()));
   await p.goto((process.env.SG_BASE || 'http://127.0.0.1:8771/') + 'tools/bake.html'); await p.waitForFunction(() => window.__ready);
   const { files, stats } = await p.evaluate(() => window.bake()); await b.close();

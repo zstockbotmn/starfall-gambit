@@ -1,5 +1,5 @@
 const { chromium } = require('/workspace/sg-tools/node_modules/playwright-core');
-(async () => { const b = await chromium.launch({ executablePath: '/usr/bin/google-chrome', args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
+(async () => { const b = await require(require('path').join(__dirname, '../../tools/guard.js')).launch(chromium, { executablePath: '/usr/bin/google-chrome', args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
   const p = await b.newPage({ viewport: { width: +(process.env.VW || 390), height: +(process.env.VH || 844) }, deviceScaleFactor: 2 }); const errs = [];
   p.on('pageerror', e => errs.push(String(e))); p.on('console', m => (m.type() === 'error' || m.type() === 'warning') && errs.push(m.text()));
   await p.goto((process.env.SG_BASE || 'http://127.0.0.1:8771/') + '?view=3d&nosw&x=?debug'); await p.evaluate(() => { localStorage.setItem('sg_seen_rules', '1'); document.querySelectorAll('.modal').forEach(m => m.classList.add('hidden')); });

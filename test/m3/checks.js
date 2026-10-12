@@ -19,7 +19,7 @@ const SCEN = {
 };
 const setS = (p, k) => p.evaluate(`SGDebug.setState(${SCEN[k]}); SGGame.render();`);
 const tap = async (p, i) => { const c = await p.evaluate(i => SGDebug.cellCenter(i), i); await p.mouse.click(c.x, c.y); };
-(async () => { const b = await chromium.launch({ executablePath: '/usr/bin/google-chrome', args: ARGS });
+(async () => { const b = await require(require('path').join(__dirname, '../../tools/guard.js')).launch(chromium, { executablePath: '/usr/bin/google-chrome', args: ARGS });
   // 1) mapping: DOM grid = projected 3D tiles; elementFromPoint at every projected tile centre hits that cell (4 viewports)
   for (const [w, h] of VPS) { const p = await open(b, w, h);
     const r = await p.evaluate(() => { let bad = [], maxErr = 0, minW = 1e9, minH = 1e9; for (let i = 0; i < 36; i++) { const [x, y] = SGView.project(i, 0), el = document.elementFromPoint(x, y), c = el && el.closest('.cell');

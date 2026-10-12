@@ -279,7 +279,7 @@ async function run(browser, w, h, tag) {
   return R;
 }
 (async () => {
-  const browser = await chromium.launch({ executablePath: '/usr/bin/google-chrome', args: ['--no-sandbox'] });
+  const browser = await require(require('path').join(__dirname, '../../tools/guard.js')).launch(chromium, { executablePath: '/usr/bin/google-chrome', args: ['--no-sandbox'] });
   const res = [];
   for (const [w, h] of [[390, 844], [375, 548], [320, 460], [320, 568]]) res.push(await run(browser, w, h, `${w}x${h}`));
   console.log(JSON.stringify(res, null, 1));

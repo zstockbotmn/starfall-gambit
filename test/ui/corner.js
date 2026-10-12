@@ -1,5 +1,5 @@
 const { chromium } = require('/workspace/sg-tools/node_modules/playwright-core');
-(async () => { const b = await chromium.launch({ executablePath: '/usr/bin/google-chrome' }); let bad = 0;
+(async () => { const b = await require(require('path').join(__dirname, '../../tools/guard.js')).launch(chromium, { executablePath: '/usr/bin/google-chrome' }); let bad = 0;
 for (const [w,h] of [[390,844],[375,548],[320,460],[320,568]]) { const p = await b.newPage({ viewport: { width: w, height: h }, deviceScaleFactor: 2 });
  await p.addInitScript(() => localStorage.setItem('sg_seen_rules','1'));
  await p.goto('http://127.0.0.1:8766/?debug'); await p.waitForTimeout(400);

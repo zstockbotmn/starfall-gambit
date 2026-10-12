@@ -2,7 +2,7 @@
 const { chromium } = require('/workspace/sg-tools/node_modules/playwright-core');
 const inQuad=(q,x,y)=>{let s=0;for(let k=0;k<4;k++){const[ax,ay]=q[k],[bx,by]=q[(k+1)%4];const c=(bx-ax)*(y-ay)-(by-ay)*(x-ax);if(c!==0){if(s&&Math.sign(c)!==s)return false;s=Math.sign(c);}}return true;};
 const bil=(q,u,v)=>{const[a,b,c,d]=q;return[(a[0]*(1-u)+b[0]*u)*(1-v)+(d[0]*(1-u)+c[0]*u)*v,(a[1]*(1-u)+b[1]*u)*(1-v)+(d[1]*(1-u)+c[1]*u)*v];};
-(async()=>{const b=await chromium.launch({executablePath:'/usr/bin/google-chrome',args:['--use-angle=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist']});
+(async()=>{const b=await require(require('path').join(__dirname, '../../tools/guard.js')).launch(chromium, {executablePath:'/usr/bin/google-chrome',args:['--use-angle=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist']});
 for(const [W,H] of [[390,844],[320,460]]){const ctx=await b.newContext({viewport:{width:W,height:H},hasTouch:true,isMobile:true,serviceWorkers:'block'});await ctx.addInitScript(()=>localStorage.setItem('sg_seen_rules','1'));
 const p=await ctx.newPage();await p.goto(process.argv[2]+'?view=3d&nosw&tier=low&aidelay=60000');await p.waitForFunction(()=>window.SG3D&&SG3D.state!=='loading',null,{timeout:150000});await p.waitForTimeout(1500);
 const cdp=await ctx.newCDPSession(p);const doc=await cdp.send('DOM.getDocument',{depth:0});const ids=(await cdp.send('DOM.querySelectorAll',{nodeId:doc.root.nodeId,selector:'#board .cell'})).nodeIds;

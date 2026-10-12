@@ -19,7 +19,7 @@ async function open(browser, w, h, opts) {
 }
 const FLEET = { a1: 'L0', b1: 'D0', c1: 'S0', d1: 'F0', e1: 'D0', f1: 'L0', d2: 'S0', a6: 'L1', b6: 'D1', c6: 'S1', d6: 'F1', e6: 'D1', f6: 'L1', d5: 'S1' };
 (async () => {
-  const browser = await chromium.launch({ executablePath: '/usr/bin/google-chrome', args: ['--no-sandbox'] });
+  const browser = await require(require('path').join(__dirname, '../../tools/guard.js')).launch(chromium, { executablePath: '/usr/bin/google-chrome', args: ['--no-sandbox'] });
   const R = {};
   for (const [w, h] of [[390, 844], [375, 548], [320, 460], [320, 568]]) {
     const tag = `${w}x${h}`, { ctx, page, errs } = await open(browser, w, h);

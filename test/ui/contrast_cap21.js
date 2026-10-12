@@ -15,7 +15,7 @@ const PASSES = {
   nebulaBlue: { ships: 0, neb: true, under: '', mk: ['last', 'SHIP'] },
 };
 (async () => {
-  const browser = await chromium.launch({ executablePath: '/usr/bin/google-chrome', args: ['--no-sandbox'] });
+  const browser = await require(require('path').join(__dirname, '../../tools/guard.js')).launch(chromium, { executablePath: '/usr/bin/google-chrome', args: ['--no-sandbox'] });
   const ctx = await browser.newContext({ ...devices['iPhone 13'], viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
   const page = await ctx.newPage(); await page.goto('http://127.0.0.1:8766/?debug', { waitUntil: 'networkidle' });
   await page.evaluate(() => { localStorage.setItem('sg_seen_rules', '1'); document.querySelectorAll('.modal').forEach(m => m.classList.add('hidden'));

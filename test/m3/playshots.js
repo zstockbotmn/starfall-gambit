@@ -3,7 +3,7 @@
 const { chromium } = require('/workspace/sg-tools/node_modules/playwright-core'); const fs = require('fs'), path = require('path');
 const BASE = process.argv[2] || (process.env.SG_BASE || 'http://127.0.0.1:8771/') + '', OUT = path.resolve(__dirname, '../../screenshots/m3/play-view'); fs.mkdirSync(OUT, { recursive: true });
 const ARGS = ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist']; const bad = [];
-(async () => { const b = await chromium.launch({ executablePath: '/usr/bin/google-chrome', args: ARGS });
+(async () => { const b = await require(require('path').join(__dirname, '../../tools/guard.js')).launch(chromium, { executablePath: '/usr/bin/google-chrome', args: ARGS });
   const open = async q => { const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, hasTouch: true, isMobile: true, serviceWorkers: 'block' });
     await ctx.addInitScript(() => localStorage.setItem('sg_seen_rules', '1')); const p = await ctx.newPage();
     p.on('response', r => { if (r.status() >= 400) bad.push(r.status() + ' ' + r.url()); });
