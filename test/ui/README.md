@@ -3,3 +3,9 @@ Headless UI checks (need `playwright-core` and Google Chrome; run from a folder 
 - `node shot8.js <url>` – feature/layout checks + screenshots (screenshots/m2/ui) at 390x844, 375x548, 320x460, 320x568.
 - `node m2shots.js <url>` – M2 showcase screenshots, reduced-motion check, ship contact sheet and marker sheet (screenshots/m2). Then `python3 contrast.py` prints WCAG contrast of each marker against each square type (sampled from the rendered marker sheet).
 The game must be opened with `?debug` (the scripts add it) for the test hooks and the on-screen tap log.
+
+## M2.1
+- `shot9.js BASE` – UI checks (boom cleared, tap tolerance max(12px, 0.25 cell), cancel cue, jammed lock, '!' badge size, slow-tap capture + hold ring, Wait message >= 1.2s, 8-item legend fit, debug button clear of title) at 4 viewports; screenshots -> screenshots/m2.1/ui.
+- `stress.js BASE GAMES W H` – touch/mouse stress; the red-turn preview check now reads state and markers atomically.
+- `m21shots.js BASE` – showcase shots, contact sheet, marker sheet -> screenshots/m2.1.
+- `contrast_cap21.js` + `contrast21.py` – tester's contrast metric with M2.1 nominal colours (adds a p10-near-nominal column); expects playwright-core in /workspace/sg-tools and writes to /workspace/sg-tools/ct21.

@@ -1,0 +1,71 @@
+pass              marker     half       px    p10  median  p10near
+empty             move       Red     10228  12.89   14.14    12.89
+empty             move       Blue    10264  11.06   11.34    11.19
+empty             foering    Red     10401   5.79    8.74     7.06
+empty             foering    Blue    10422   5.02    7.00     6.10
+empty             lane       Red      8280  13.18   14.38    13.18
+empty             lane       Blue     8280  11.39   12.09    11.39
+empty             threat     Red     71577   3.54    3.85     3.54
+empty             threat     Blue    71586   3.00    3.19     3.00
+empty             bang       Red      8982  10.33   17.34    13.83
+empty             bang       Blue     8982   8.65   13.83    11.92
+empty             last       Red     15406   6.88    7.48     6.88
+empty             last       Blue    15404   6.03    6.52     6.03
+empty             forecast   Red     15345   4.51    7.19     6.08
+empty             forecast   Blue    15499   3.82    5.89     5.18
+hatched           move       Red     10262   3.65   13.87     3.66
+hatched           move       Blue    10296   3.64   11.21     3.64
+hatched           lane       Red      8280   3.73   14.05     3.73
+hatched           lane       Blue     8280   3.71   11.40     3.71
+hatched           bang       Red      8982   4.49   15.88     4.56
+hatched           bang       Blue     8982   4.61   13.79     4.61
+blueShips         cap        Red     29220   1.54    5.26     1.54  (p10<3)
+blueShips         cap        Blue    29221   1.34    4.45     1.34  (p10<3)
+blueShips         threat     Red     53975   2.32    3.76     2.92  (p10<3)
+blueShips         threat     Blue    53620   1.89    3.08     2.35  (p10<3)
+blueShips         last       Red     15406   6.84    7.48     6.85
+blueShips         last       Blue    15404   5.86    6.51     5.88
+blueShips         sel        Red     42823  11.92   13.89    11.93
+blueShips         sel        Blue    42839   9.59   11.60     9.59
+blueShips         forecast   Red     14764   3.13    6.79     4.51
+blueShips         forecast   Blue    14938   2.73    5.50     3.77  (p10<3)
+blueShips         dangerRing Red      6274   2.47    5.24     3.52  (p10<3)
+blueShips         dangerRing Blue     6257   2.24    4.66     3.03  (p10<3)
+blueShips         SHIP       Red     85829   1.45    7.56      nan  (p10<3)
+blueShips         SHIP       Blue    87246   1.56    6.36      nan  (p10<3)
+redShips          cap        Red     30535   3.20   17.48     3.20
+redShips          cap        Blue    30588   3.20   14.66     3.20
+redShips          threat     Red     53547   2.86    3.76     2.93  (p10<3)
+redShips          threat     Blue    53103   2.60    3.15     2.65  (p10<3)
+redShips          bang       Red      9001   3.20   15.00     3.32
+redShips          bang       Blue     9003   3.20   13.20     3.53
+redShips          last       Red     15406   6.85    7.48     6.86
+redShips          last       Blue    15404   5.78    6.52     5.78
+redShips          selfoe     Red     42899   7.97    9.38     7.97
+redShips          selfoe     Blue    42885   6.52    7.84     6.52
+redShips          forecast   Red     14664   3.48    6.85     4.57
+redShips          forecast   Blue    14649   3.09    5.58     4.03
+redShips          SHIP       Red     70895   1.19    1.61      nan  <3
+redShips          SHIP       Blue    86183   1.12    1.35      nan  <3
+redShipsHatched   cap        Red     30553   3.20   15.30     3.20
+redShipsHatched   cap        Blue    30605   3.20   13.65     3.20
+redShipsHatched   bang       Red      8999   3.20   12.29     3.20
+redShipsHatched   bang       Blue     8999   3.20   11.84     3.20
+redShipsHatched   SHIP       Red     72907   1.13    1.64      nan  <3
+redShipsHatched   SHIP       Blue    81482   1.09    1.45      nan  <3
+blueShipsHatched  SHIP       Red     84793   1.32    4.00      nan  (p10<3)
+blueShipsHatched  SHIP       Blue    86467   1.37    3.98      nan  (p10<3)
+blueShipsHatched  sel        Red     42932   3.65   12.98     3.65
+blueShipsHatched  sel        Blue    42954   3.64   10.97     3.64
+nebulaEmpty       last       Red     15408   4.27    5.53     4.27
+nebulaEmpty       last       Blue    15405   4.52    5.55     4.53
+nebulaRed         selfoe     Red     38908   3.57    5.64     3.63
+nebulaRed         selfoe     Blue    38936   3.60    5.65     3.68
+nebulaRed         last       Red     15030   4.11    5.50     4.21
+nebulaRed         last       Blue    15033   4.22    5.51     4.40
+nebulaRed         SHIP       Red     88722   1.09    2.38      nan  <3
+nebulaRed         SHIP       Blue    90591   1.08    2.31      nan  <3
+nebulaBlue        last       Red     15030   4.09    5.50     4.19
+nebulaBlue        last       Blue    15033   4.22    5.52     4.40
+nebulaBlue        SHIP       Red     87361   1.46    2.74      nan  <3
+nebulaBlue        SHIP       Blue    89004   1.46    2.73      nan  <3

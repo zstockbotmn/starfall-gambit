@@ -90,7 +90,8 @@ const pick = a => a[Math.floor(Math.random() * a.length)];
               if (dst >= 0) {
                 const ply0 = t.ply; await tapCell(dst, pick(['touch', 'touch', 'mouse'])); await settle();
                 const u = await S(); R.kinds.redTurnDestination = (R.kinds.redTurnDestination || 0) + 1;
-                const ov = await page.evaluate(() => document.querySelectorAll('.ov.threat, .mk.expose, .ov.queued, .mk.move, .mk.lane, .mk.cap').length);
+                // read markers and state atomically (Red's reply may land between two separate reads)
+                const ov = await page.evaluate(ply0 => { const s = SGDebug.state(); if (s.ply !== ply0 || s.turn !== 1) return 0; return document.querySelectorAll('.ov.threat, .mk.expose, .ov.queued, .mk.move, .mk.lane, .mk.cap').length; }, ply0);
                 if (u.ply === ply0 && u.turn === 1) {
                   if (u.sel !== i) drop('red-turn destination lost the selection', { i, dst, u });
                   if (ov) { R.redTurnPreviews = (R.redTurnPreviews || 0) + 1; drop('markers/hatching/! shown during Red turn', { i, dst }); }
