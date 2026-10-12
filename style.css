@@ -346,3 +346,4 @@ body.sg-battle #board .mk,body.sg-battle #board .ov{opacity:0 !important;transit
 
 #btnSettings .bt{display:none}#btnSettings .bi{display:inline}#btnSettings{padding:0;width:44px}
 body.v3d #board .mk.expose{--bs:min(17px, 30%);width:var(--bs);height:var(--bs);font-size:calc(var(--bs) * .62);line-height:var(--bs);border-width:1.5px}
+@media (max-width:430px){.topbtns .btn .bt{display:none}.topbtns .btn .bi{display:inline}.topbtns .btn{padding:0;width:44px}}

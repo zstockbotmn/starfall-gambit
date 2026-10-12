@@ -110,7 +110,7 @@
        ]
       ]
      },
-     "fracLoaded": 7
+     "fracLoaded": 1
     }
    }
   },
@@ -167,7 +167,7 @@
        ]
       ]
      },
-     "fracLoaded": 8
+     "fracLoaded": 6
     }
    }
   },
@@ -224,25 +224,25 @@
        ]
       ]
      },
-     "fracLoaded": 3
+     "fracLoaded": 6
     }
    }
   },
   "play-calls-high": {
    "pass": false,
    "info": {
-    "calls": 166,
-    "tris": 74638,
+    "calls": 138,
+    "tris": 62238,
     "tier": "high",
-    "p50": 66.7,
-    "p90": 133.3
+    "p50": 16.7,
+    "p90": 83.4
    }
   },
   "play-calls-medium": {
    "pass": false,
    "info": {
-    "calls": 163,
-    "tris": 74620,
+    "calls": 135,
+    "tris": 62220,
     "p50": 0
    }
   },
@@ -253,8 +253,8 @@
     "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
     "calls": 106,
     "tris": 54631,
-    "p50": 83.3,
-    "p90": 150
+    "p50": 66.7,
+    "p90": 149.9
    }
   },
   "badge-vs-dot-390x844": {
@@ -321,25 +321,27 @@
    "pass": true,
    "info": {
     "hint": "",
-    "after": 754
+    "after": 752
    }
   },
   "battle-full-1.3s": {
-   "pass": false,
+   "pass": true,
    "info": {
-    "ms": 1735,
+    "ms": 1423,
+    "startupMs": 269,
     "planned": 1300,
     "kind": "full",
     "finale": false,
     "skipped": false,
     "shook": true,
-    "frameP90": 83.5
+    "frameP90": 33.3
    }
   },
   "battle-fast-0.5s": {
    "pass": true,
    "info": {
-    "ms": 544,
+    "ms": 684,
+    "startupMs": 515,
     "planned": 500,
     "kind": "fast",
     "finale": false,
@@ -350,7 +352,7 @@
   "battle-tap-to-skip": {
    "pass": true,
    "info": {
-    "ms": 262,
+    "ms": 0,
     "planned": 1300,
     "kind": "full",
     "finale": false,
@@ -360,7 +362,8 @@
   "battle-finale-2.5s": {
    "pass": true,
    "info": {
-    "ms": 20204,
+    "ms": 20143,
+    "startupMs": 101,
     "planned": 2500,
     "kind": "full",
     "finale": true,
@@ -374,7 +377,8 @@
   "battle-reduced-motion-no-shake": {
    "pass": true,
    "info": {
-    "ms": 428,
+    "ms": 472,
+    "startupMs": 2,
     "planned": 300,
     "kind": "reduced",
     "finale": false,
@@ -405,7 +409,7 @@
    "pass": true,
    "info": {
     "cache": [
-     "sg-8454b0ed97"
+     "sg-dafa8fff5a"
     ],
     "entries": 33,
     "offline": {
@@ -417,7 +421,6 @@
  },
  "fail": [
   "play-calls-high",
-  "play-calls-medium",
-  "battle-full-1.3s"
+  "play-calls-medium"
  ]
 }
