@@ -32,7 +32,7 @@ export async function start(opts = {}) {
   let tier = qTier || (pref !== 'auto' ? pref : software ? 'low' : 'high'); const autoTier = !qTier && pref === 'auto';
   renderer.info.autoReset = false; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = .9; renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.shadowMap.type = THREE.PCFShadowMap; renderer.shadowMap.autoUpdate = false;
-  const T = makeTextures(tier); let M = makeMaterials(T, tier);
+  let dprScale = 1; const T = makeTextures(tier); let M = makeMaterials(T, tier);
   // ---------- assets ----------
   const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
   const bind = root => { root.traverse(o => { if (o.isMesh) { const n = o.material.userData.slot || o.material.name; o.material = M[n] || M.ceramic; o.material.userData.slot = n;
@@ -97,7 +97,7 @@ export async function start(opts = {}) {
   let fitInfo = {};
   function fit() {
     const W = innerWidth, H = innerHeight; view.W = W; view.H = H;
-    renderer.setPixelRatio(Math.min(devicePixelRatio || 1, TIERS[tier].dpr)); renderer.setSize(W, H, false); canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+    renderer.setPixelRatio(Math.min(devicePixelRatio || 1, TIERS[tier].dpr) * dprScale); renderer.setSize(W, H, false); canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
     composer && composer.setSize(W, H); composer && composer.setPixelRatio(renderer.getPixelRatio());
     camera.aspect = W / H; camera.clearViewOffset(); const r = slotRect(), t = TILT * Math.PI / 180, dir = new THREE.Vector3(0, Math.sin(t), Math.cos(t));
     const C = [[-3, -3], [3, -3], [-3, 3], [3, 3]].map(([x, z]) => new THREE.Vector3(x, 0, z)), E = [[-3.3, -3.3], [3.3, -3.3], [-3.3, 3.3], [3.3, 3.3]].map(([x, z]) => new THREE.Vector3(x, 0, z));
@@ -260,10 +260,13 @@ export async function start(opts = {}) {
       else if (!reduced() && !(battle && o === battle.A)) o.position.y = SHIP_Y + Math.sin(t / 900 + o.userData.phase) * .012; }
     if (!reduced()) { T.scan.offset.y = (t / 4000) % 1; if (rain.visible) rain.position.y = -((t / 900) % 1) * .6; }
     if (shake) { const e = (t - shakeT0) / 180; if (e >= 1) { shake = 0; applyOffset(0, 0); } else { const a = view.H * .006 * (1 - e); applyOffset((Math.random() - .5) * 2 * a, (Math.random() - .5) * 2 * a); } }
-    updateBatches(); renderer.info.reset(); composer.render(); stats.frames++; if (autoTier) autoTune(); if (hud) drawHud(); }
+    updateBatches(); renderer.info.reset(); composer.render(); stats.frames++; autoTune(); if (hud) drawHud(); }
   let tuneFrames = 0; function autoTune() { if (++tuneFrames % 90) return; const s = [...ft].sort((a, b) => a - b), p50 = s[s.length >> 1];
     const cap = battle ? 18 : 36;   // idle frames are capped at ~33 ms
-    if (p50 > cap * 1.15 && tier !== 'low') { tier = tier === 'high' ? 'medium' : 'low'; try { sessionStorage.setItem('sg_auto_tier', tier); } catch (e) {} applyTier(); } }
+    // steps down even when a tier was forced (?tier= / settings): a forced High that can't hold the budget would starve input.
+    // Forced choices aren't persisted. Below Low, the frame time is capped by shrinking the drawing buffer (down to 0.6x).
+    if (p50 > cap * 1.15 && tier !== 'low') { tier = tier === 'high' ? 'medium' : 'low'; if (autoTier) try { sessionStorage.setItem('sg_auto_tier', tier); } catch (e) {} stats.stepDowns = (stats.stepDowns || 0) + 1; applyTier(); }
+    else if (p50 > cap * 1.5 && tier === 'low' && dprScale > .6) { dprScale = Math.max(.6, dprScale - .2); stats.stepDowns = (stats.stepDowns || 0) + 1; fit(); } }
   const hud = /debug/.test(Q) && /fps/.test(Q) ? Object.assign(document.createElement('div'), { id: 'fpshud' }) : null; if (hud) document.body.append(hud);
   function drawHud() { const s = [...ft].sort((a, b) => a - b), p = q => s[Math.floor(s.length * q)] || 0; hud.textContent = `${tier} p50 ${p(.5).toFixed(1)}ms p90 ${p(.9).toFixed(1)}ms calls ${renderer.info.render.calls} tris ${renderer.info.render.triangles}`; }
   canvas.addEventListener('webglcontextlost', e => { e.preventDefault(); contextLost = true; disable('context lost'); });
@@ -281,7 +284,8 @@ export async function start(opts = {}) {
   document.body.classList.add('v3d'); applyTier(); ro.observe(document.getElementById('boardWrap'));
   prewarm(); fracP.then(() => { if (!battle) prewarm(); }); requestAnimationFrame(frame);
   const api = window.SGView = {
-    sync, battle: (p, m, n) => { const r = battleStart(p, m, n); return r; }, battling: () => !!battle, skip: () => battleEnd(), onIdle: f => battle ? idle.push(f) : f(),
+    // the board is drawn in the same task as the DOM/status update, so the canvas never paints a frame behind the status line
+    sync: (st, ui) => { sync(st, ui); if (!battle && !contextLost && !document.hidden) { dirty = false; renderer.shadowMap.needsUpdate = true; updateBatches(); composer.render(); stats.frames++; } }, battle: (p, m, n) => { const r = battleStart(p, m, n); return r; }, battling: () => !!battle, skip: () => battleEnd(), onIdle: f => battle ? idle.push(f) : f(),
     cellCenter: i => { const r = cells[i].getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2, w: r.width, h: r.height }; },
     // true projected square (a trapezoid): centre, width along its middle line, height along its middle column
     cellSize: i => { camera.updateMatrixWorld(); const c = cellPos(i), q = (dx, dz) => project(new THREE.Vector3(c.x + dx, 0, c.z + dz)); const L = q(-.5, 0), R = q(.5, 0), T = q(0, -.5), B = q(0, .5), C = q(0, 0);
