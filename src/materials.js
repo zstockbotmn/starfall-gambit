@@ -51,13 +51,15 @@ export function loadHullTextures(base) { const L = new THREE.TextureLoader(), H 
   const get = (k, f, srgb, rep) => L.loadAsync(base + 'tex/' + f).then(t => { if (rep) { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(...rep); } t.anisotropy = 8; if (srgb) t.colorSpace = THREE.SRGBColorSpace; H[k] = t; });
   const R = [4, 7.2];   // hull tiles are one period of the AI pattern (aspect 0.56) squeezed to 512x512: repeat v 1.8x u
   return Promise.all([get('blue', 'blue-hull.webp', 1, R), get('blueE', 'blue-hull-emissive.webp', 1, R), get('red', 'red-hull.webp', 1, R), get('redE', 'red-hull-emissive.webp', 1, R),
-    get('skin', 'red-skin-top.webp', 1), get('skinE', 'red-skin-top-emissive.webp', 1), get('holo', 'holo-atlas.webp', 1), get('redN', 'red-panel-normal.webp', 0, [1.4, 1.4]), get('redR', 'red-panel-rough.webp', 0, [1.4, 1.4]), get('redAO', 'red-panel-ao.webp', 0, [1.4, 1.4])]).then(() => H, () => H); }
+    get('skin', 'red-skin-top.webp', 1), get('skinE', 'red-skin-top-emissive.webp', 1), get('holo', 'holo-atlas.webp', 1), get('decal', 'red-decals.webp', 1), get('redN', 'red-panel-normal.webp', 0, [1.4, 1.4]), get('redR', 'red-panel-rough.webp', 0, [1.4, 1.4]), get('redAO', 'red-panel-ao.webp', 0, [1.4, 1.4])]).then(() => H, () => H); }
 export function applyHullTextures(M, H) {
   if (H.blue) Object.assign(M.ceramic, { map: H.blue, emissive: new THREE.Color(0xffffff), emissiveMap: H.blueE, emissiveIntensity: 1.4 });
   if (H.red) Object.assign(M.plate, { map: H.red, color: new THREE.Color(0xb8b4c4), emissive: new THREE.Color(0xffffff), emissiveMap: H.redE, emissiveIntensity: 2.2 });
   if (H.skin) Object.assign(M.redSkin, { emissiveMap: H.skinE });   // no dark AI colour map on the hull any more: lighter gunmetal + procedural panel maps carry the surface; the AI sheet still drives the neon
   if (H.red) Object.assign(M.rPlate, { map: H.red, color: new THREE.Color(0x8a8898), emissive: new THREE.Color(0xffffff), emissiveMap: H.redE, emissiveIntensity: .7 });
   if (H.holo) M.holoAtlas.map = H.holo;
+  if (H.decal) Object.assign(M.decal, { map: H.decal, emissiveMap: H.decal, needsUpdate: true });
+  if (H.red) Object.assign(M.rGun, { map: H.red, needsUpdate: true });   // AI hull texture on the Red gunmetal greebles too
   if (H.redN) for (const k of ['redSkin', 'rGun', 'rPlate']) Object.assign(M[k], { normalMap: H.redN, normalScale: new THREE.Vector2(1.3, 1.3), roughnessMap: H.redR, roughness: 1, aoMap: H.redAO, aoMapIntensity: 1, needsUpdate: true });   // fine panel lines: grooves in normal + AO (darkens the reflections in the seams), tone-varied wet roughness
   for (const k of ['ceramic', 'plate', 'redSkin', 'rPlate', 'holoAtlas']) M[k].needsUpdate = true; }
 export function makeMaterials(T, tier = 'high', opt = {}) { const hi = tier !== 'low';
@@ -89,9 +91,10 @@ export function makeMaterials(T, tier = 'high', opt = {}) { const hi = tier !== 
   // Red hulls: dark, glossy, rain-slick gunmetal (low roughness, clearcoat, strong reflections); neon at half strength so slits read as accents
   // clearcoat only for close-ups (opt.hero): in the play view it doubled the Red fragment cost; low roughness + strong env reflections keep the wet look
   const wet = hi && opt.hero ? { clearcoat: 1, clearcoatRoughness: .06 } : {}, RedPhys = hi && opt.hero ? Phys : THREE.MeshStandardMaterial;
-  M.redSkin = new RedPhys({ color: 0x6c6a7a, metalness: .6, roughness: .18, emissive: 0xffffff, emissiveIntensity: .9, envMapIntensity: 2.2, ...wet });
+  M.redSkin = new RedPhys({ color: 0x5e5c6c, metalness: .65, roughness: .18, emissive: 0xffffff, emissiveIntensity: .9, envMapIntensity: 2.2, ...wet });
   M.rGun = new RedPhys({ color: 0x5a5e6c, metalness: .6, roughness: .16, envMapIntensity: 2.4, ...wet });
   M.rPlate = new RedPhys({ color: 0x4c4a58, metalness: .6, roughness: .22, envMapIntensity: 2.2, ...wet });
+  M.decal = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: .3, roughness: .35, emissive: 0xffffff, emissiveIntensity: .9, polygonOffset: true, polygonOffsetFactor: -2 });   // AI decal atlas; map/emissiveMap set in applyHullTextures
   M.rNeonM = new THREE.MeshStandardMaterial({ color: 0x30001f, emissive: 0xff2bd6, emissiveIntensity: 1.5 });
   M.rNeonC = new THREE.MeshStandardMaterial({ color: 0x00262a, emissive: 0x19f0ff, emissiveIntensity: 1.5 });
   M.holoAtlas = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: .95, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, toneMapped: false });

@@ -4,5 +4,5 @@ const shots = [...['bF', 'bD', 'bL', 'bS', 'rF', 'rD', 'rL', 'rS'].map(id => ['s
 (async () => { const b = await chromium.launch({ executablePath: '/usr/bin/google-chrome', args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] }); const log = {};
   for (const [n, q, w, h] of shots.filter(s => !process.argv[2] || process.argv[2].split(',').includes(s[0]))) { const p = await b.newPage({ viewport: { width: w, height: h }, deviceScaleFactor: 2 }); const errs = []; p.on('pageerror', e => errs.push(String(e))); p.on('console', m => m.type() === 'error' && errs.push(m.text()));
     await p.goto((process.env.SG_BASE || 'http://127.0.0.1:8771/') + 'tools/contact.html?' + q); await p.waitForFunction(() => window.__ready, null, { timeout: 180000 }).catch(() => errs.push('timeout'));
-    await p.screenshot({ path: OUT + n + '.png' }); log[n] = { info: await p.evaluate(() => window.__info), errs }; console.log(n, JSON.stringify(log[n])); await p.close(); }
+    await p.screenshot({ path: OUT + n + '.png', timeout: 180000 }); log[n] = { info: await p.evaluate(() => window.__info), errs }; console.log(n, JSON.stringify(log[n])); await p.close(); }
   fs.writeFileSync(OUT + 'render-log.json', JSON.stringify(log, null, 1)); await b.close(); })();

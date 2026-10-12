@@ -6,7 +6,7 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 
-export const SLOTS = ['ceramic', 'gold', 'tealGlow', 'glass', 'chrome', 'plate', 'neonM', 'neonC', 'holo', 'holoPink', 'holoGlyph', 'holoGlyphPink', 'holoAtlas', 'redSkin', 'energy', 'gunmetal', 'rubber', 'rGun', 'rPlate', 'rNeonM', 'rNeonC'];
+export const SLOTS = ['ceramic', 'gold', 'tealGlow', 'glass', 'chrome', 'plate', 'neonM', 'neonC', 'holo', 'holoPink', 'holoGlyph', 'holoGlyphPink', 'holoAtlas', 'redSkin', 'energy', 'gunmetal', 'rubber', 'rGun', 'rPlate', 'rNeonM', 'rNeonC', 'decal'];
 let Q = 1; const S = n => Math.max(6, Math.round(n * Q));
 const P = (geo, slot) => { const m = new THREE.Mesh(geo); m.userData.slot = slot; return m; };
 const V2 = a => a.map(p => new THREE.Vector2(p[0], p[1]));
@@ -168,6 +168,18 @@ function bigHex(g, x, y, z, r) { // large glowing cyan hexagonal reactor core wi
   for (const [rr, yy] of [[r * 1.12, .045], [r * .7, .046], [r * .4, .047]]) { const t = P(new THREE.TorusGeometry(rr, .0045, 4, 6), 'neonC'); t.rotation.set(Math.PI / 2, 0, Math.PI / 6); t.position.set(x, y + yy, z); g.add(t); }
   for (let k = 0; k < 6; k++) { const a = k / 6 * Math.PI * 2 + Math.PI / 6, m = P(new THREE.BoxGeometry(.008, .016, r * .5), 'chrome'); m.position.set(x + Math.sin(a) * r * 1.3, y + .03, z + Math.cos(a) * r * 1.3); m.rotation.y = a; g.add(m); } }
 const SEC = (f, w, e, sw, sh, r, kw, k) => ({ f, w, e, sw, sh, r, kw, k });
+// ---------- AI decal atlas (assets/src-ai/red-decals.jpg): stencils, glowing strips, hex vents as flush hull decals ----------
+const DEC = { stripM: [95, 22, 338, 68], stripC: [672, 25, 930, 55], thinM: [365, 28, 500, 48], thinC: [672, 77, 795, 92], hexPlate: [330, 182, 442, 265], hex: [313, 292, 378, 357], hexHaz: [397, 290, 475, 360],
+  chevron: [18, 182, 190, 265], grill: [178, 182, 325, 265], hazY: [18, 302, 150, 343], hazP: [848, 308, 1003, 345], hull: [140, 395, 240, 440], ns: [18, 395, 118, 440], skull: [592, 388, 688, 446], hexEm: [700, 380, 778, 450], sys: [673, 190, 805, 247] };
+function decalGeo(name, w) { const [x0, y0, x1, y1] = DEC[name], h = w * (y1 - y0) / (x1 - x0), geo = new THREE.PlaneGeometry(w, h); geo.rotateX(-Math.PI / 2); const uv = geo.attributes.uv;
+  for (let k = 0; k < uv.count; k++) uv.setXY(k, (x0 + uv.getX(k) * (x1 - x0)) / 1024, 1 - (y0 + (1 - uv.getY(k)) * (y1 - y0)) / 576); return geo; }
+// a decal lying on the lofted top surface at (x, f), long axis along the hull (rot = 0) or across it (rot = PI/2)
+function decalTop(g, secs, name, f, xFrac, w, { y0 = 0, rot = 0, mir = false } = {}) { const s = secAt(secs, f); if (!s) return; const x = xFrac * s.w, [y, sl] = topAt(s, x);
+  const o = new THREE.Group(); o.position.set(x, y + y0 + .0018, -f); o.rotation.z = sl; const m = P(decalGeo(name, w), 'decal'); m.rotation.y = rot + Math.PI / 2; o.add(m); if (mir && x) mirror(g, o); else g.add(o); }
+function decalSet(g, secs, seed, n, y0 = 0) { gs = seed; const names = ['stripM', 'stripC', 'thinM', 'thinC', 'hexPlate', 'hex', 'hexHaz', 'grill', 'hazY', 'hazP', 'hull', 'ns', 'hexEm', 'sys'];
+  for (let k = 0; k < n; k++) { const f = secs.at(-1).f + (.12 + grnd() * .76) * (secs[0].f - secs.at(-1).f), nm = names[Math.floor(grnd() * names.length)], strip = /strip|thin|haz/.test(nm);
+    decalTop(g, secs, nm, f, .25 + grnd() * .5, strip ? .06 + grnd() * .05 : .025 + grnd() * .025, { y0, rot: strip ? 0 : (grnd() < .5 ? 0 : Math.PI / 2), mir: true }); } }
+
 // sleek tapered knife-edge spine along the centreline: needle-sharp at the bow, widest/highest aft of midships, tapering at the stern
 function spineSecs(f0, f1, w, h) { const L = f0 - f1, at = (u, ww, hh) => SEC(f0 - L * u, ww, 0, ww * .22, hh * .62, hh, ww, 0); return [at(0, .002, .004), at(.25, w * .45, h * .55), at(.55, w * .85, h * .9), at(.78, w, h), at(1, w * .55, h * .7)]; }
 function spine(g, f0, f1, w, h, y0, slot = 'redSkin') { const S2 = spineSecs(f0, f1, w, h); loft(g, S2, slot, 0, y0);
@@ -198,6 +210,7 @@ function redFlagship() { const g = new THREE.Group();   // dreadnought (red-flag
   // hologram atlas panels flush on the spine flanks + a floating tactical holo over the stern
   for (const s of [1, -1]) { holoFlush(g, .14, .032, s * .093, .085, .1, s * (Math.PI / 2 - .25), s > 0 ? 1 : 2); holoFlush(g, .1, .028, s * .2, .03, -.1, s * (Math.PI / 2 - .5), s > 0 ? 6 : 9); }
   holoPanel(g, .12, .07, .17, .2, .18, -Math.PI / 2 + .45, 4);
+  decalSet(g, H, 51, 16); decalSet(g, SP, 52, 6, .06); decalTop(g, H, 'chevron', -.3, 0, .1, { rot: Math.PI / 2 }); decalTop(g, H, 'skull', .2, .5, .045, { mir: true });
   return g; }
 function redLancer() { const g = new THREE.Group();   // long spear with a ram: needle hull, armoured ram head with chrome prongs, twin rails, swept tail spikes
   const H = [SEC(.3, .05, .01, .025, .03, .036, .03, .02), SEC(.1, .062, .012, .03, .036, .044, .036, .024), SEC(-.15, .07, .014, .034, .04, .048, .04, .026), SEC(-.33, .085, .016, .04, .046, .054, .046, .028), SEC(-.44, .05, .016, .03, .038, .044, .035, .024)];
@@ -221,6 +234,7 @@ function redLancer() { const g = new THREE.Group();   // long spear with a ram: 
   nozzles(g, [-.03, .03], .01, .45, .018); nozzles(g, [0], .045, .44, .012, 'neonM');
   for (const s of [1, -1]) holoFlush(g, .16, .022, s * .072, .03, .0, s * (Math.PI / 2 - .3), s > 0 ? 10 : 11);
   g.add(underglow([[0, .5], [.09, .33], [.085, -.33], [-.085, -.33], [-.09, .33]], .6));
+  decalSet(g, H, 53, 8); decalTop(g, R, 'hazY', .4, 0, .06, { rot: Math.PI / 2 });
   return g; }
 function redDrone() { const g = new THREE.Group();   // compact hunter with a spiky claw: stubby armoured wedge body, two jagged pincers forward, rear spikes
   const H = [SEC(.2, .03, .01, .015, .03, .036, .02, .02), SEC(.1, .11, .016, .05, .06, .07, .06, .035), SEC(-.06, .14, .02, .065, .075, .088, .075, .04), SEC(-.18, .1, .02, .05, .06, .07, .06, .034), SEC(-.24, .05, .018, .03, .04, .046, .035, .026)];
@@ -240,6 +254,7 @@ function redDrone() { const g = new THREE.Group();   // compact hunter with a sp
   nozzles(g, [-.03, .03], .01, .245, .02);
   for (const s of [1, -1]) holoFlush(g, .1, .026, s * .125, .035, .02, s * (Math.PI / 2 - .35), s > 0 ? 3 : 7);
   g.add(underglow([[0, .2], [.13, -.06], [.05, -.24], [-.05, -.24], [-.13, -.06]], .8));
+  decalSet(g, H, 54, 6); decalTop(g, H, 'hexEm', -.12, 0, .05);
   return g; }
 function redShield() { const g = new THREE.Group();   // broad angular bulwark: wide faceted armour wedge, buttress spikes, tall tilted emitter plate projecting a hologram wall
   const H = [SEC(.2, .16, .014, .07, .05, .06, .1, .03), SEC(.1, .4, .016, .14, .07, .085, .2, .04), SEC(-.06, .46, .018, .16, .08, .095, .22, .042), SEC(-.18, .3, .018, .12, .07, .08, .16, .036), SEC(-.24, .14, .016, .07, .05, .058, .08, .03)];
@@ -263,12 +278,13 @@ function redShield() { const g = new THREE.Group();   // broad angular bulwark: 
   for (const s of [1, -1]) holoFlush(g, .14, .03, s * .4, .03, .04, s * (Math.PI / 2 - .9), s > 0 ? 5 : 12);
   antenna(g, .2, .1, .08, .07, 'neonM'); antenna(g, -.2, .1, .08, .07, 'neonC');
   g.add(underglow([[0, .2], [.46, -.06], [.14, -.24], [-.14, -.24], [-.46, -.06]], .75));
+  decalSet(g, H, 55, 12); decalTop(g, H, 'hazP', -.1, .55, .1, { rot: Math.PI / 2, mir: true });
   return g; }
 
 export const BUILDERS = { bF: blueFlagship, bD: blueDrone, bL: blueLancer, bS: blueShield, rF: redFlagship, rD: redDrone, rL: redLancer, rS: redShield };
 // Red ships: ~1.4x larger and lifted so they hover over the base like the Blue fleet. The long hulls (Flagship, Lancer) are capped
 // at 1.25 units of length so they don't swallow neighbouring squares; width and height still get the full 1.4x.
-const RED_FIT = { rF: [1.4, 1.4, 1.25], rL: [1.4, 1.4, 1.12], rD: [1.4, 1.4, 1.4], rS: [1.4, 1.4, 1.4] }, RED_LIFT = .06;
+const RED_FIT = { rF: [1.4, 1.15, 1.25], rL: [1.4, 1.15, 1.12], rD: [1.4, 1.2, 1.4], rS: [1.4, 1.15, 1.4] }, RED_LIFT = .06;
 export function buildShip(id, q = 1) { Q = q; let g = BUILDERS[id](); g.name = id; Q = 1;
   if (RED_FIT[id]) { const RS = { gunmetal: 'rGun', plate: 'rPlate', neonM: 'rNeonM', neonC: 'rNeonC' }; g.traverse(o => { if (o.isMesh && RS[o.userData.slot]) o.userData.slot = RS[o.userData.slot]; });   // Red-only materials (glossy wet gunmetal, half-strength neon)
     const w = new THREE.Group(); w.name = id; g.scale.set(...RED_FIT[id]); g.position.y = RED_LIFT; w.add(g); g = w; }

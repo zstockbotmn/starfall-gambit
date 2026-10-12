@@ -131,7 +131,7 @@ export async function start(opts = {}) {
   const FIT_HALF = .45, shipFit = {}; for (const id of IDS) { const bb = new THREE.Box3().setFromObject(proto[id]), h = Math.max(-bb.min.x, bb.max.x, -bb.min.z, bb.max.z) * SHIP_SCALE; shipFit[id] = Math.min(1, FIT_HALF / h); proto[id].scale.setScalar(shipFit[id]); }
   // play view only: Red reads from the back row - brighter glossy reflections + a neon rim (back-face shell) around each hull
   const rimMat = new THREE.MeshBasicMaterial({ color: 0xff3ad8, side: THREE.BackSide, toneMapped: false }); rimMat.userData.slot = 'rimR'; M.rimR = rimMat;
-  for (const k of ['redSkin', 'rGun', 'rPlate']) if (M[k]) { M[k].envMapIntensity = 3.6; M[k].color.multiplyScalar(1.25); }
+  for (const k of ['redSkin', 'rGun', 'rPlate']) if (M[k]) { M[k].envMapIntensity = 3.6; M[k].color.multiplyScalar(1.5); }
   for (const id of IDS) if (id[0] === 'r') { const hull = []; proto[id].traverse(m => { if (m.isMesh && m.material.name === 'redSkin') hull.push(m); });
     for (const m of hull) { const r = new THREE.Mesh(m.geometry, rimMat); r.castShadow = false; m.updateMatrix(); r.matrix.copy(m.matrix); r.matrixAutoUpdate = false; const sh = new THREE.Group(); if (tier === 'low') sh.scale.set(1.12, 1.2, 1.09); else sh.scale.set(1.07, 1.12, 1.05); /* thicker rim on Low (DPR 1, no MSAA/bloom) */ sh.add(r); m.parent.add(sh); } }
   for (const id of IDS) { proto[id].updateMatrixWorld(true); batch[id] = []; proto[id].traverse(m => { if (!m.isMesh) return; const im = new THREE.InstancedMesh(m.geometry, m.material, 4);
