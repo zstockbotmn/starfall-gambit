@@ -1,5 +1,5 @@
 {
- "ship-rF": {
+ "ship-bF": {
   "info": {
    "calls": 1,
    "tris": 1
@@ -7,5 +7,89 @@
   "errs": [
    "Failed to load resource: the server responded with a status of 404 (File not found)"
   ]
+ },
+ "ship-bD": {
+  "info": {
+   "calls": 1,
+   "tris": 1
+  },
+  "errs": []
+ },
+ "ship-bL": {
+  "info": {
+   "calls": 1,
+   "tris": 1
+  },
+  "errs": []
+ },
+ "ship-bS": {
+  "info": {
+   "calls": 1,
+   "tris": 1
+  },
+  "errs": []
+ },
+ "ship-rF": {
+  "info": {
+   "calls": 1,
+   "tris": 1
+  },
+  "errs": []
+ },
+ "ship-rD": {
+  "info": {
+   "calls": 1,
+   "tris": 1
+  },
+  "errs": []
+ },
+ "ship-rL": {
+  "info": {
+   "calls": 1,
+   "tris": 1
+  },
+  "errs": []
+ },
+ "ship-rS": {
+  "info": {
+   "calls": 1,
+   "tris": 1
+  },
+  "errs": []
+ },
+ "fleet-blue": {
+  "info": {
+   "calls": 1,
+   "tris": 1
+  },
+  "errs": []
+ },
+ "fleet-red": {
+  "info": {
+   "calls": 1,
+   "tris": 1
+  },
+  "errs": []
+ },
+ "board": {
+  "info": {
+   "calls": 1,
+   "tris": 1
+  },
+  "errs": []
+ },
+ "board-low": {
+  "info": {
+   "calls": 1,
+   "tris": 1
+  },
+  "errs": []
+ },
+ "backdrop": {
+  "info": {
+   "calls": 1,
+   "tris": 1
+  },
+  "errs": []
  }
 }
