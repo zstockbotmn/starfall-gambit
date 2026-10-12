@@ -48,16 +48,16 @@
   "packed": 28588
  },
  "rF": {
-  "tris": 3032,
+  "tris": 15040,
   "slots": 7,
-  "raw": 198240,
-  "packed": 33532
+  "raw": 999840,
+  "packed": 157456
  },
  "rF_lod1": {
-  "tris": 2908,
+  "tris": 11492,
   "slots": 7,
-  "raw": 191608,
-  "packed": 32548
+  "raw": 765496,
+  "packed": 121892
  },
  "rD": {
   "tris": 1802,
@@ -112,8 +112,8 @@
   "packed": 51064
  },
  "rF_frac": {
-  "raw": 258084,
-  "packed": 68928
+  "raw": 845104,
+  "packed": 161804
  },
  "rD_frac": {
   "raw": 192468,

@@ -97,25 +97,83 @@ const scaleP = (pts, sx, sf, df = 0) => pts.map(([x, f]) => [x * sx, f * sf + df
 function deck(g, pts, depth, y, slot = 'redSkin', bevel = .006) { const m = P(ext(pts, depth, bevel, 1), slot); m.position.y = y + depth / 2; g.add(m); return y + depth + bevel; }
 function hexCore(g, x, y, z, r = .05) { g.add(at(P(new THREE.CylinderGeometry(r * 1.25, r * 1.35, .02, 6), 'gunmetal'), x, y + .01, z)); const c = P(new THREE.CylinderGeometry(r, r, .016, 6), 'neonC'); c.position.set(x, y + .024, z); g.add(c);
   const rr = P(new THREE.TorusGeometry(r * 1.15, .005, 4, 6), 'neonC'); rr.rotation.x = Math.PI / 2; rr.position.set(x, y + .03, z); g.add(rr); }
-function redFlagship() { const g = new THREE.Group();   // long arrowhead dreadnought (red-flagship-ref): flat hull, stepped decks, aft tower, cyan hex core
-  const H = [[0, .48], [.07, .3], [.2, .02], [.27, -.18], [.2, -.28], [.09, -.36], [-.09, -.36], [-.2, -.28], [-.27, -.18], [-.2, .02], [-.07, .3]];
-  let y = deck(g, H, .05, -.04); g.add(underglow(H, 1.04)); edgeStrips(g, H, -.0, 'neonM', 1.02, .006, k => k % 3 === 2);
-  y = deck(g, scaleP(H, .72, .82, -.02), .03, y);
-  edgeStrips(g, scaleP(H, .72, .82, -.02), y, 'neonC', 1.0, .005, k => k % 2 === 0);
-  y = deck(g, [[0, .2], [.07, .05], [.1, -.15], [.06, -.28], [-.06, -.28], [-.1, -.15], [-.07, .05]], .03, y, 'plate');
-  hexCore(g, 0, y, .06, .045);
-  // aft command tower + antenna mast cluster
-  const T = [[0, -.1], [.05, -.14], [.05, -.24], [-.05, -.24], [-.05, -.14]]; let ty = deck(g, T, .05, y, 'gunmetal'); ty = deck(g, scaleP(T, .7, .9, -.02), .03, ty, 'plate');
-  g.add(at(P(new THREE.BoxGeometry(.08, .008, .006), 'neonM'), 0, ty - .02, .155));
-  for (const [x, z, h] of [[.02, .19, .12], [-.015, .2, .09], [.03, .22, .07], [-.03, .17, .06]]) antenna(g, x, z, h, ty, h > .1 ? 'neonM' : 'neonC');
-  // flank sponsons with gun batteries
-  for (const s of [1, -1]) { const sp = [[s * .17, .1], [s * .25, -.15], [s * .2, -.26], [s * .13, -.05]]; deck(g, s > 0 ? sp : sp.reverse(), .03, .01, 'plate');
-    for (let k = 0; k < 3; k++) { const gun = P(new THREE.CylinderGeometry(.005, .006, .08, 6), 'chrome'); gun.rotation.x = Math.PI / 2; gun.position.set(s * (.18 + k * .02), .05, .02 + k * .08 - .1); g.add(gun); } }
-  greeble(g, scaleP(H, .7, .8, -.02), 70, .045, 5, .025); greeble(g, H, 40, .012, 7, .02);
-  // aft engines
-  for (const x of [-.12, -.05, .05, .12]) { const e = P(new THREE.CylinderGeometry(.022, .026, .06, S(10)), 'gunmetal'); e.rotation.x = Math.PI / 2; e.position.set(x, .0, .37); g.add(e); g.add(at(P(new THREE.CircleGeometry(.018, S(10)), 'neonC'), x, 0, .401)); }
-  holoPanel(g, .14, .08, .19, .17, .1, -Math.PI / 2 + .35, 1); holoPanel(g, .12, .07, -.19, .15, .14, Math.PI / 2 - .35, 2);
-  g.scale.setScalar(1.0); return g; }
+// ---------- Red kit: faceted lofted wedge hulls + procedural greebles / vents / slits / spikes ----------
+// A section is {f (forward), w (half-width at the hull edge), e (edge height), sw/sh (shoulder x/height), r (ridge height), kw/k (keel half-width/depth)}.
+const ringOf = s => { const R = [[0, s.r], [s.sw, s.sh], [s.w, s.e], [s.w * .9, s.e - .014], [s.kw, -s.k], [0, -s.k - .006]]; return [...R, ...R.slice(1, 5).reverse().map(([x, y]) => [-x, y])]; };
+function loft(g, secs, slot = 'redSkin', x0 = 0, y0 = 0) { const pos = [], rings = secs.map(s => ringOf(s).map(([x, y]) => [x + x0, y + y0, -s.f])), n = rings[0].length;
+  const tri = (a, b, c, ctr) => { const ab = [b[0] - a[0], b[1] - a[1], b[2] - a[2]], ac = [c[0] - a[0], c[1] - a[1], c[2] - a[2]], nn = [ab[1] * ac[2] - ab[2] * ac[1], ab[2] * ac[0] - ab[0] * ac[2], ab[0] * ac[1] - ab[1] * ac[0]];
+    const m = [(a[0] + b[0] + c[0]) / 3 - ctr[0], (a[1] + b[1] + c[1]) / 3 - ctr[1], (a[2] + b[2] + c[2]) / 3 - ctr[2]]; if (Math.hypot(...nn) < 1e-12) return;
+    if (nn[0] * m[0] + nn[1] * m[1] + nn[2] * m[2] < 0) pos.push(...a, ...c, ...b); else pos.push(...a, ...b, ...c); };
+  for (let i = 0; i + 1 < rings.length; i++) { const A = rings[i], B = rings[i + 1], s = secs[i], t = secs[i + 1];
+    for (let j = 0; j < n; j++) { const j2 = (j + 1) % n, ctr = [x0, y0 + ((s.r - s.k) + (t.r - t.k)) / 4, -(s.f + t.f) / 2]; tri(A[j], A[j2], B[j2], ctr); tri(A[j], B[j2], B[j], ctr); } }
+  for (const [R, dz] of [[rings[0], -1], [rings.at(-1), 1]]) { const c = R.reduce((a, p) => [a[0] + p[0] / n, a[1] + p[1] / n, a[2] + p[2] / n], [0, 0, 0]); for (let j = 0; j < n; j++) tri(c, R[j], R[(j + 1) % n], [c[0], c[1], c[2] - dz]); }
+  const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.computeVertexNormals();
+  const uv = []; for (let k = 0; k < pos.length; k += 3) uv.push(pos[k] * 2 + .5, pos[k + 2] * 2 + .5); geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  const m = P(geo, slot); g.add(m); return m; }
+// interpolate a section at forward position f
+function secAt(secs, f) { for (let i = 0; i + 1 < secs.length; i++) { const a = secs[i], b = secs[i + 1]; if (f <= a.f && f >= b.f) { const u = (a.f - f) / (a.f - b.f || 1), o = {}; for (const k in a) o[k] = a[k] + (b[k] - a[k]) * u; return o; } } return null; }
+// height of the top surface at lateral x on a section, plus its slope angle
+function topAt(s, x) { const ax = Math.abs(x); let y, sl; if (ax <= s.sw) { y = s.r + (s.sh - s.r) * ax / (s.sw || 1); sl = Math.atan2(s.sh - s.r, s.sw || 1); } else { const u = Math.min(1, (ax - s.sw) / ((s.w - s.sw) || 1)); y = s.sh + (s.e - s.sh) * u; sl = Math.atan2(s.e - s.sh, (s.w - s.sw) || 1); } return [y, x < 0 ? -sl : sl]; }
+// greebles that sit on (and tilt with) the lofted top surface: boxes, vent banks, little fins, light slits
+function greebleLoft(g, secs, n, seed, { x0 = 0, y0 = 0, fMin = -1, fMax = 1, wFrac = .92, hMax = .022, slits = .35 } = {}) { gs = seed; n = Math.round(n * (.45 + .55 * Q)); let made = 0, tries = 0;
+  const f0 = Math.max(secs.at(-1).f, fMin), f1 = Math.min(secs[0].f, fMax);
+  while (made < n && tries++ < n * 30) { const f = f0 + grnd() * (f1 - f0), s = secAt(secs, f); if (!s || s.w < .02) continue; const x = (grnd() * 2 - 1) * s.w * wFrac, [y, sl] = topAt(s, x); made++;
+    const kind = grnd(), o = new THREE.Group(); o.position.set(x + x0, y + y0, -f); o.rotation.z = sl;
+    if (kind < .55) { const w = .008 + grnd() * .026, l = .012 + grnd() * .05, h = .004 + grnd() * hMax, r = grnd(); o.add(at(P(new THREE.BoxGeometry(w, h, l), r < .5 ? 'gunmetal' : r < .8 ? 'plate' : 'chrome'), 0, h / 2, 0));
+      if (grnd() < .25) o.add(at(P(new THREE.BoxGeometry(w * .6, h * .7, l * .6), 'plate'), 0, h + h * .35, 0)); }
+    else if (kind < .75) { const k = 3 + Math.floor(grnd() * 3), l = .02 + grnd() * .03; for (let v = 0; v < k; v++) o.add(at(P(new THREE.BoxGeometry(.003, .006, l), 'chrome'), (v - (k - 1) / 2) * .006, .003, 0)); o.add(at(P(new THREE.BoxGeometry(k * .006 + .004, .002, l + .004), 'gunmetal'), 0, .001, 0)); }
+    else if (kind < .85) { const fin = P(ext([[0, 0], [0, .03 + grnd() * .03], [.012 + grnd() * .02, 0]], .003, .001, 1), 'gunmetal'); fin.rotation.set(0, 0, Math.PI / 2); fin.position.y = .0; o.add(fin); }
+    else { o.add(at(P(new THREE.CylinderGeometry(.004 + grnd() * .006, .006 + grnd() * .006, .006 + grnd() * .012, 6), 'gunmetal'), 0, .006, 0)); }
+    if (grnd() < slits) o.add(at(P(new THREE.BoxGeometry(.003, .0025, .015 + grnd() * .03), grnd() < .6 ? 'neonM' : 'neonC'), (grnd() - .5) * .02, .0022, 0));
+    g.add(o); } }
+// light slits along the hull flanks (just under the edge)
+function flankSlits(g, secs, n, seed, { x0 = 0, y0 = 0, mag = .62 } = {}) { gs = seed; n = Math.round(n * (.5 + .5 * Q));
+  for (let k = 0; k < n; k++) { const f = secs.at(-1).f + grnd() * (secs[0].f - secs.at(-1).f), s = secAt(secs, f); if (!s || s.w < .03) continue; const l = .02 + grnd() * .06, sd = k % 2 ? 1 : -1;
+    const m = P(new THREE.BoxGeometry(.003, .003, l), grnd() < mag ? 'neonM' : 'neonC'); m.position.set(x0 + sd * (s.w * .95 + .0015), y0 + s.e - .007 - grnd() * .004, -f); g.add(m); } }
+// flat swept spike/fin (x, f) triangle, gunmetal with a neon leading edge
+function spike(g, a, tip, b, thick = .01, y = 0, edge = 'neonM', mir = true) { const pts = [a, tip, b]; const ar = (tip[0] - a[0]) * (b[1] - a[1]) - (tip[1] - a[1]) * (b[0] - a[0]); const P3 = ar < 0 ? pts : [b, tip, a];
+  const m = P(ext(P3, thick, .002, 1), 'redSkin'); m.position.y = y; const L = Math.hypot(tip[0] - a[0], tip[1] - a[1]); const e = P(new THREE.BoxGeometry(.004, .004, L * .85), edge);
+  e.position.set((a[0] + tip[0]) / 2, y + thick / 2 + .002, -(a[1] + tip[1]) / 2); e.rotation.y = Math.atan2(tip[0] - a[0], -(tip[1] - a[1]));
+  if (mir) { mirror(g, m); mirror(g, e); } else g.add(m, e); }
+function holoFlush(g, w, h, x, y, z, ry, cell) { const geo = new THREE.PlaneGeometry(w, h), c = cell % 4, r = Math.floor(cell / 4), uv = geo.attributes.uv;
+  for (let k = 0; k < uv.count; k++) uv.setXY(k, (c + .03 + uv.getX(k) * .94) / 4, 1 - (r + .97 - uv.getY(k) * .94) / 4);
+  const p = P(geo, 'holoAtlas'); p.position.set(x, y, z); p.rotation.y = ry; g.add(p); }
+function nozzles(g, xs, y, z, r, glow = 'neonC') { for (const x of xs) { const e = P(new THREE.CylinderGeometry(r, r * 1.2, .05, S(10)), 'gunmetal'); e.rotation.x = Math.PI / 2; e.position.set(x, y, z); g.add(e); g.add(at(P(new THREE.CircleGeometry(r * .8, S(10)), glow), x, y, z + .0255)); } }
+function bigHex(g, x, y, z, r) { // large glowing cyan hexagonal reactor core with nested rims
+  g.add(at(P(new THREE.CylinderGeometry(r * 1.42, r * 1.6, .026, 6), 'gunmetal'), x, y + .013, z));
+  g.add(at(P(new THREE.CylinderGeometry(r * 1.18, r * 1.25, .01, 6), 'plate'), x, y + .03, z));
+  g.add(at(P(new THREE.CylinderGeometry(r, r, .02, 6), 'neonC'), x, y + .033, z));
+  for (const [rr, yy] of [[r * 1.12, .045], [r * .7, .046], [r * .4, .047]]) { const t = P(new THREE.TorusGeometry(rr, .0045, 4, 6), 'neonC'); t.rotation.set(Math.PI / 2, 0, Math.PI / 6); t.position.set(x, y + yy, z); g.add(t); }
+  for (let k = 0; k < 6; k++) { const a = k / 6 * Math.PI * 2 + Math.PI / 6, m = P(new THREE.BoxGeometry(.008, .016, r * .5), 'chrome'); m.position.set(x + Math.sin(a) * r * 1.3, y + .03, z + Math.cos(a) * r * 1.3); m.rotation.y = a; g.add(m); } }
+const SEC = (f, w, e, sw, sh, r, kw, k) => ({ f, w, e, sw, sh, r, kw, k });
+function redFlagship() { const g = new THREE.Group();   // dreadnought (red-flagship-ref): long faceted arrowhead, stepped spine, sawtooth spikes, big cyan hex core, aft bridge tower
+  const H = [SEC(.5, .006, 0, .003, .01, .012, .003, .006), SEC(.38, .06, .008, .03, .03, .036, .03, .018), SEC(.18, .15, .012, .065, .05, .062, .065, .03), SEC(-.04, .24, .016, .095, .066, .082, .095, .036),
+    SEC(-.22, .29, .018, .11, .072, .088, .1, .036), SEC(-.34, .23, .018, .1, .068, .08, .09, .032), SEC(-.43, .13, .018, .075, .058, .066, .07, .028)];
+  loft(g, H);
+  const SP = [SEC(.34, .008, .0, .004, .01, .014, .006, .0), SEC(.2, .05, .01, .025, .034, .04, .04, .0), SEC(-.06, .085, .016, .045, .05, .058, .07, .0), SEC(-.3, .09, .018, .05, .055, .062, .08, .0), SEC(-.4, .06, .016, .035, .045, .05, .055, .0)];
+  loft(g, SP, 'redSkin', 0, .06);   // raised spine superstructure
+  bigHex(g, 0, .11, -.05, .062);
+  // aft bridge tower: stacked angular blocks + antenna cluster
+  const T = [SEC(-.2, .045, .0, .03, .03, .034, .045, .0), SEC(-.28, .05, .0, .035, .04, .044, .05, .0), SEC(-.36, .04, .0, .028, .032, .036, .04, .0)];
+  loft(g, T, 'plate', 0, .118); loft(g, [SEC(-.25, .025, 0, .015, .02, .024, .025, 0), SEC(-.33, .025, 0, .015, .022, .026, .025, 0)], 'gunmetal', 0, .16);
+  g.add(at(P(new THREE.BoxGeometry(.07, .006, .004), 'neonC'), 0, .148, .2)); g.add(at(P(new THREE.BoxGeometry(.05, .004, .004), 'neonM'), 0, .175, .25));
+  for (const [x, z, h] of [[.018, .29, .13], [-.014, .3, .1], [.03, .31, .07], [-.03, .27, .06], [0, .32, .085]]) antenna(g, x, z, h, .17, h > .1 ? 'neonM' : 'neonC');
+  // sawtooth spikes along both flanks (aft-swept) + big swept wing blades
+  for (let k = 0; k < 5; k++) { const f = .26 - k * .12, s = secAt(H, f), s2 = secAt(H, f - .07); if (!s || !s2) continue; spike(g, [s.w - .01, f], [s.w + .06 + k * .012, f - .1], [s2.w - .01, f - .07], .008, s.e - .006, k % 2 ? 'neonC' : 'neonM'); }
+  spike(g, [.2, -.02], [.42, -.34], [.24, -.26], .012, .008, 'neonM');
+  spike(g, [.12, -.36], [.2, -.5], [.07, -.43], .01, .01, 'neonC');
+  // gun batteries on the shoulders
+  for (const s of [1, -1]) for (let k = 0; k < 4; k++) { const f = .12 - k * .1, se = secAt(H, f), x = s * se.sw * 1.35, [y, sl] = topAt(se, x); const tb = new THREE.Group(); tb.position.set(x, y, -f); tb.rotation.z = sl;
+    tb.add(at(P(new THREE.CylinderGeometry(.014, .017, .012, 6), 'gunmetal'), 0, .006, 0)); for (const d of [-.005, .005]) { const b = P(new THREE.CylinderGeometry(.0028, .0032, .05, 5), 'chrome'); b.rotation.x = Math.PI / 2; b.position.set(d, .012, -.025); tb.add(b); } g.add(tb); }
+  greebleLoft(g, H, 260, 5, { wFrac: .95, slits: .4 }); greebleLoft(g, SP, 110, 6, { y0: .06, hMax: .016, slits: .45 });
+  flankSlits(g, H, 70, 8); flankSlits(g, SP, 30, 9, { y0: .06, mag: .4 });
+  edgeStrips(g, [[0, .5], [.06, .38], [.15, .18], [.24, -.04], [.29, -.22], [.23, -.34], [.13, -.43], [-.13, -.43], [-.23, -.34], [-.29, -.22], [-.24, -.04], [-.15, .18], [-.06, .38]], .005, 'neonM', 1.01, .005, k => k === 6);
+  g.add(underglow([[0, .48], [.27, -.22], [.12, -.42], [-.12, -.42], [-.27, -.22]], 1.0));
+  nozzles(g, [-.1, -.05, 0, .05, .1], .01, .43, .02); nozzles(g, [-.035, .035], .085, .4, .014, 'neonM');
+  // hologram atlas panels flush on the spine flanks + a floating tactical holo over the stern
+  for (const s of [1, -1]) { holoFlush(g, .14, .032, s * .093, .085, .1, s * (Math.PI / 2 - .25), s > 0 ? 1 : 2); holoFlush(g, .1, .028, s * .2, .03, -.1, s * (Math.PI / 2 - .5), s > 0 ? 6 : 9); }
+  holoPanel(g, .12, .07, .17, .2, .18, -Math.PI / 2 + .45, 4);
+  return g; }
 function redLancer() { const g = new THREE.Group();   // needle-thin railgun cruiser (concept bottom-left)
   const H = [[0, .5], [.035, .3], [.07, 0], [.09, -.22], [.05, -.32], [-.05, -.32], [-.09, -.22], [-.07, 0], [-.035, .3]];
   let y = deck(g, H, .04, -.03); g.add(underglow(H, 1.06)); edgeStrips(g, H, -.008, 'neonC', 1.02, .005);
