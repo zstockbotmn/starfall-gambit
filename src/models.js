@@ -52,16 +52,22 @@ function blueDrone() { const g = new THREE.Group();   // cross frame with four e
     const seam = P(new THREE.TorusGeometry(.081, .006, S(8), S(36)), 'gold'); seam.rotation.x = Math.PI / 2; seam.position.set(x, 0, z); g.add(seam);
     port(g, x * 1.3, 0, z * 1.3, .036, Math.PI / 2 - a, 0); port(g, x, .075, z, .03, 0, -Math.PI / 2); }
   return g; }
-function blueLancer() { const g = new THREE.Group();   // long needle spear with a gold lance
-  const hull = P(lathe([[0, .16], [.03, .1], [.055, -.02], [.06, -.14], [.045, -.24], [.02, -.3], [0, -.31]], 36), 'ceramic'); hull.scale.y = .7; hull.position.z = .1; g.add(hull);
-  const lance = P(new THREE.ConeGeometry(.032, .5, S(16)), 'gold'); lance.rotation.x = -Math.PI / 2; lance.position.z = -.29; g.add(lance);
-  const collar = P(new THREE.TorusGeometry(.04, .008, S(8), S(28)), 'gold'); collar.position.z = -.12; g.add(collar);
-  blade(g, curve([[.03, -.05], [.12, -.18], [.16, -.3], [.09, -.2], [.03, -.17]]), .012, .0, 1.08, true);
-  const fin = P(ext([[0, -.08], [0, -.2], [.1, -.24], [.06, -.12]], .012, .004), 'ceramic'); fin.rotation.z = Math.PI / 2; fin.position.y = .05; g.add(fin);
-  for (const s of [1, -1]) g.add(at(P(new THREE.BoxGeometry(.006, .008, .12), 'tealGlow'), s * .052, .012, .02));
-  const can = P(new THREE.SphereGeometry(.03, S(20), S(10)), 'glass'); can.scale.set(.8, .55, 2.2); can.position.set(0, .035, .0); g.add(can);
-  const bell = P(new THREE.CylinderGeometry(.035, .026, .035, S(20), 1, true), 'gold'); bell.rotation.x = Math.PI / 2; bell.position.z = .42; g.add(bell);
-  g.add(at(P(new THREE.CircleGeometry(.03, S(20)), 'tealGlow'), 0, 0, .41));
+// sculpted gold filigree: a smooth tube along a Catmull-Rom curve (optionally mirrored in x)
+function filigree(g, pts, r = .005, mir = true, slot = 'gold') { const c = new THREE.CatmullRomCurve3(pts.map(p => new THREE.Vector3(...p))); const m = P(new THREE.TubeGeometry(c, S(40), r, S(6), false), slot); if (mir) mirror(g, m); else g.add(m); return m; }
+function blueLancer() { const g = new THREE.Group();   // spear: thicker sculpted ceramic hull, heavy gold lance, four swept gold fins, gold filigree
+  const hull = P(lathe([[0, .2], [.04, .14], [.08, .02], [.095, -.1], [.088, -.2], [.06, -.28], [.03, -.33], [0, -.34]], 40), 'ceramic'); hull.scale.y = .72; hull.position.z = .1; g.add(hull);
+  const lance = P(new THREE.ConeGeometry(.05, .5, S(18)), 'gold'); lance.rotation.x = -Math.PI / 2; lance.position.z = -.38; g.add(lance);
+  for (const [z, r] of [[-.13, .062], [-.05, .085], [.12, .088], [.28, .055]]) { const c = P(new THREE.TorusGeometry(r, .009, S(8), S(32)), 'gold'); c.position.z = z; c.scale.y = .72; g.add(c); }
+  // four swept gold fins: two wide side fins + dorsal and ventral
+  for (const sweep of [[[.07, .12], [.24, .3], [.26, .42], [.16, .3], [.07, .28]]]) { const s = curve(sweep); const f = P(new THREE.ExtrudeGeometry(s, { depth: .014, bevelEnabled: true, bevelThickness: .005, bevelSize: .004, bevelSegments: 2, curveSegments: S(16) }), 'gold'); f.geometry.rotateX(-Math.PI / 2); f.geometry.translate(0, -.007, 0); mirror(g, f); }
+  blade(g, curve([[.06, -.06], [.17, -.14], [.22, -.3], [.12, -.2], [.05, -.18]]), .014, .0, 1.08, true);
+  for (const sgn of [1, -1]) { const f = P(new THREE.ExtrudeGeometry(curve([[0, .1], [.14, .26], [.17, .4], [.08, .3], [0, .3]]), { depth: .012, bevelEnabled: true, bevelThickness: .004, bevelSize: .004, bevelSegments: 2, curveSegments: S(16) }), 'gold'); f.geometry.rotateX(-Math.PI / 2); f.geometry.rotateZ(sgn * Math.PI / 2); f.geometry.translate(0, sgn * .04, 0); g.add(f); }
+  filigree(g, [[.06, .03, -.12], [.085, .035, .0], [.08, .03, .14], [.05, .02, .3]], .0045);
+  filigree(g, [[.0, .062, -.08], [.0, .07, .06], [.0, .06, .2]], .005, false);
+  for (const s of [1, -1]) port(g, s * .093, .0, -.02, .02, 0, -Math.PI / 2 * s * 0 - Math.PI / 2);
+  const can = P(new THREE.SphereGeometry(.04, S(20), S(10)), 'glass'); can.scale.set(.8, .6, 2.2); can.position.set(0, .055, -.02); g.add(can);
+  const bell = P(new THREE.CylinderGeometry(.05, .036, .045, S(20), 1, true), 'gold'); bell.rotation.x = Math.PI / 2; bell.position.z = .45; g.add(bell);
+  g.add(at(P(new THREE.CircleGeometry(.04, S(20)), 'tealGlow'), 0, 0, .44));
   return g; }
 function blueShield() { const g = new THREE.Group();   // domed saucer with flared rim wings and a teal eye port (concept)
   const dome = P(new THREE.LatheGeometry(V2([[0, .2], [.08, .19], [.16, .15], [.22, .09], [.26, .03], [.27, 0]]), S(56)), 'ceramic'); g.add(dome);

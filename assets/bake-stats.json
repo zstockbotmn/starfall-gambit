@@ -24,16 +24,16 @@
   "packed": 27304
  },
  "bL": {
-  "tris": 5304,
+  "tris": 11752,
   "slots": 4,
-  "raw": 319472,
-  "packed": 44544
+  "raw": 545068,
+  "packed": 79124
  },
  "bL_lod1": {
-  "tris": 1766,
+  "tris": 4436,
   "slots": 4,
-  "raw": 105440,
-  "packed": 19168
+  "raw": 209756,
+  "packed": 34976
  },
  "bS": {
   "tris": 10656,
@@ -104,8 +104,8 @@
   "packed": 46896
  },
  "bL_frac": {
-  "raw": 135844,
-  "packed": 34596
+  "raw": 247512,
+  "packed": 53880
  },
  "bS_frac": {
   "raw": 203960,
