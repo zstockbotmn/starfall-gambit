@@ -3,7 +3,7 @@ const { chromium } = require('/workspace/sg-tools/node_modules/playwright-core')
 const ROOT = path.resolve(__dirname, '..'), A = path.join(ROOT, 'assets');
 (async () => { const b = await chromium.launch({ executablePath: '/usr/bin/google-chrome', args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
   const p = await b.newPage(); p.on('pageerror', e => console.error('pageerror', e)); p.on('console', m => m.type() === 'error' && console.error(m.text()));
-  await p.goto('http://127.0.0.1:8771/tools/bake.html'); await p.waitForFunction(() => window.__ready);
+  await p.goto((process.env.SG_BASE || 'http://127.0.0.1:8771/') + 'tools/bake.html'); await p.waitForFunction(() => window.__ready);
   const { files, stats } = await p.evaluate(() => window.bake()); await b.close();
   fs.mkdirSync(path.join(A, 'models'), { recursive: true }); fs.mkdirSync('/tmp/sgraw', { recursive: true });
   for (const [f, d] of Object.entries(files)) { const buf = Buffer.from(d, 'base64');

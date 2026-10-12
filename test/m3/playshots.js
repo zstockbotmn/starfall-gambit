@@ -1,7 +1,7 @@
 // Play-view screenshots at 390x844 (high + low tier) and one battle frame; also logs any HTTP 4xx/5xx the page requests.
 // Usage: node test/m3/playshots.js [base]  -> screenshots/m3/play-view/
 const { chromium } = require('/workspace/sg-tools/node_modules/playwright-core'); const fs = require('fs'), path = require('path');
-const BASE = process.argv[2] || 'http://127.0.0.1:8771/', OUT = path.resolve(__dirname, '../../screenshots/m3/play-view'); fs.mkdirSync(OUT, { recursive: true });
+const BASE = process.argv[2] || (process.env.SG_BASE || 'http://127.0.0.1:8771/') + '', OUT = path.resolve(__dirname, '../../screenshots/m3/play-view'); fs.mkdirSync(OUT, { recursive: true });
 const ARGS = ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist']; const bad = [];
 (async () => { const b = await chromium.launch({ executablePath: '/usr/bin/google-chrome', args: ARGS });
   const open = async q => { const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, hasTouch: true, isMobile: true, serviceWorkers: 'block' });

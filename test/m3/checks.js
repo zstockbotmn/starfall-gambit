@@ -1,6 +1,6 @@
 // M3 3D checks (headless Chrome + SwiftShader). Usage: node test/m3/checks.js [base]   -> screenshots/m3/play, screenshots/m3/battle, test/m3/results.json
 const { chromium } = require('/workspace/sg-tools/node_modules/playwright-core'); const fs = require('fs'), path = require('path');
-const BASE = process.argv[2] || 'http://127.0.0.1:8771/', OUT = path.resolve(__dirname, '../../screenshots/m3'); for (const d of ['play', 'battle']) fs.mkdirSync(OUT + '/' + d, { recursive: true });
+const BASE = process.argv[2] || (process.env.SG_BASE || 'http://127.0.0.1:8771/') + '', OUT = path.resolve(__dirname, '../../screenshots/m3'); for (const d of ['play', 'battle']) fs.mkdirSync(OUT + '/' + d, { recursive: true });
 const VPS = [[390, 844], [375, 548], [320, 460], [320, 568]]; const R = { checks: {}, fail: [] };
 const ok = (name, pass, info) => { R.checks[name] = { pass: !!pass, info }; if (!pass) R.fail.push(name); console.log((pass ? 'PASS ' : 'FAIL ') + name, info !== undefined ? JSON.stringify(info) : ''); };
 const ARGS = ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'];
