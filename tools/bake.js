@@ -8,7 +8,7 @@ const ROOT = path.resolve(__dirname, '..'), A = path.join(ROOT, 'assets');
   fs.mkdirSync(path.join(A, 'models'), { recursive: true }); fs.mkdirSync('/tmp/sgraw', { recursive: true });
   for (const [f, d] of Object.entries(files)) { const buf = Buffer.from(d, 'base64');
     if (f.endsWith('.glb')) { const raw = '/tmp/sgraw/' + path.basename(f); fs.writeFileSync(raw, buf);
-      execFileSync(path.join(ROOT, 'node_modules/.bin/gltfpack'), ['-i', raw, '-o', path.join(A, f), '-cc', '-km', '-kn', '-vp', '14', '-noq'].filter(x => x !== '-noq'), { stdio: 'pipe' });
+      execFileSync(path.join(ROOT, 'node_modules/.bin/gltfpack'), ['-i', raw, '-o', path.join(A, f), '-cc', '-km', '-kn', '-kv', '-vp', '14', '-noq'].filter(x => x !== '-noq'), { stdio: 'pipe' });
       stats[path.basename(f, '.glb')].raw = buf.length; stats[path.basename(f, '.glb')].packed = fs.statSync(path.join(A, f)).size; }
     else fs.writeFileSync(path.join(A, f), buf); }
   fs.writeFileSync(path.join(A, 'bake-stats.json'), JSON.stringify(stats, null, 1)); console.log(stats);

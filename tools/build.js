@@ -6,7 +6,7 @@ const ROOT = path.resolve(__dirname, '..');
   // First screen: shell + 2D game + 3D bundle + play-view (LOD1) ships + board + backdrop. Explosion pieces are fetched after first paint.
   const shell = ['./', 'index.html', 'style.css', 'engine.js', 'ai.js', 'game.js', 'boot.js', 'manifest.webmanifest', 'icon.svg', 'dist/view3d.js'];
   const ids = ['bF', 'bD', 'bL', 'bS', 'rF', 'rD', 'rL', 'rS'];
-  const first = [...ids.map(i => `assets/models/${i}_lod1.glb`), 'assets/models/board_lod1.glb', 'assets/sky.webp', 'assets/sky_low.webp', 'assets/tex/blue-hull.webp', 'assets/tex/blue-hull-emissive.webp', 'assets/tex/red-hull.webp', 'assets/tex/red-hull-normal.webp', 'assets/tex/red-hull-rough.webp', 'assets/tex/red-hull-emissive.webp'];
+  const first = [...ids.map(i => `assets/models/${i}_lod1.glb`), 'assets/models/board_lod1.glb', 'assets/sky.webp', 'assets/sky_low.webp', 'assets/tex/blue-hull.webp', 'assets/tex/blue-hull-emissive.webp', 'assets/tex/red-hull.webp', 'assets/tex/red-panel-normal.webp', 'assets/tex/red-panel-rough.webp', 'assets/tex/red-panel-ao.webp', 'assets/tex/red-hull-emissive.webp'];
   const later = ids.map(i => `assets/models/${i}_frac.glb`);
   const all = [...shell, ...first, ...later], h = crypto.createHash('sha1');
   const size = f => f === './' ? 0 : fs.statSync(path.join(ROOT, f)).size, gz = f => f === './' ? 0 : zlib.gzipSync(fs.readFileSync(path.join(ROOT, f))).length;
