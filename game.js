@@ -1,7 +1,7 @@
 /* Starfall Gambit — UI layer (touch-first). Depends on SG (engine.js) and SGAI (ai.js). */
 (function () {
   'use strict';
-  var HUMAN = SG.BLUE, AI_SIDE = SG.RED, LEVEL = 'easy', AI_DELAY = 650, OVER_DELAY = 250, LONG_PRESS = 500, LONG_PRESS_CAP = 900;   // hold-to-inspect; longer on a Red ship you could capture
+  var HUMAN = SG.BLUE, AI_SIDE = SG.RED, LEVEL = (function () { try { var l = localStorage.getItem('sg_level'); return /^(easy|medium|hard)$/.test(l) ? l : 'medium'; } catch (e) { return 'medium'; } })(), AI_DELAY = 650, OVER_DELAY = 250, LONG_PRESS = 500, LONG_PRESS_CAP = 900;   // hold-to-inspect; longer on a Red ship you could capture
   var GHOST_MS = 600;            // a pointer-generated click within this time of a pointer tap on the same square is its echo
   var DEBUG = /[?&]debug(=|&|$)/.test(location.search);
   // test harness only: ?aidelay=ms stretches Red's think time so scripted taps fit inside it on a slow software renderer
@@ -200,6 +200,7 @@
     $('lastMove').textContent = 'New game. You\u2019re Blue and you move first.';
     hintMsg = firstGame() ? FIRST_TIP : START_HINT;
     render();
+    dlog('ok', 'new game (' + LEVEL + ')');
   }
 
   function clearSel() { sel = null; insp = null; marks = null; danger = []; opts = []; exposed = []; }
@@ -417,10 +418,14 @@
   function hide(id) { $(id).classList.add('hidden'); if (st) render(); }
   $('btnRules').onclick = function () { show('rulesModal'); };
   $('btnResult').onclick = function () { gameOver(); };
-  $('btnNew').onclick = function () {
-    if (st.ply === 0 || st.winner !== null || confirm('Abandon this game and start a new one?')) start();
-  };
-  $('btnAgain').onclick = start;
+  // New game screen: difficulty picker (default Medium, last choice remembered)
+  var pick = LEVEL, lvlBtns = [].slice.call(document.querySelectorAll('#newModal .lvl'));
+  function showLevels() { lvlBtns.forEach(function (b) { b.setAttribute('aria-checked', b.dataset.level === pick ? 'true' : 'false'); }); }
+  lvlBtns.forEach(function (b) { b.onclick = function () { pick = b.dataset.level; showLevels(); }; });
+  function openNew() { pick = LEVEL; showLevels(); $('newWarn').classList.toggle('hidden', !(st.ply > 0 && st.winner === null)); hide('overModal'); show('newModal'); }
+  $('btnStart').onclick = function () { LEVEL = pick; try { localStorage.setItem('sg_level', LEVEL); } catch (e) {} hide('newModal'); start(); };
+  $('btnNew').onclick = openNew;
+  $('btnAgain').onclick = openNew;
   document.querySelectorAll('[data-close]').forEach(function (b) {
     b.onclick = function () { hide(b.closest('.modal').id); };
   });

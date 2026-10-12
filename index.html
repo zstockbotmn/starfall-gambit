@@ -190,6 +190,20 @@
   </div>
 </div>
 
+<div id="newModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="newTitle">
+  <div class="card center">
+    <h2 id="newTitle">New game</h2>
+    <p id="newWarn" class="hidden">This abandons the current game.</p>
+    <div class="levels" role="radiogroup" aria-label="Difficulty">
+      <button type="button" class="btn lvl" role="radio" data-level="easy">Easy</button>
+      <button type="button" class="btn lvl" role="radio" data-level="medium">Medium</button>
+      <button type="button" class="btn lvl" role="radio" data-level="hard">Hard</button>
+    </div>
+    <button id="btnStart" class="btn primary wide" type="button">Start</button>
+    <button class="btn ghost wide" type="button" data-close>Cancel</button>
+  </div>
+</div>
+
 <div id="overModal" class="modal hidden" role="dialog" aria-modal="true">
   <div class="card center">
     <div id="overIcon" class="overicon">★</div>

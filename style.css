@@ -347,3 +347,6 @@ body.sg-battle #board .mk,body.sg-battle #board .ov{opacity:0 !important;transit
 #btnSettings .bt{display:none}#btnSettings .bi{display:inline}#btnSettings{padding:0;width:44px}
 body.v3d #board .mk.expose{--bs:max(12px, min(17px, 30%));width:var(--bs);height:var(--bs);font-size:max(9px, min(11px, calc(var(--cell, 40px) * .19)));line-height:var(--bs);border-width:1.5px}   /* not calc(--bs*.62): --bs can be a %, which in font-size resolves against the parent font (gave a 3px glyph) */
 @media (max-width:430px){.topbtns .btn .bt{display:none}.topbtns .btn .bi{display:inline}.topbtns .btn{padding:0;width:44px}}
+
+.levels{display:flex;gap:8px;margin-top:12px}.levels .lvl{flex:1;min-height:48px}.levels .lvl[aria-checked="true"]{border-color:var(--gold2);background:linear-gradient(180deg,#2bb7ad,#16707a);color:#fff}
+#newWarn.hidden{display:none}
