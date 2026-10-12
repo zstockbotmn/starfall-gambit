@@ -31,6 +31,19 @@ export async function start(opts = {}) {
   const pref = LS('sg_quality', 'auto');
   let tier = qTier || (pref !== 'auto' ? pref : software ? 'low' : 'high'); const autoTier = !qTier && pref === 'auto';
   renderer.info.autoReset = false; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = .9; renderer.outputColorSpace = THREE.SRGBColorSpace;
+  // GPU format probe (desktop GL errors / context loss): only use HalfFloat MSAA targets and depth-texture shadows when this GPU
+  // actually completes those framebuffers; otherwise fall back to RGBA8 (and fewer/no samples) and to no shadow map.
+  const caps = (() => { const gl = renderer.getContext(), c = { half: false, samples: 0, depthTex: false };
+    try { const gl2 = typeof WebGL2RenderingContext !== 'undefined' && gl instanceof WebGL2RenderingContext;
+      const fbOk = (setup) => { const fb = gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER, fb); const rel = setup(); const ok = gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE; gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.deleteFramebuffer(fb); rel(); while (gl.getError()) {} return ok; };
+      if (gl2) { const ext = gl.getExtension('EXT_color_buffer_float') || gl.getExtension('EXT_color_buffer_half_float'); const max = gl.getParameter(gl.MAX_SAMPLES) || 0;
+        const rbTry = (fmt, n) => fbOk(() => { const rb = gl.createRenderbuffer(); gl.bindRenderbuffer(gl.RENDERBUFFER, rb); n ? gl.renderbufferStorageMultisample(gl.RENDERBUFFER, n, fmt, 4, 4) : gl.renderbufferStorage(gl.RENDERBUFFER, fmt, 4, 4); gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, rb); return () => gl.deleteRenderbuffer(rb); });
+        c.half = !!ext && rbTry(gl.RGBA16F, 0); const fmt = c.half ? gl.RGBA16F : gl.RGBA8;
+        for (const n of [4, 2]) if (n <= max && rbTry(fmt, n)) { c.samples = n; break; }
+        c.depthTex = fbOk(() => { const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t); gl.texImage2D(gl.TEXTURE_2D, 0, gl.DEPTH_COMPONENT24, 4, 4, 0, gl.DEPTH_COMPONENT, gl.UNSIGNED_INT, null); gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, t, 0); return () => gl.deleteTexture(t); });
+      } else c.depthTex = !!gl.getExtension('WEBGL_depth_texture');
+    } catch (e) { console.warn('GPU probe failed', e); }
+    return c; })();
   renderer.shadowMap.type = THREE.PCFShadowMap; renderer.shadowMap.autoUpdate = false;
   let dprScale = 1; const T = makeTextures(tier); let M = makeMaterials(T, tier);
   // ---------- assets ----------
@@ -114,10 +127,10 @@ export async function start(opts = {}) {
   // ---------- post / tiers ----------
   let composer = null, bloom = null;
   function applyTier() { const cfg = TIERS[tier];
-    renderer.shadowMap.enabled = !!cfg.shadow; key.castShadow = !!cfg.shadow; if (cfg.shadow) { key.shadow.mapSize.set(cfg.shadow, cfg.shadow); key.shadow.map && key.shadow.map.dispose(); key.shadow.map = null; }
+    const shadowOn = !!cfg.shadow && caps.depthTex; renderer.shadowMap.enabled = shadowOn; key.castShadow = shadowOn; if (cfg.shadow) { key.shadow.mapSize.set(cfg.shadow, cfg.shadow); key.shadow.map && key.shadow.map.dispose(); key.shadow.map = null; }
     rain.visible = cfg.rain;
     if (composer) composer.dispose();
-    const rt = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: cfg.msaa });
+    const rt = new THREE.WebGLRenderTarget(1, 1, { type: caps.half ? THREE.HalfFloatType : THREE.UnsignedByteType, samples: Math.min(cfg.msaa, caps.samples) });
     composer = new EffectComposer(renderer, rt); composer.addPass(new RenderPass(scene, camera));
     bloom = cfg.bloom ? new UnrealBloomPass(new THREE.Vector2(256, 256), .28, .18, .92) : null; if (bloom) composer.addPass(bloom);
     composer.addPass(new OutputPass()); scene.traverse(o => { if (o.material) o.material.needsUpdate = true; }); document.body.dataset.tier = tier; fit(); }
@@ -303,7 +316,7 @@ export async function start(opts = {}) {
       return Math.min(5, Math.max(0, Math.floor(v))) * 6 + Math.min(5, Math.max(0, Math.floor(u))); },
     project: (i, y = 0) => { const p = cellPos(i).setY(y); camera.updateMatrixWorld(); return project(p); },
     fit: () => ({ ...shipFit }),
-    stats: () => { const s = [...ft].sort((a, b) => a - b), p = q => +(s[Math.floor(s.length * q)] || 0).toFixed(1); return { tier, gpu, software, p50: p(.5), p90: p(.9), calls: renderer.info.render.calls, tris: renderer.info.render.triangles, frames: stats.frames, battles: stats.battles, lastBattle: stats.lastBattle, battling: !!battle, hazeTarget: battle ? haze.filter(h => h.material.opacity < .2).length : 0, fit: fitInfo, fracLoaded: Object.keys(frac).length }; },
+    stats: () => { const s = [...ft].sort((a, b) => a - b), p = q => +(s[Math.floor(s.length * q)] || 0).toFixed(1); return { tier, gpu, caps, software, p50: p(.5), p90: p(.9), calls: renderer.info.render.calls, tris: renderer.info.render.triangles, frames: stats.frames, battles: stats.battles, lastBattle: stats.lastBattle, battling: !!battle, battleU: battle ? +(battle.prevU || 0).toFixed(3) : null, hazeTarget: battle ? haze.filter(h => h.material.opacity < .2).length : 0, fit: fitInfo, fracLoaded: Object.keys(frac).length }; },
     setTier: t => { tier = t; applyTier(); }, disable, renderNow: () => { dirty = true; updateBatches(); composer.render(); },
   };
   window.SGGame && window.SGGame.render(); fit();
