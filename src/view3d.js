@@ -126,7 +126,8 @@ export async function start(opts = {}) {
 
   // ---------- post / tiers ----------
   let composer = null, bloom = null;
-  function applyTier() { const cfg = TIERS[tier];
+  function applyTier() { const cfg = TIERS[tier]; ft.length = 0; rafPrevRendered = false;   // fresh frame-time window per tier (stats().p50 and step-down see only this tier), and the rebuild gap itself is not counted
+   
     const shadowOn = !!cfg.shadow && caps.depthTex; renderer.shadowMap.enabled = shadowOn; key.castShadow = shadowOn; if (cfg.shadow) { key.shadow.mapSize.set(cfg.shadow, cfg.shadow); key.shadow.map && key.shadow.map.dispose(); key.shadow.map = null; } renderer.shadowMap.needsUpdate = true;
     rain.visible = cfg.rain;
     if (composer) composer.dispose();
