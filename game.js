@@ -95,14 +95,14 @@
   }
   // listen on the document: in 3D the board's near corners can project a few px outside #boardWrap's box
   document.addEventListener('pointerdown', function (e) {
-    if (!wrapEl.contains(e.target) && (!(window.SGView && SGView.pick) || (e.target.closest && e.target.closest('button, a, input, select, .modal, header')))) return;
+    if (!wrapEl.contains(e.target) && (!(window.SGView && SGView.pick) || (e.target.closest && e.target.closest('button, a, input, select, .modal, header')))) { if (DEBUG && e.target.closest && !e.target.closest('.modal')) dlog('ignored', 'press outside board on ' + (e.target.id || e.target.className || e.target.tagName)); return; }
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     if (e.pointerType !== 'touch') lastTouchEnd = -1e9;          // a real mouse/pen press after a touch: its click is genuine
     // a tap during a battle only skips it: it is swallowed (no select), along with its echo click
     if (window.SGView && SGView.battling()) { viewSkip(); skipPtr = e.pointerId; dlog('ok', 'battle skipped'); return; }
     // Rounded board corners / hairline gaps: fall back to the nearest cell.
     var t = e.target.closest('.cell'), i0 = (window.SGView && SGView.pick) ? cellNear(e.clientX, e.clientY) : t ? +t.dataset.i : cellNear(e.clientX, e.clientY);
-    if (i0 < 0) return;
+    if (i0 < 0) { if (DEBUG) dlog('ignored', 'press off the board (' + Math.round(e.clientX) + ',' + Math.round(e.clientY) + ')'); return; }
     t = cells[i0];
     if (down) cancelPress('second finger');
     ghosts = [];                                           // a new press means any pending echo click is stale

@@ -17,7 +17,9 @@ const pick = a => a[Math.floor(Math.random() * a.length)];
   const cdp = await ctx.newCDPSession(page);
   const R = { taps: 0, dropped: 0, byType: {}, drops: [], kinds: {} };
   // SGDebug.cellCenter: the real projected square in 3D (a trapezoid: its bounding box is wider/taller than the square), the box in 2D
-  const geo = i => page.evaluate(i => { const c = SGDebug.cellCenter(i); return [c.x, c.y, c.w, c.h]; }, i);
+  // aim from the play pose: during a Full capture the camera is pushed in, so geometry read mid-battle points at the wrong
+  // squares once the battle ends (a tap that lands during the battle still just skips it, which is counted separately)
+  const geo = i => page.evaluate(async i => { for (let k = 0; k < 150 && window.SGView && SGView.battling(); k++) await new Promise(r => setTimeout(r, 20)); const c = SGDebug.cellCenter(i); return [c.x, c.y, c.w, c.h]; }, i);
   let maxDrift = 0;
   async function tapCell(i, type) {
     const [x, y, w, hh] = await geo(i); const h = hh || w;
