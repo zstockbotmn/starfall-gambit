@@ -16,15 +16,15 @@ const pick = a => a[Math.floor(Math.random() * a.length)];
   await page.evaluate(() => { localStorage.setItem('sg_seen_rules', '1'); document.querySelectorAll('.modal').forEach(m => m.classList.add('hidden')); });
   const cdp = await ctx.newCDPSession(page);
   const R = { taps: 0, dropped: 0, byType: {}, drops: [], kinds: {} };
-  const geo = i => page.$eval(`.cell[data-i="${i}"]`, e => { const r = e.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2, r.width]; });
+  const geo = i => page.$eval(`.cell[data-i="${i}"]`, e => { const r = e.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2, r.width, r.height]; });
   let maxDrift = 0;
   async function tapCell(i, type) {
-    const [x, y, w] = await geo(i);
+    const [x, y, w, hh] = await geo(i); const h = hh || w;
     // start near the centre, then drift up to 0.48 cell in a random direction, staying inside the square
-    const sx = x + rnd(-0.12, 0.12) * w, sy = y + rnd(-0.12, 0.12) * w;
+    const sx = x + rnd(-0.12, 0.12) * w, sy = y + rnd(-0.12, 0.12) * h;
     let L = rnd(0, 0.48) * w; const ang = rnd(0, 2 * Math.PI);
     let ex, ey;
-    for (;;) { ex = sx + L * Math.cos(ang); ey = sy + L * Math.sin(ang); if (Math.abs(ex - x) < 0.47 * w && Math.abs(ey - y) < 0.47 * w) break; L *= 0.9; }
+    for (;;) { ex = sx + L * Math.cos(ang); ey = sy + L * Math.sin(ang); if (Math.abs(ex - x) < 0.47 * w && Math.abs(ey - y) < 0.47 * h) break; L *= 0.9; }
     maxDrift = Math.max(maxDrift, L / w);
     const hold = pick([0, 15, 40, 90, 180, 350]);
     if (type === 'touch') {
@@ -68,7 +68,7 @@ const pick = a => a[Math.floor(Math.random() * a.length)];
       R.maxRedWaitMs = Math.max(R.maxRedWaitMs || 0, Date.now() - t0);
     } catch (e) { console.error('STUCK', JSON.stringify(await page.evaluate(() => ({ s: SGDebug.state(), busy: SGDebug.busy(), stats: SGDebug.stats(), log: document.getElementById('tapLog').textContent, modal: !document.getElementById('overModal').classList.contains('hidden') })))); throw e; }
   }
-  function drop(kind, info) { R.dropped++; R.drops.push({ kind, ...info }); }
+  async function drop(kind, info) { R.dropped++; let log = ''; try { log = await page.evaluate(() => (document.getElementById('tapLog') || {}).textContent || ''); } catch (e) {} R.drops.push({ kind, ...info, log }); }
   for (let g = 0; g < GAMES; g++) {
     await page.evaluate(seed => SGDebug.setState(SG.newGame(seed)), 500 + g);
     let guard = 0;

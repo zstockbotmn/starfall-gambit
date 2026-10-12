@@ -20,11 +20,11 @@
      "tier": "low",
      "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
      "software": true,
-     "p50": 0,
-     "p90": 0,
-     "calls": 106,
-     "tris": 54631,
-     "frames": 1,
+     "p50": 50,
+     "p90": 50,
+     "calls": 64,
+     "tris": 63527,
+     "frames": 3,
      "battles": 0,
      "battling": false,
      "hazeTarget": 0,
@@ -53,7 +53,7 @@
        ]
       ]
      },
-     "fracLoaded": 7
+     "fracLoaded": 8
     }
    }
   },
@@ -79,9 +79,9 @@
      "software": true,
      "p50": 0,
      "p90": 0,
-     "calls": 106,
-     "tris": 54631,
-     "frames": 1,
+     "calls": 521,
+     "tris": 177802,
+     "frames": 2,
      "battles": 0,
      "battling": false,
      "hazeTarget": 0,
@@ -110,7 +110,7 @@
        ]
       ]
      },
-     "fracLoaded": 1
+     "fracLoaded": 8
     }
    }
   },
@@ -136,9 +136,9 @@
      "software": true,
      "p50": 0,
      "p90": 0,
-     "calls": 106,
-     "tris": 54631,
-     "frames": 1,
+     "calls": 521,
+     "tris": 177802,
+     "frames": 2,
      "battles": 0,
      "battling": false,
      "hazeTarget": 0,
@@ -167,7 +167,7 @@
        ]
       ]
      },
-     "fracLoaded": 6
+     "fracLoaded": 8
     }
    }
   },
@@ -193,9 +193,9 @@
      "software": true,
      "p50": 0,
      "p90": 0,
-     "calls": 106,
-     "tris": 54631,
-     "frames": 1,
+     "calls": 64,
+     "tris": 63527,
+     "frames": 2,
      "battles": 0,
      "battling": false,
      "hazeTarget": 0,
@@ -224,26 +224,26 @@
        ]
       ]
      },
-     "fracLoaded": 6
+     "fracLoaded": 8
     }
    }
   },
   "play-calls-high": {
-   "pass": false,
+   "pass": true,
    "info": {
-    "calls": 138,
-    "tris": 62238,
+    "calls": 90,
+    "tris": 73690,
     "tier": "high",
     "p50": 16.7,
-    "p90": 83.4
+    "p90": 16.7
    }
   },
   "play-calls-medium": {
    "pass": false,
    "info": {
-    "calls": 135,
-    "tris": 62220,
-    "p50": 0
+    "calls": 643,
+    "tris": 210660,
+    "p50": 16.6
    }
   },
   "auto-tier-software-low": {
@@ -251,10 +251,10 @@
    "info": {
     "tier": "low",
     "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
-    "calls": 106,
-    "tris": 54631,
-    "p50": 66.7,
-    "p90": 149.9
+    "calls": 64,
+    "tris": 63527,
+    "p50": 83.3,
+    "p90": 99.9
    }
   },
   "badge-vs-dot-390x844": {
@@ -321,27 +321,27 @@
    "pass": true,
    "info": {
     "hint": "",
-    "after": 752
+    "after": 749
    }
   },
   "battle-full-1.3s": {
-   "pass": true,
+   "pass": false,
    "info": {
-    "ms": 1423,
-    "startupMs": 269,
+    "ms": 2646,
+    "startupMs": 375,
     "planned": 1300,
     "kind": "full",
     "finale": false,
     "skipped": false,
     "shook": true,
-    "frameP90": 33.3
+    "frameP90": 50
    }
   },
   "battle-fast-0.5s": {
    "pass": true,
    "info": {
-    "ms": 684,
-    "startupMs": 515,
+    "ms": 679,
+    "startupMs": 662,
     "planned": 500,
     "kind": "fast",
     "finale": false,
@@ -352,7 +352,7 @@
   "battle-tap-to-skip": {
    "pass": true,
    "info": {
-    "ms": 0,
+    "ms": 272,
     "planned": 1300,
     "kind": "full",
     "finale": false,
@@ -362,8 +362,8 @@
   "battle-finale-2.5s": {
    "pass": true,
    "info": {
-    "ms": 20143,
-    "startupMs": 101,
+    "ms": 20226,
+    "startupMs": 137,
     "planned": 2500,
     "kind": "full",
     "finale": true,
@@ -377,8 +377,8 @@
   "battle-reduced-motion-no-shake": {
    "pass": true,
    "info": {
-    "ms": 472,
-    "startupMs": 2,
+    "ms": 413,
+    "startupMs": 144,
     "planned": 300,
     "kind": "reduced",
     "finale": false,
@@ -409,9 +409,9 @@
    "pass": true,
    "info": {
     "cache": [
-     "sg-dafa8fff5a"
+     "sg-3336ef26f5"
     ],
-    "entries": 33,
+    "entries": 36,
     "offline": {
      "state": "on",
      "cells": 36
@@ -420,7 +420,7 @@
   }
  },
  "fail": [
-  "play-calls-high",
-  "play-calls-medium"
+  "play-calls-medium",
+  "battle-full-1.3s"
  ]
 }

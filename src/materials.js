@@ -48,12 +48,16 @@ export function makeTextures(tier = 'high') { seed = 7; const T = {}; const s = 
 
 // AI hull textures (Grok Imagine -> tools/ai-textures.py): base colour + emissive maps on the ship hulls.
 export function loadHullTextures(base) { const L = new THREE.TextureLoader(), H = {};
-  const get = (k, f, srgb) => L.loadAsync(base + 'tex/' + f).then(t => { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(5, 5); t.anisotropy = 8; if (srgb) t.colorSpace = THREE.SRGBColorSpace; H[k] = t; });
-  return Promise.all([get('blue', 'blue-hull.webp', 1), get('blueE', 'blue-hull-emissive.webp', 1), get('red', 'red-hull.webp', 1), get('redE', 'red-hull-emissive.webp', 1)]).then(() => H, () => H); }
+  const get = (k, f, srgb, rep) => L.loadAsync(base + 'tex/' + f).then(t => { if (rep) { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(...rep); } t.anisotropy = 8; if (srgb) t.colorSpace = THREE.SRGBColorSpace; H[k] = t; });
+  const R = [4, 7.2];   // hull tiles are one period of the AI pattern (aspect 0.56) squeezed to 512x512: repeat v 1.8x u
+  return Promise.all([get('blue', 'blue-hull.webp', 1, R), get('blueE', 'blue-hull-emissive.webp', 1, R), get('red', 'red-hull.webp', 1, R), get('redE', 'red-hull-emissive.webp', 1, R),
+    get('skin', 'red-skin-top.webp', 1), get('skinE', 'red-skin-top-emissive.webp', 1), get('holo', 'holo-atlas.webp', 1)]).then(() => H, () => H); }
 export function applyHullTextures(M, H) {
-  if (H.blue) Object.assign(M.ceramic, { map: H.blue, emissive: new THREE.Color(0xffffff), emissiveMap: H.blueE, emissiveIntensity: 1.6 });
+  if (H.blue) Object.assign(M.ceramic, { map: H.blue, emissive: new THREE.Color(0xffffff), emissiveMap: H.blueE, emissiveIntensity: 1.4 });
   if (H.red) Object.assign(M.plate, { map: H.red, color: new THREE.Color(0xb8b4c4), emissive: new THREE.Color(0xffffff), emissiveMap: H.redE, emissiveIntensity: 2.2 });
-  M.ceramic.needsUpdate = M.plate.needsUpdate = true; }
+  if (H.skin) Object.assign(M.redSkin, { map: H.skin, emissiveMap: H.skinE });
+  if (H.holo) M.holoAtlas.map = H.holo;
+  for (const k of ['ceramic', 'plate', 'redSkin', 'holoAtlas']) M[k].needsUpdate = true; }
 export function makeMaterials(T, tier = 'high') { const hi = tier !== 'low';
   const Phys = hi ? THREE.MeshPhysicalMaterial : THREE.MeshStandardMaterial;
   const M = {
@@ -80,6 +84,8 @@ export function makeMaterials(T, tier = 'high') { const hi = tier !== 'low';
   };
   M.holoGlyph = new THREE.MeshBasicMaterial({ color: 0x8affff, map: T.glyph, transparent: true, opacity: .85, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, toneMapped: false });
   M.holoGlyphPink = M.holoGlyph.clone(); M.holoGlyphPink.color.set(0xff7ae8);
+  M.redSkin = new THREE.MeshStandardMaterial({ color: 0xd0ccd8, metalness: .55, roughness: .42, emissive: 0xffffff, emissiveIntensity: 2.4 });
+  M.holoAtlas = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: .95, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, toneMapped: false });
   M.holoPink = M.holo.clone(); M.holoPink.color.set(0xff6ae6); M.holoPink.opacity = .35;
   for (const [k, m] of Object.entries(M)) m.name = k;
   return M; }

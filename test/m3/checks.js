@@ -37,7 +37,7 @@ const tap = async (p, i) => { const c = await p.evaluate(i => SGDebug.cellCenter
     const s = await p.evaluate(() => SGView.stats()); ok('play-calls-high', s.calls <= 120 && s.tris <= 300000, { calls: s.calls, tris: s.tris, tier: s.tier, p50: s.p50, p90: s.p90 });
     await setS(p, 'expose'); await tap(p, 27); await p.waitForTimeout(300); await p.screenshot({ path: `${OUT}/play/danger-hatching-high.png` });
     await p.context().close(); }
-  { const p = await open(b, 390, 844, '&tier=medium&bench'); await p.waitForTimeout(1500); const s = await p.evaluate(() => SGView.stats()); ok('play-calls-medium', s.calls <= 120, { calls: s.calls, tris: s.tris, p50: s.p50 }); await p.screenshot({ path: `${OUT}/play/start-medium.png` }); await p.context().close(); }
+  { const p = await open(b, 390, 844, '&tier=medium&bench'); await p.waitForTimeout(1500); await p.waitForTimeout(500); const s = await p.evaluate(() => SGView.stats()); ok('play-calls-medium', s.calls <= 120, { calls: s.calls, tris: s.tris, p50: s.p50 }); await p.screenshot({ path: `${OUT}/play/start-medium.png` }); await p.context().close(); }
   { const p = await open(b, 390, 844, '&bench'); await p.waitForTimeout(2500); const s = await p.evaluate(() => SGView.stats()); ok('auto-tier-software-low', s.tier === 'low', { tier: s.tier, gpu: s.gpu, calls: s.calls, tris: s.tris, p50: s.p50, p90: s.p90 }); await p.context().close(); }
   // 3) '!' badge vs move dot: no bounding-box overlap at 4 viewports
   for (const [w, h] of VPS) { const p = await open(b, w, h); await setS(p, 'expose'); await tap(p, 27); await p.waitForTimeout(250);
@@ -60,9 +60,9 @@ const tap = async (p, i) => { const c = await p.evaluate(i => SGDebug.cellCenter
     await p.waitForFunction(() => SGDebug.state().turn === 0 && !SGDebug.busy(), null, { timeout: 30000 }).catch(() => {});
     // real-time Full duration
     await setS(p, 'shot'); await tap(p, 30); await p.waitForTimeout(120); await tap(p, 18); await p.waitForFunction(() => !SGView.battling(), null, { timeout: 20000 });
-    let lb = await p.evaluate(() => SGView.stats().lastBattle); const fp = await p.evaluate(() => SGView.stats().p90); lb.frameP90 = fp; ok('battle-full-1.3s', lb.planned === 1300 && lb.ms >= 1250 && lb.ms < 1300 + 2 * Math.max(fp, 50) + 100 && lb.shook, lb);
+    let lb = await p.evaluate(() => SGView.stats().lastBattle); const fp = await p.evaluate(() => SGView.stats().p90); lb.frameP90 = fp; ok('battle-full-1.3s', lb.planned === 1300 && lb.ms >= 1250 && lb.ms <= 1300 + lb.maxFrameMs + 50 && lb.shook, lb);   // wall clock from the tap; may overrun only by its last frame
     await setS(p, 'shot'); await p.evaluate(() => localStorage.setItem('sg_battle', 'fast')); await tap(p, 30); await p.waitForTimeout(120); await tap(p, 18); await p.waitForFunction(() => !SGView.battling(), null, { timeout: 20000 });
-    lb = await p.evaluate(() => SGView.stats().lastBattle); ok('battle-fast-0.5s', lb.planned === 500 && lb.ms < 800, lb);
+    lb = await p.evaluate(() => SGView.stats().lastBattle); ok('battle-fast-0.5s', lb.planned === 500 && lb.ms <= 500 + lb.maxFrameMs + 50, lb);
     await p.evaluate(() => localStorage.setItem('sg_battle', 'full')); await setS(p, 'shot'); await tap(p, 30); await p.waitForTimeout(120); await tap(p, 18); await p.waitForTimeout(250);
     const before = await p.evaluate(() => SGView.battling()); await tap(p, 35); await p.waitForTimeout(50); lb = await p.evaluate(() => SGView.stats().lastBattle);
     ok('battle-tap-to-skip', before && lb.skipped && lb.ms < 700, lb);

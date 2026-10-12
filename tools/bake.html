@@ -14,7 +14,10 @@ function bakeGroup(g) { g.updateMatrixWorld(true); const bySlot = {};
     if (!geo.attributes.uv) geo.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array(geo.attributes.position.count * 2), 2));
     (bySlot[o.userData.slot] ||= []).push(geo); });
   const out = new THREE.Group(); out.name = g.name; let tris = 0;
-  for (const [slot, list] of Object.entries(bySlot)) { const m = mergeVertices(mergeGeometries(list), 1e-4); tris += m.index.count / 3;
+  for (const [slot, list] of Object.entries(bySlot)) { const mg = mergeGeometries(list);
+    if (slot === 'redSkin') { mg.computeBoundingBox(); const bb = mg.boundingBox, p = mg.attributes.position, uv = mg.attributes.uv;   // planar top-down projection of the AI reference (nose = -z = image left)
+      for (let k = 0; k < p.count; k++) uv.setXY(k, (p.getZ(k) - bb.min.z) / (bb.max.z - bb.min.z), (p.getX(k) - bb.min.x) / (bb.max.x - bb.min.x)); }
+    const m = mergeVertices(mg, 1e-4); tris += m.index.count / 3;
     const mesh = new THREE.Mesh(m, new THREE.MeshStandardMaterial({ name: slot })); mesh.name = g.name + '_' + slot; out.add(mesh); }
   return { out, tris, slots: Object.keys(bySlot).length }; }
 async function glb(obj) { return new Promise((res, rej) => new GLTFExporter().parse(obj, r => res(r), rej, { binary: true })); }

@@ -1,29 +1,26 @@
-# AI hull textures (Grok Imagine, assets/src-ai/*-hull.jpg) -> seamless square webp base-colour + emissive maps in assets/tex/.
-# 16:9 -> centre square crop -> seamless (half-offset + feathered cross blend with the original) -> 512 px webp; emissive = neon pixels only.
-import numpy as np
+# AI images (Grok Imagine, assets/src-ai/) -> runtime textures in assets/tex/.
+# Hull panels: the source images are already periodic (2x2 repeats), so we find the exact period by autocorrelation and
+# crop ONE period: seamless by construction (no blending -> no double lines). 512x512 webp + emissive (neon pixels only).
+# Red flagship top reference -> 'redSkin' planar texture on Red hull tops; hologram 4x4 sheet -> additive hologram atlas.
+import numpy as np, os, json
 from PIL import Image, ImageFilter
-import os
-os.makedirs('assets/tex', exist_ok=True)
-def seamless(a):
-    n = a.shape[0]; r = np.roll(np.roll(a, n // 2, 0), n // 2, 1)
-    x = np.abs(np.arange(n) - n / 2) / (n / 2)                # 0 at centre, 1 at edges
-    w = np.clip((np.maximum.outer(x, x) - .55) / .4, 0, 1)    # rolled image near its own edges? no: original edges sit at rolled centre
-    m = 1 - np.clip((1 - np.minimum.outer(x, x)) * 0, 0, 1)
-    # rolled image is seamless at the borders but has the old seams through its centre cross; cover that cross with the (unrolled) original
-    cross = np.clip(1 - np.minimum.outer(x, x) / .12, 0, 1)   # 1 on the centre lines
-    cross = np.array(Image.fromarray((cross * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(n / 40))) / 255.
-    return (r * (1 - cross[..., None]) + a * cross[..., None]).astype(np.uint8)
-out = {}
-for side, f in [('red', 'red-hull.jpg'), ('blue', 'blue-hull.jpg')]:
-    im = Image.open('assets/src-ai/' + f).convert('RGB'); W, H = im.size; s = min(W, H)
-    sq = np.array(im.crop(((W - s) // 2, (H - s) // 2, (W + s) // 2, (H + s) // 2)))
-    t = Image.fromarray(seamless(sq)).resize((512, 512), Image.LANCZOS)
-    a = np.asarray(t).astype(float) / 255; mx, mn = a.max(2), a.min(2); sat = (mx - mn) / (mx + 1e-6)
-    neon = (sat > (.3 if side == 'red' else .35)) & (mx > (.28 if side == 'red' else .35))
-    if side == 'blue': neon &= (a[..., 1] > a[..., 0] + .08)   # teal light strips only (not the gold inlay)
-    e = (a * neon[..., None] * 255).astype(np.uint8)
-    t.save(f'assets/tex/{side}-hull.webp', quality=82); Image.fromarray(e).filter(ImageFilter.GaussianBlur(.6)).save(f'assets/tex/{side}-hull-emissive.webp', quality=80)
-    # tiling proof: 2x2
-    tt = Image.new('RGB', (1024, 1024)); [tt.paste(t, (x, y)) for x in (0, 512) for y in (0, 512)]; tt.save(f'screenshots/m3/assets/{side}-hull-tiled-2x2.png')
-    out[side] = {k: os.path.getsize(f'assets/tex/{side}-hull{k}.webp') for k in ('', '-emissive')}
-print(out)
+os.makedirs('assets/tex', exist_ok=True); info = {}
+def period(a, lo_x=200, lo_y=150):
+    g = a.mean(2); g = g - g.mean(); F = np.fft.fft2(g); ac = np.real(np.fft.ifft2(F * np.conj(F))); H, W = g.shape
+    return int(np.argmax(ac[0, lo_x:W - 100]) + lo_x), int(np.argmax(ac[lo_y:H - 100, 0]) + lo_y)
+def emissive(a, side):
+    mx, mn = a.max(2), a.min(2); sat = (mx - mn) / (mx + 1e-6)
+    neon = (sat > (.3 if side != 'blue' else .35)) & (mx > (.28 if side != 'blue' else .35))
+    if side == 'blue': neon &= (a[..., 1] > a[..., 0] + .08)
+    return Image.fromarray((a * neon[..., None] * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(.6))
+for side in ['blue', 'red']:
+    im = np.asarray(Image.open(f'assets/src-ai/{side}-hull.jpg').convert('RGB')); px, py = period(im)
+    tile = Image.fromarray(im[:py, :px]).resize((512, 512), Image.LANCZOS); a = np.asarray(tile).astype(float) / 255
+    tile.save(f'assets/tex/{side}-hull.webp', quality=82); emissive(a, side).save(f'assets/tex/{side}-hull-emissive.webp', quality=80)
+    th = int(512 * py / px); tt = Image.new('RGB', (1024, th * 2)); [tt.paste(tile.resize((512, th)), (x, y)) for x in (0, 512) for y in (0, th)]
+    tt.save(f'screenshots/m3/assets/{side}-hull-tiled-2x2.png'); info[side] = {'period': [px, py], 'aspect': py / px}
+ref = Image.open('assets/src-ai/red-flagship-ref.jpg').convert('RGB'); W, H = ref.size
+top = ref.crop((int(.02 * W), int(.41 * H), int(.98 * W), int(.92 * H))).resize((1024, 512), Image.LANCZOS)
+top.save('assets/tex/red-skin-top.webp', quality=80); emissive(np.asarray(top).astype(float) / 255, 'red').save('assets/tex/red-skin-top-emissive.webp', quality=80)
+ho = Image.open('assets/src-ai/red-holo-sprites.jpg').convert('RGB').resize((1024, 576), Image.LANCZOS); ho.save('assets/tex/holo-atlas.webp', quality=82)
+json.dump(info, open('assets/tex/tex-info.json', 'w')); print(info, {f: os.path.getsize('assets/tex/' + f) for f in os.listdir('assets/tex')})

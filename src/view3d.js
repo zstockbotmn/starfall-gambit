@@ -41,7 +41,7 @@ export async function start(opts = {}) {
   const IDS = ['bF', 'bD', 'bL', 'bS', 'rF', 'rD', 'rL', 'rS'], proto = {}, frac = {};
   const skyP = new THREE.TextureLoader().loadAsync(base + (tier === 'low' ? 'sky_low' : 'sky') + '.webp');
   await Promise.all([...IDS.map(async id => { proto[id] = await load(id + '_lod1'); }), load('board_lod1').then(b => proto.board = b)]);
-  Promise.all(IDS.map(async id => { frac[id] = await load(id + '_frac'); })).catch(() => {});      // explosion pieces stream in after first paint
+  const fracP = Promise.all(IDS.map(async id => { frac[id] = await load(id + '_frac'); })).catch(() => {});      // explosion pieces stream in after first paint
   applyHullTextures(M, await loadHullTextures(base));
   const sky = await skyP; sky.colorSpace = THREE.SRGBColorSpace; sky.mapping = THREE.EquirectangularReflectionMapping;
 
@@ -125,7 +125,14 @@ export async function start(opts = {}) {
   // ---------- ships ----------
   const shown = {};   // cell -> { id, obj }
   const root = new THREE.Group(); scene.add(root);
-  function makeShip(id) { const o = proto[id].clone(); o.scale.setScalar(SHIP_SCALE); if (id[0] === 'r') o.rotation.y = Math.PI; o.userData.id = id; o.userData.phase = Math.random() * 6; return o; }
+  // Batching: every (ship type, material slot) is ONE InstancedMesh; a ship on the board is an empty Object3D whose matrix feeds the instances.
+  const batch = {}, m4b = new THREE.Matrix4();
+  for (const id of IDS) { proto[id].updateMatrixWorld(true); batch[id] = []; proto[id].traverse(m => { if (!m.isMesh) return; const im = new THREE.InstancedMesh(m.geometry, m.material, 4);
+    im.count = 0; im.castShadow = m.castShadow; im.receiveShadow = m.receiveShadow; im.frustumCulled = false; scene.add(im); batch[id].push({ im, local: m.matrixWorld.clone() }); }); }
+  function updateBatches() { root.updateMatrixWorld(true); const per = {}; for (const s of Object.values(shown)) if (s.obj.visible) (per[s.id] ||= []).push(s.obj);
+    for (const id of IDS) { const objs = per[id] || []; for (const e of batch[id]) { objs.forEach((o, n) => { m4b.multiplyMatrices(o.matrixWorld, e.local); e.im.setMatrixAt(n, m4b); }); e.im.count = objs.length; e.im.instanceMatrix.needsUpdate = true; } } }
+  function makeShipMesh(id) { const o = proto[id].clone(); o.scale.setScalar(SHIP_SCALE); if (id[0] === 'r') o.rotation.y = Math.PI; return o; }
+  function makeShip(id) { const o = new THREE.Object3D(); o.scale.setScalar(SHIP_SCALE); if (id[0] === 'r') o.rotation.y = Math.PI; o.userData.id = id; o.userData.phase = Math.random() * 6; return o; }
   function place(o, i) { const p = cellPos(i); o.position.set(p.x, SHIP_Y, p.z); o.userData.cell = i; }
   const idOf = pc => pc ? (pc.s === 0 ? 'b' : 'r') + pc.t : null;
   let lastSt = null, lastUi = null, battle = null; const idle = [];
@@ -202,7 +209,7 @@ export async function start(opts = {}) {
         const rg = ring(to, loser === 'r' ? 0xff7a2e : 0x9ff8ff, .1, 1.2); over(P.i, P.i + .3, (u, dt) => rg.upd(dt, u)); }
       // 4 destruction: swap in pre-broken pieces of the loser
       B.visible = false; const ch = kind === 'reduced' ? [] : debris(B.position.clone(), bId, loser); over(P.i, 1, (u, dt) => ch.forEach(c => c.upd(dt, u)));
-      if (kind === 'reduced') { const g = makeShip(bId); g.position.copy(B.position); fx.add(g); over(P.i, 1, u => g.scale.setScalar(SHIP_SCALE * (1 - u))); burst(hit, 12, col.spark, .6, 300, .5, .04); }
+      if (kind === 'reduced') { const g = makeShipMesh(bId); g.position.copy(B.position); fx.add(g); over(P.i, 1, u => g.scale.setScalar(SHIP_SCALE * (1 - u))); burst(hit, 12, col.spark, .6, 300, .5, .04); }
       else if (loser === 'r') { const n = finale ? 9 : 5; for (let k = 0; k < n; k++) { const d = finale ? k * .05 : 0; const f = sprite(fireTex, k % 2 ? 0xff7a2e : 0xffb05a, hit.clone().add(new THREE.Vector3((Math.random() - .5) * .4, Math.random() * .2, (Math.random() - .5) * .4)), .05); f.material.opacity = 0;
           over(P.i + d, Math.min(1, P.i + d + .35), u => { f.material.opacity = 1 - u; f.scale.setScalar(.2 + .9 * u); }); const sm = sprite(smokeTex, 0x302838, hit.clone(), .1, THREE.NormalBlending, 0); over(P.i + .08 + d, 1, u => { sm.material.opacity = .6 * Math.sin(Math.PI * u); sm.scale.setScalar(.3 + .8 * u); sm.position.y = SHIP_Y + u * .6; }); }
         const mc = burst(hit, 80, 0xff2bd6, 1.8, 500, 1, .04); over(P.i, P.e, (u, dt) => mc.upd(dt, u)); }
@@ -211,28 +218,34 @@ export async function start(opts = {}) {
     });
     // 5 return: attacker settles on its square (moving captures) — the camera never left the play pose (shake is a 2D view offset)
     if (moving) over(P.e, 1, u => A.position.lerpVectors(to.clone().sub(from).multiplyScalar(.82).add(from), to, u));
-    return new Promise(res => { battle = { t0: null, called: now(), T, ev, ups, prevU: 0, res, A, from, to, moving, kind, finale, mode: kind }; }), T; }
-  function battleEnd() { if (!battle) return; const b = battle; battle = null; fx.clear(); const bt0 = b.t0 === null ? now() : b.t0; stats.lastBattle = { ms: Math.round(now() - bt0), startupMs: b.startup, planned: b.T, kind: b.kind, finale: b.finale, skipped: now() - bt0 < b.T * (window.SG3D_TS || 1) - 30, shook: b.shook }; impactLight.intensity = 0; shake = 0; applyOffset(0, 0);
+    return new Promise(res => { battle = { t0: now(), called: now(), T, ev, ups, prevU: 0, res, A, from, to, moving, kind, finale, mode: kind }; }), T; }
+  function battleEnd() { if (!battle) return; const b = battle; battle = null; fx.clear(); const bt0 = b.t0 === null ? now() : b.t0; stats.lastBattle = { ms: Math.round(now() - bt0), startupMs: b.startup, maxFrameMs: Math.round(b.maxDt || 0), planned: b.T, kind: b.kind, finale: b.finale, skipped: now() - bt0 < b.T * (window.SG3D_TS || 1) - 30, shook: b.shook }; impactLight.intensity = 0; shake = 0; applyOffset(0, 0);
     document.body.classList.remove('sg-battle'); haze.forEach(h => h.material.opacity = .28);
     // the captured ship is gone; the attacker (if it moved) now belongs to the target square
     for (const k of Object.keys(shown)) if (shown[k].obj === b.A && b.moving) { delete shown[k]; root.remove(b.A); }
     stats.battles++; b.res && b.res(); if (lastSt) sync(lastSt, lastUi); idle.splice(0).forEach(f => { try { f(); } catch (e) { console.error(e); } }); }
-  function battleTick(t) { if (battle.t0 === null) { battle.t0 = t; battle.startup = Math.round(t - battle.called); } const b = battle, ts = window.SG3D_TS || 1, u = Math.min(1, (t - b.t0) / (b.T * ts)), dtS = Math.min(.05, (t - (b.lastT || b.t0)) / 1000) / ts; b.lastT = t;
+  function battleTick(t) { if (battle.startup === undefined) battle.startup = Math.round(t - battle.called); const b = battle; b.maxDt = Math.max(b.maxDt || 0, t - (b.lastT || b.called)); const ts = window.SG3D_TS || 1, u = Math.min(1, (t - b.t0) / (b.T * ts)), dtS = Math.min(.05, (t - (b.lastT || b.t0)) / 1000) / ts; b.lastT = t;
     for (const e of b.ev) if (!e.done && u >= e.u) { e.done = true; e.fn(); }
     for (const p of b.ups) if (u >= p.u0 && b.prevU <= p.u1) { const lu = p.u1 > p.u0 ? Math.min(1, Math.max(0, (u - p.u0) / (p.u1 - p.u0))) : 1; p.fn(lu, dtS); }
     b.prevU = u; if (u >= 1) battleEnd(); }
 
   // ---------- loop (on-demand: 30 fps idle cap, full rate while animating) ----------
-  const bench = /bench/.test(Q); let dirty = true, lastFrame = 0, contextLost = false; const ft = [], stats = { frames: 0, battles: 0 };
+  const bench = /bench/.test(Q); let pressing = false;
+  addEventListener('pointerdown', () => { pressing = true; }, true); for (const ev of ['pointerup', 'pointercancel']) addEventListener(ev, () => { pressing = false; dirty = true; }, true);
+  let dirty = true, lastFrame = 0, contextLost = false; const ft = [], stats = { frames: 0, battles: 0 };
   function frame(t) { requestAnimationFrame(frame); if (contextLost || document.hidden) return;
-    const anim = bench || battle || Object.values(shown).some(s => s.obj.userData.glide); if (!anim && !dirty && t - lastFrame < 33) return;
+    const anim = bench || battle || Object.values(shown).some(s => s.obj.userData.glide);
+    // Input first: no idle frames while a finger is down (a slow GPU frame must never delay pointer events and turn a swipe into a
+    // 0.5 s hold), and on the Low tier the scene is static between changes (no idle bob), so the main thread stays free for taps.
+    if (!anim && (pressing || (tier === 'low' && !dirty))) return;
+    if (!anim && !dirty && t - lastFrame < 33) return;
     const dt = t - lastFrame; lastFrame = t; dirty = false; if (dt < 200) { ft.push(dt); if (ft.length > 120) ft.shift(); }
     if (battle) battleTick(t);
     for (const s of Object.values(shown)) { const o = s.obj, g = o.userData.glide; if (g) { const u = Math.min(1, (t - g.t0) / g.d); o.position.lerpVectors(g.a, g.b, u * u * (3 - 2 * u)); if (u >= 1) delete o.userData.glide; }
       else if (!reduced() && !(battle && o === battle.A)) o.position.y = SHIP_Y + Math.sin(t / 900 + o.userData.phase) * .012; }
     if (!reduced()) { T.scan.offset.y = (t / 4000) % 1; if (rain.visible) rain.position.y = -((t / 900) % 1) * .6; }
     if (shake) { const e = (t - shakeT0) / 180; if (e >= 1) { shake = 0; applyOffset(0, 0); } else { const a = view.H * .006 * (1 - e); applyOffset((Math.random() - .5) * 2 * a, (Math.random() - .5) * 2 * a); } }
-    renderer.info.reset(); composer.render(); stats.frames++; if (autoTier) autoTune(); if (hud) drawHud(); }
+    updateBatches(); renderer.info.reset(); composer.render(); stats.frames++; if (autoTier) autoTune(); if (hud) drawHud(); }
   let tuneFrames = 0; function autoTune() { if (++tuneFrames % 90) return; const s = [...ft].sort((a, b) => a - b), p50 = s[s.length >> 1];
     const cap = battle ? 18 : 36;   // idle frames are capped at ~33 ms
     if (p50 > cap * 1.15 && tier !== 'low') { tier = tier === 'high' ? 'medium' : 'low'; try { sessionStorage.setItem('sg_auto_tier', tier); } catch (e) {} applyTier(); } }
@@ -244,14 +257,18 @@ export async function start(opts = {}) {
 
   const ro = new ResizeObserver(() => { fit(); }); addEventListener('resize', fit); addEventListener('orientationchange', () => setTimeout(fit, 200));
   if (sessionStorage.getItem && autoTier) { const s = sessionStorage.getItem('sg_auto_tier'); if (s && TIERS[s] && (s === 'low' || (s === 'medium' && tier === 'high'))) tier = s; }
+  function prewarm() {   // compile every VFX / debris shader once, so a battle's first frame does not stall on shader compilation
+    const at0 = new THREE.Vector3(0, -5, 0); sprite(T.softDot, 0xffffff, at0, .1); sprite(smokeTex, 0x302838, at0, .1, THREE.NormalBlending, .5); burst(at0, 4, 0xffffff, 1, 100);
+    beamMesh(at0, at0.clone().setY(-4), 0xffffff, 0x43f7e2, .02); ring(at0, 0xffffff, .1, .2); for (const id of IDS) { if (frac[id]) fx.add(frac[id].clone()); fx.add(makeShipMesh(id)); }
+    fx.traverse(o => o.frustumCulled = false); try { renderer.compile(scene, camera); composer.render(); } catch (e) {} fx.clear(); renderer.info.reset(); dirty = true; }
   document.body.classList.add('v3d'); applyTier(); ro.observe(document.getElementById('boardWrap'));
-  requestAnimationFrame(frame);
+  prewarm(); fracP.then(() => { if (!battle) prewarm(); }); requestAnimationFrame(frame);
   const api = window.SGView = {
     sync, battle: (p, m, n) => { const r = battleStart(p, m, n); return r; }, battling: () => !!battle, skip: () => battleEnd(), onIdle: f => battle ? idle.push(f) : f(),
     cellCenter: i => { const r = cells[i].getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2, w: r.width, h: r.height }; },
     project: (i, y = 0) => { const p = cellPos(i).setY(y); camera.updateMatrixWorld(); return project(p); },
     stats: () => { const s = [...ft].sort((a, b) => a - b), p = q => +(s[Math.floor(s.length * q)] || 0).toFixed(1); return { tier, gpu, software, p50: p(.5), p90: p(.9), calls: renderer.info.render.calls, tris: renderer.info.render.triangles, frames: stats.frames, battles: stats.battles, lastBattle: stats.lastBattle, battling: !!battle, hazeTarget: battle ? haze.filter(h => h.material.opacity < .2).length : 0, fit: fitInfo, fracLoaded: Object.keys(frac).length }; },
-    setTier: t => { tier = t; applyTier(); }, disable, renderNow: () => { dirty = true; composer.render(); },
+    setTier: t => { tier = t; applyTier(); }, disable, renderNow: () => { dirty = true; updateBatches(); composer.render(); },
   };
   window.SGGame && window.SGGame.render(); fit();
   return api; }

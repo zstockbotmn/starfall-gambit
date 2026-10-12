@@ -57,35 +57,7 @@
   },
   "errs": []
  },
- "fleet-blue": {
-  "info": {
-   "calls": 1,
-   "tris": 1
-  },
-  "errs": []
- },
- "fleet-red": {
-  "info": {
-   "calls": 1,
-   "tris": 1
-  },
-  "errs": []
- },
  "board": {
-  "info": {
-   "calls": 1,
-   "tris": 1
-  },
-  "errs": []
- },
- "board-low": {
-  "info": {
-   "calls": 1,
-   "tris": 1
-  },
-  "errs": []
- },
- "backdrop": {
   "info": {
    "calls": 1,
    "tris": 1
