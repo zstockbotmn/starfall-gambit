@@ -1,20 +1,20 @@
 {
- "version": "f450d70afb",
+ "version": "2eb552b604",
  "bundle": {
-  "raw": 721260,
-  "gzip": 188053
+  "raw": 721509,
+  "gzip": 188169
  },
  "shell": {
-  "raw": 815484,
-  "gzip": 218903
+  "raw": 815798,
+  "gzip": 219034
  },
  "firstScreen": {
-  "raw": 1380412,
-  "gzip": 651369
+  "raw": 1380726,
+  "gzip": 651500
  },
  "allPrecached": {
-  "raw": 1922340,
-  "gzip": 921479
+  "raw": 1922654,
+  "gzip": 921610
  },
  "repoAssetsTotal": 1515752
 }

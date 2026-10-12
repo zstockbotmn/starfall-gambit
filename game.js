@@ -420,7 +420,7 @@
       stats: function () { return JSON.parse(JSON.stringify(stats)); },
       busy: function () { return busy; },
       view: function () { return window.SGView ? '3d' : '2d'; },
-      cellCenter: function (i) { var r = cells[i].getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2, w: r.width, h: r.height }; }
+      cellCenter: function (i) { if (window.SGView && SGView.cellSize) return SGView.cellSize(i); var r = cells[i].getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2, w: r.width, h: r.height }; }
     };
   }
   start();

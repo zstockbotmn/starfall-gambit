@@ -266,6 +266,9 @@ export async function start(opts = {}) {
   const api = window.SGView = {
     sync, battle: (p, m, n) => { const r = battleStart(p, m, n); return r; }, battling: () => !!battle, skip: () => battleEnd(), onIdle: f => battle ? idle.push(f) : f(),
     cellCenter: i => { const r = cells[i].getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2, w: r.width, h: r.height }; },
+    // true projected square (a trapezoid): centre, width along its middle line, height along its middle column
+    cellSize: i => { camera.updateMatrixWorld(); const c = cellPos(i), q = (dx, dz) => project(new THREE.Vector3(c.x + dx, 0, c.z + dz)); const L = q(-.5, 0), R = q(.5, 0), T = q(0, -.5), B = q(0, .5), C = q(0, 0);
+      return { x: C[0], y: C[1], w: Math.hypot(R[0] - L[0], R[1] - L[1]), h: Math.hypot(B[0] - T[0], B[1] - T[1]) }; },
     project: (i, y = 0) => { const p = cellPos(i).setY(y); camera.updateMatrixWorld(); return project(p); },
     stats: () => { const s = [...ft].sort((a, b) => a - b), p = q => +(s[Math.floor(s.length * q)] || 0).toFixed(1); return { tier, gpu, software, p50: p(.5), p90: p(.9), calls: renderer.info.render.calls, tris: renderer.info.render.triangles, frames: stats.frames, battles: stats.battles, lastBattle: stats.lastBattle, battling: !!battle, hazeTarget: battle ? haze.filter(h => h.material.opacity < .2).length : 0, fit: fitInfo, fracLoaded: Object.keys(frac).length }; },
     setTier: t => { tier = t; applyTier(); }, disable, renderNow: () => { dirty = true; updateBatches(); composer.render(); },

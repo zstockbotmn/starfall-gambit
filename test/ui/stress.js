@@ -16,7 +16,8 @@ const pick = a => a[Math.floor(Math.random() * a.length)];
   await page.evaluate(() => { localStorage.setItem('sg_seen_rules', '1'); document.querySelectorAll('.modal').forEach(m => m.classList.add('hidden')); });
   const cdp = await ctx.newCDPSession(page);
   const R = { taps: 0, dropped: 0, byType: {}, drops: [], kinds: {} };
-  const geo = i => page.$eval(`.cell[data-i="${i}"]`, e => { const r = e.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2, r.width, r.height]; });
+  // SGDebug.cellCenter: the real projected square in 3D (a trapezoid: its bounding box is wider/taller than the square), the box in 2D
+  const geo = i => page.evaluate(i => { const c = SGDebug.cellCenter(i); return [c.x, c.y, c.w, c.h]; }, i);
   let maxDrift = 0;
   async function tapCell(i, type) {
     const [x, y, w, hh] = await geo(i); const h = hh || w;
@@ -144,9 +145,9 @@ const pick = a => a[Math.floor(Math.random() * a.length)];
     const kind = pick(['borderDrift', 'borderDrift', 'edgeLift', 'retap160', 'cornerTap']);
     const type = pick(['touch', 'touch', 'mouse']);
     if (kind === 'borderDrift') {
-      const i = pick(own), [x, y, w] = await geo(i), ang = pick([0, Math.PI / 2, Math.PI, -Math.PI / 2, Math.PI / 4, -3 * Math.PI / 4]);
+      const i = pick(own), [x, y, w, h] = await geo(i), ang = pick([0, Math.PI / 2, Math.PI, -Math.PI / 2, Math.PI / 4, -3 * Math.PI / 4]);
       const st0 = rnd(0.36, 0.46), L = rnd(0.12, 0.235);       // starts near the border, crosses it, total < 0.25 cell
-      const dx = Math.cos(ang), dy = Math.sin(ang), sx = x + dx * st0 * w, sy = y + dy * st0 * w;
+      const dx = Math.cos(ang), dy = Math.sin(ang), sx = x + dx * st0 * w, sy = y + dy * st0 * (h || w);
       const pts = [[sx, sy], [sx + dx * L * w / 2, sy + dy * L * w / 2], [sx + dx * L * w, sy + dy * L * w]];
       await (type === 'touch' ? touchPath(pts) : mousePath(pts)); await settle();
       const t = await S(); R.edge.borderDrift++; R.taps++;
