@@ -78,7 +78,7 @@ function blueLancer() { const g = new THREE.Group();   // spear: thicker sculpte
   g.add(at(P(new THREE.CircleGeometry(.04, S(20)), 'tealGlow'), 0, 0, .44));
   return g; }
 function blueShield() { const g = new THREE.Group();   // tall domed bastion: larger, taller dome with gold ribs, crown spire, flared rim wings, teal eye ports
-  const dome = P(new THREE.LatheGeometry(V2([[0, .34], [.06, .335], [.13, .3], [.19, .24], [.24, .15], [.27, .06], [.28, 0]]), S(64)), 'ceramic'); g.add(dome);
+  const dome = P(new THREE.LatheGeometry(V2([[.28, 0], [.27, .06], [.24, .15], [.19, .24], [.13, .3], [.06, .335], [0, .34]]), S(64)), 'ceramic'); g.add(dome);
   const rim = P(new THREE.LatheGeometry(V2([[.28, 0], [.37, -.015], [.42, -.04], [.35, -.06], [.22, -.075], [0, -.085]]), S(64)), 'ceramic'); g.add(rim);
   for (const [y, r] of [[.0, .28], [.15, .24], [.26, .16], [-.038, .42]]) { const s = P(new THREE.TorusGeometry(r, .008, S(8), S(64)), 'gold'); s.rotation.x = Math.PI / 2; s.position.y = y; g.add(s); }
   // sculpted gold ribs sweeping up the dome
