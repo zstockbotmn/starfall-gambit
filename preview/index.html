@@ -11,7 +11,13 @@
 <link rel="manifest" href="manifest.webmanifest">
 <title>Starfall Gambit (preview)</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ctext y=%22.9em%22 font-size=%2290%22%3E%E2%98%85%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="style.css?v=14">
+<link rel="stylesheet" href="style.css?v=15">
+<style>
+/* M: upgrade wears off — grey star puff on the square (600ms), off when motion is reduced */
+.upgone::after{content:"\2605";position:absolute;left:50%;top:50%;z-index:6;pointer-events:none;font:700 22px/1 system-ui,sans-serif;color:#9a9a9a;opacity:0;animation:upgone .6s ease-out forwards}
+@keyframes upgone{0%{opacity:.95;transform:translate(-50%,-50%) scale(.35)}100%{opacity:0;transform:translate(-50%,-50%) scale(1.8)}}
+@media (prefers-reduced-motion:reduce){.upgone::after{animation:none}}
+</style>
 </head>
 <body>
 <svg class="sprite" width="0" height="0" aria-hidden="true" focusable="false">
@@ -110,6 +116,7 @@
   </section>
 
   <div class="tray" id="trayRed" aria-label="Red ships you captured"></div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <button id="btnZoomReset" class="btn zoomreset hidden" type="button" aria-label="Reset zoom">⤢ Reset zoom</button>
   <div id="boardWrap">
     <div class="rowlbls" aria-hidden="true"><span>6</span><span>5</span><span>4</span><span>3</span><span>2</span><span>1</span></div>
@@ -142,7 +149,7 @@
       <li><i class="lg cap"></i><div><b>Corner brackets = capture.</b> The ship can capture there (by moving onto it, or by a Lancer shot).</div></li>
       <li><i class="lg expose">!</i><div><b>! badge = Flagship warning.</b> Making this move would leave your currently safe Flagship open to capture. If your Flagship is already under attack, you get one warning line instead. You're still allowed to do it.</div></li>
       <li><i class="lg lock"><svg aria-hidden="true"><use href="#i-lock"/></svg></i><div><b>Lock = jammed.</b> The ship sits in nebula: it can't move or fire until the nebula shifts. Only enemy Drones and Shields can capture it, by moving in.</div></li>
-      <li><i class="lg upb">★</i><div><b>Gold star = upgraded.</b> The ship has made its first capture and got its one-time upgrade (see below).</div></li>
+      <li><i class="lg upb">★</i><div><b>Gold star = upgraded.</b> A capture by a non-upgraded ship. The tag counts down that side's turns left (3, then it wears off).</div></li>
       <li><i class="lg underfire"></i><div><b>Dashed red ring = Flagship under fire.</b> Red could capture your Flagship next move.</div></li>
       <li><i class="lg foemove"></i><div><b>Ring = enemy move.</b> Shown when you inspect a Red ship: where it can move.</div></li>
       <li><i class="lg danger"></i><div><b>Hatching = danger.</b> If your selected ship moves there, Red could capture it next turn. This already takes into account a nebula shift your move would trigger. A hatched square under the ship itself means it's under attack right now.</div></li>
@@ -153,8 +160,8 @@
     <ul class="pieces">
       <li><span class="pair"><span class="pc mini b F"><svg class="shp"><use href="#sb-F"/></svg></span><span class="pc mini r F"><svg class="shp"><use href="#sr-F"/></svg></span></span><div><b>Flagship ×1</b>: moves 1 square in any direction and captures by moving onto an enemy. If it's destroyed, you lose.</div></li>
       <li><span class="pair"><span class="pc mini b D"><svg class="shp"><use href="#sb-D"/></svg></span><span class="pc mini r D"><svg class="shp"><use href="#sr-D"/></svg></span></span><div><b>Drone ×2</b>: jumps in an L shape like a chess knight and captures where it lands. It can jump over ships and over nebula, but it can't land on nebula.</div></li>
-      <li><span class="pair"><span class="pc mini b L"><svg class="shp"><use href="#sb-L"/></svg></span><span class="pc mini r L"><svg class="shp"><use href="#sr-L"/></svg></span></span><div><b>Lancer ×2</b>: moves 1 square in any direction but <b>can't capture by moving</b>. Instead it can <b>fire</b> up, down, left or right, up to <b>3 squares</b>, and the Lancer doesn't move. The shot stops at the first ship in the line. If that ship is an enemy, it's destroyed. <b>Your own ships block your shots</b>, and so do Shields and nebula.</div></li>
-      <li><span class="pair"><span class="pc mini b S"><svg class="shp"><use href="#sb-S"/></svg></span><span class="pc mini r S"><svg class="shp"><use href="#sr-S"/></svg></span></span><div><b>Shield ×2</b>: moves 1 square up, down, left or right and captures by moving. <b>Lancer shots can't hurt a Shield</b>, and Shields block shots, so park them in front of your Flagship.</div></li>
+      <li><span class="pair"><span class="pc mini b L"><svg class="shp"><use href="#sb-L"/></svg></span><span class="pc mini r L"><svg class="shp"><use href="#sr-L"/></svg></span></span><div><b>Lancer ×2</b>: moves 1 square in any direction but <b>can't capture by moving</b>. Instead it can <b>fire</b> up, down, left or right, up to <b>3 squares</b>, and the Lancer doesn't move. The shot stops at the first ship in the line. If that ship is an enemy, it's destroyed. <b>Your own ships block your shots</b>, and so do nebula and Shields (an enemy Shield is hit, and stops the shot).</div></li>
+      <li><span class="pair"><span class="pc mini b S"><svg class="shp"><use href="#sb-S"/></svg></span><span class="pc mini r S"><svg class="shp"><use href="#sr-S"/></svg></span></span><div><b>Shield ×2</b>: moves 1 square up, down, left or right and captures by moving. Lancer shots <b>stop at the first Shield</b> in their lane, so ships behind it are protected; the Shield itself can still be shot. Park them in front of your Flagship.</div></li>
     </ul>
     <p class="small">Starting setup: each back row is Lancer, Drone, Shield, Flagship, Drone, Lancer, with the second Shield just in front of the Flagship. Red's setup is Blue's mirrored top-to-bottom.</p>
     <h3>Fleet pick</h3>
@@ -163,7 +170,7 @@
     </ul>
     <h3>Capture upgrades</h3>
     <ul>
-      <li>A ship's <b>first capture</b> gives it a one-time upgrade (gold star): <b>Lancer</b> range 4 · <b>Drone</b> can also step 1 square · <b>Shield</b> can also move diagonally · <b>Flagship</b> one 2-square move in a straight line (the square between must be empty and clear).</li>
+      <li>A <b>capture by a non-upgraded ship</b> upgrades it for <b>3 of its owner's own turns</b> (gold star, countdown on the tag): <b>Lancer</b> range 4 · <b>Drone</b> can also step 1 square · <b>Shield</b> can also move diagonally · <b>Flagship</b> one 2-square move in a straight line (the square between must be empty and clear). Opponent moves and skipped turns don't count. Then it wears off. A ship can earn it again with a later capture. An unused Flagship 2-square move is lost when the upgrade wears off.</li>
     </ul>
     <h3>The nebula</h3>
     <ul>
@@ -171,7 +178,7 @@
       <li>The pattern is mirrored top-to-bottom, just like the starting setup: a nebula square in row 2 has a twin in the same column in row 5, and row 3 pairs with row 4. Neither side is favored.</li>
       <li>Shifts alternate between happening after Red's move and after yours, so each side takes turns being first to react.</li>
       <li><b>Preview:</b> the squares about to become nebula <b>flicker for the last two moves before the shift</b>, so each side sees them on one of its own turns. The preview shows exactly what will land.</li>
-      <li><b>A Flagship is never jammed:</b> if it stands on a previewed square, that square and its mirror twin stay clear.</li>
+      <li><b>A Flagship is never jammed:</b> if it stands on a previewed square, that square and its mirror twin stay clear. The pattern is fixed once shown: squares can drop out, never appear or move.</li>
       <li>Ships can't move into nebula and shots can't pass through it, except: <b>nebula jams but doesn't shield</b>. A Drone or Shield may move in to capture a jammed enemy (and is then jammed itself). The Flagship never enters nebula.</li>
       <li>A shift can land on squares that already have ships, and you're allowed to move onto a flickering square. Any ship on a square when it becomes nebula is <b>jammed</b>: it can't move or fire. It's free again when the nebula shifts.</li>
     </ul>

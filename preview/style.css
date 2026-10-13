@@ -64,7 +64,8 @@ h1{color:#f6f8ff}
 .meta{display:flex;flex-direction:column;align-items:flex-end;font-size:13px;color:var(--dim);gap:2px;min-width:0;overflow:hidden}
 .meta span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;line-height:18px;height:18px}
 .neb{color:var(--neb);font-weight:700}
-.neb.warn{color:#fff;background:var(--neb);padding:0 6px;border-radius:6px;animation:blink 1s infinite}
+.neb.warn{color:#fff;background:var(--neb);padding:0 6px;border-radius:6px;animation:nebpulse 1s infinite}
+@keyframes nebpulse{0%,100%{box-shadow:0 0 0 0 rgba(200,140,255,.0)}50%{box-shadow:0 0 10px 2px rgba(200,140,255,.9)}}   /* always full brightness: pulses a glow instead of fading (the shift after YOUR move used to be caught at 35%) */
 .tray{width:100%;max-width:470px;height:var(--trayh);flex:none;overflow:hidden;display:flex;flex-wrap:nowrap;gap:4px;align-items:center;font-size:13px;color:var(--dim)}
 #boardWrap{flex:none;display:grid;grid-template-columns:var(--gut) auto;grid-template-rows:auto var(--gut);padding:6px 6px 2px 2px;border-radius:16px;touch-action:none;
   background:linear-gradient(180deg,rgba(70,12,80,.55),rgba(12,14,36,.7) 50%,rgba(10,48,62,.55));border:1px solid rgba(127,243,230,.28);
@@ -365,6 +366,10 @@ body.v3d #board .mk.move.withexpose{left:32%;top:64%;transform:translate(-50%,-5
 .cell.upfx::after{content:"";position:absolute;inset:10%;border-radius:50%;border:3px solid #ffd36a;box-shadow:0 0 12px #ffd36a,inset 0 0 10px #ffd36a;animation:upfx 1.2s ease-out forwards;pointer-events:none;z-index:5}
 @keyframes upfx{0%{transform:scale(.3);opacity:1}100%{transform:scale(1.6);opacity:0}}
 @media (prefers-reduced-motion:reduce){.cell.upfx::after{animation-duration:.4s}}
+/* M: upgrade wears off — grey star puff on that square (also in index.html) */
+.upgone::after{content:"\2605";position:absolute;left:50%;top:50%;z-index:6;pointer-events:none;font:700 22px/1 system-ui,sans-serif;color:#9a9a9a;opacity:0;animation:upgone .6s ease-out forwards}
+@keyframes upgone{0%{opacity:.95;transform:translate(-50%,-50%) scale(.35)}100%{opacity:0;transform:translate(-50%,-50%) scale(1.8)}}
+@media (prefers-reduced-motion:reduce){.upgone::after{animation:none}}
 /* M4 fleet pick */
 .fleetpick{margin-top:14px;text-align:left;border-top:1px solid rgba(255,255,255,.12);padding-top:10px}
 .fleethead{display:flex;justify-content:space-between;align-items:baseline;font-weight:700;margin-bottom:8px}
@@ -383,7 +388,14 @@ body.v3d #board .mk.move.withexpose{left:32%;top:64%;transform:translate(-50%,-5
 #btnStart:disabled{opacity:.45}
 .lg.upb{background:#ffd36a;border-radius:50%;color:#3a2600;font:700 12px/18px system-ui,sans-serif;text-align:center;box-shadow:0 0 0 1px #000}
 /* M4 pinch zoom: reset button while zoomed */
-.zoomreset{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom));z-index:40;min-height:44px;padding:0 16px;border-radius:22px;font-weight:700;box-shadow:0 4px 14px rgba(0,0,0,.5)}
+.zoomreset{position:fixed;left:0;right:0;margin:0 auto;width:max-content;bottom:calc(14px + env(safe-area-inset-bottom));z-index:40;min-height:44px;padding:0 16px;border-radius:22px;font-weight:700;box-shadow:0 4px 14px rgba(0,0,0,.5)}
 .zoomreset.hidden{display:none}
 /* M4 setting: the city planet shows through behind the HUD - a dark glass backing keeps legend/status text readable (no layout change) */
 body.v3d .legend,body.v3d .info{background:rgba(12,8,26,.72);border-radius:10px;box-shadow:0 0 0 5px rgba(12,8,26,.72)}
+/* Reset zoom is centred with margins, not transform: .btn:active{transform:scale()} would replace a translateX and move it out from under the finger */
+/* G: upgrade popup / one-time tips (never takes taps) + upgrade tag */
+.toast{position:fixed;left:0;right:0;margin:0 auto;top:calc(30% + env(safe-area-inset-top));width:max-content;max-width:88vw;z-index:45;pointer-events:none;padding:10px 16px;border-radius:14px;
+  background:rgba(18,12,34,.92);border:1px solid #ffd36a;color:#fff;font-weight:700;font-size:15px;text-align:center;box-shadow:0 6px 24px rgba(0,0,0,.6),0 0 18px rgba(255,211,106,.35);
+  opacity:0;transform:translateY(8px);transition:opacity .2s,transform .2s}
+.toast.show{opacity:1;transform:none}.toast.red{border-color:#ff5fd0}.toast.tip{border-color:#9ff6ff;font-weight:600;font-size:14px;white-space:normal}
+#board .mk.upb{width:auto;min-width:13px;padding:0 3px;border-radius:7px;gap:1px;font-size:clamp(8px,2.3vw,11px);white-space:nowrap}

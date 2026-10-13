@@ -11,6 +11,7 @@
   var NAMES = { F: 'Flagship', D: 'Drone', L: 'Lancer', S: 'Shield' };
   var SIDE_NAMES = ['Blue', 'Red'];
   var UPGRADE = { L: 'range 4', D: 'can also step 1 square', S: 'can also move diagonally', F: 'one 2-square move' };
+  var UPGRADE_TURNS = 3;           // M: a capture upgrade lasts this many of the owner's own moves, then wears off
 
   var KING = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
   var ORTHO = [[-1,0],[1,0],[0,-1],[0,1]];
@@ -53,8 +54,9 @@
   // ---- Fleet pick: the Flagship plus 6 ships, at most 3 of a type, costing at most BUDGET points (L 3, D 3, S 2).
   var BUDGET = 16, FLEET_SIZE = 6, TYPE_MAX = 3, COST = { L: 3, D: 3, S: 2 };
   var DEFAULT_FLEET = { L: 2, D: 2, S: 2 };
+  var VARIANT = { shieldShootable: true };   // L: Shields can be shot (blocking the lane behind them);   // rule experiments for test/sims.js only; the game never changes these
   function fleetCost(f) { return (f.L || 0) * COST.L + (f.D || 0) * COST.D + (f.S || 0) * COST.S; }
-  function fleetValid(f) { var n = (f.L || 0) + (f.D || 0) + (f.S || 0); return n === FLEET_SIZE && fleetCost(f) <= BUDGET && ['L', 'D', 'S'].every(function (t) { var k = f[t] || 0; return k >= 0 && k <= TYPE_MAX && k === Math.floor(k); }); }
+  function fleetValid(f) { var n = (f.L || 0) + (f.D || 0) + (f.S || 0); return n === FLEET_SIZE && fleetCost(f) <= (VARIANT.budget || BUDGET) && ['L', 'D', 'S'].every(function (t) { var k = f[t] || 0; return k >= 0 && k <= TYPE_MAX && k === Math.floor(k); }); }
   function allFleets() { var out = []; for (var l = 0; l <= TYPE_MAX; l++) for (var d = 0; d <= TYPE_MAX; d++) { var f = { L: l, D: d, S: FLEET_SIZE - l - d }; if (fleetValid(f)) out.push(f); } return out; }
   function fleetKey(f) { return f.L + 'L' + f.D + 'D' + f.S + 'S'; }
   // Placement: columns a-f of the back row (Flagship on d) plus the square in front of the Flagship. Each type fills its
@@ -74,7 +76,7 @@
     var g = genNebula(seed >>> 0, null);
     return {
       board: board, turn: BLUE, ply: 0,
-      nebula: [], nextNebula: g.cells, nextPulse: pulsePly(1), pulses: 0, seed: g.seed,
+      nebula: [], nextNebula: g.cells, frozenNebula: null, nextPulse: pulsePly(1), pulses: 0, seed: g.seed,
       winner: null, reason: null, lastMove: null, captured: [[], []], fleets: [Object.assign({}, fleets[0]), Object.assign({}, fleets[1])]
     };
   }
@@ -82,7 +84,7 @@
   function clone(st) {
     return {
       board: st.board.slice(), turn: st.turn, ply: st.ply,
-      nebula: st.nebula, nextNebula: st.nextNebula, nextPulse: st.nextPulse, pulses: st.pulses, seed: st.seed,
+      nebula: st.nebula, nextNebula: st.nextNebula, frozenNebula: st.frozenNebula || null, nextPulse: st.nextPulse, pulses: st.pulses, seed: st.seed,
       winner: st.winner, reason: st.reason, lastMove: st.lastMove,
       captured: [st.captured[0].slice(), st.captured[1].slice()], fleets: st.fleets, lastBy: st.lastBy
     };
@@ -91,8 +93,9 @@
   function isNebula(st, i) { return st.nebula.indexOf(i) >= 0; }
 
   // Lancer fire targets from cell i for side s.
-  // Capture upgrade (one-time, on a ship's first capture): Lancer range +1, Drone may also step 1 square, Shield may also
-  // move diagonally, Flagship gets one move of 2 squares in a straight line (pc.dbl = still available).
+  // Capture upgrade (a capture by a non-upgraded ship; lasts UPGRADE_TURNS of the owner's own moves, then reverts):
+  // Lancer range +1, Drone may also step 1 square, Shield may also move diagonally, Flagship gets one move of 2
+  // squares in a straight line (pc.dbl = still available). pc.ut is the owner's moves left.
   function lancerRange(pc) { return LANCER_RANGE + (pc && pc.up ? 1 : 0); }
   function shotTargets(st, i, s) {
     var out = [], p = rc(i), rng = lancerRange(st.board[i]);
@@ -104,7 +107,7 @@
         if (isNebula(st, j)) break;            // nebula blocks line of sight
         var q = st.board[j];
         if (!q) continue;
-        if (q.s !== s && q.t !== 'S') out.push(j); // Shields can't be shot
+        if (q.s !== s && (VARIANT.shieldShootable || q.t !== 'S')) out.push(j); // first enemy ship in the lane is hit, Shields included (rule L)
         break;                                     // any piece blocks the line
       }
     }
@@ -179,11 +182,22 @@
     if (m.cap) ns.captured[mover.s].push(m.cap.t);
     var at = m.kind === 'shot' ? m.from : m.to, piece = mover, upgraded = false;
     if (m.dbl) piece = Object.assign({}, piece, { dbl: false });
-    if (m.cap && !piece.up) { piece = Object.assign({}, piece, { up: true, dbl: piece.t === 'F' && !m.dbl }); upgraded = true; }
+    if (m.cap && !piece.up) { piece = Object.assign({}, piece, { up: true, dbl: piece.t === 'F' && !m.dbl, ut: UPGRADE_TURNS }); upgraded = true; }
     if (m.kind === 'shot') { b[m.to] = null; b[m.from] = piece; }
     else { b[m.to] = piece; b[m.from] = null; }
+    // Tick every other upgraded ship of the mover's side (not the one that just upgraded). clone() shares piece
+    // objects with st, so copy before writing. A ship at 0 reverts where it stands after this move. Skips don't tick.
+    var expired = [], ex = [];
+    for (var i = 0; i < CELLS; i++) {
+      var p = b[i];
+      if (!p || p.s !== mover.s || !p.up || (upgraded && i === at)) continue;
+      var left = (typeof p.ut === 'number' ? p.ut : UPGRADE_TURNS) - 1, np = Object.assign({}, p);
+      if (left <= 0) { np.up = false; np.dbl = false; delete np.ut; expired.push(i); ex.push(p.t); }
+      else np.ut = left;
+      b[i] = np;
+    }
     ns.lastBy = [(st.lastBy || [null, null])[0], (st.lastBy || [null, null])[1]]; ns.lastBy[mover.s] = { from: m.from, to: m.to, kind: m.kind };   // each side's own last move (AI: no back-and-forth shuffles)
-    ns.lastMove = { from: m.from, to: m.to, kind: m.kind, piece: mover.t, side: mover.s, cap: m.cap ? m.cap.t : null, up: upgraded ? at : null, dbl: !!m.dbl };
+    ns.lastMove = { from: m.from, to: m.to, kind: m.kind, piece: mover.t, side: mover.s, cap: m.cap ? m.cap.t : null, up: upgraded ? at : null, dbl: !!m.dbl, expired: expired, ex: ex };
     ns.ply++;
     ns.turn = 1 - ns.turn;
     if (m.cap && m.cap.t === 'F') { ns.winner = mover.s; ns.reason = 'flagship'; return ns; }
@@ -204,8 +218,10 @@
       ns.nebula = incomingNebula(ns);                  // a Flagship is never jammed: its square (and the mirror twin) stay clear
       var g = genNebula(ns.seed, ns.nebula);
       ns.nextNebula = g.cells; ns.seed = g.seed; ns.pulses++; ns.nextPulse = pulsePly(ns.pulses + 1);
-      ns.pulsed = true;
+      ns.pulsed = true; ns.frozenNebula = null;
     } else if (!ns.skipped) ns.pulsed = false;
+    // the preview is frozen when it is first shown: later it can only lose squares (a Flagship steps on), never gain or move
+    if (!ns.frozenNebula && pliesToPulse(ns) <= 2) ns.frozenNebula = incomingNebula(ns);
     if (ns.ply >= MAX_PLY) {
       var a = destroyed(ns, BLUE), r = destroyed(ns, RED);   // points each side destroyed (fair when the fleets differ)
       ns.winner = a > r ? BLUE : r > a ? RED : -1;   // -1 = draw
@@ -215,9 +231,9 @@
     return false;
   }
   // The squares that will become nebula at the next shift, as of now: the scheduled pattern minus any mirrored pair that
-  // has a Flagship on either square (the preview updates live when a Flagship steps onto a previewed square).
+  // has a Flagship on either square. Once shown (frozenNebula) the pattern is fixed: a pair dropped for a Flagship never comes back.
   function incomingNebula(st) {
-    var nx = st.nextNebula || [];
+    var nx = st.frozenNebula || st.nextNebula || [];
     return nx.filter(function (i) { var m = mirrorCell(i), a = st.board[i], b = st.board[m]; return !(a && a.t === 'F') && !(b && b.t === 'F'); });
   }
 
@@ -255,7 +271,7 @@
           if (isNebula(st, j)) break;
           var q = j === ignore ? null : st.board[j];
           if (!q) { out[j] = true; continue; }
-          if (q.s === enemy || q.t !== 'S') out[j] = true;   // enemy-held square (capture target) or our non-Shield ship
+          if (q.s === enemy || VARIANT.shieldShootable || q.t !== 'S') out[j] = true;   // capture square or our ship (Shields too, rule L)
           break;                                            // any ship blocks the rest of the line
         }
       }
@@ -339,6 +355,7 @@
                                                             : ' ' + coord(lm.from) + '→' + coord(lm.to));
     if (lm.cap) s += (lm.kind === 'shot' ? ', destroying a ' : ', capturing a ') + NAMES[lm.cap];
     if (lm.up !== null && lm.up !== undefined) s += '. ' + NAMES[lm.piece] + ' upgraded: ' + UPGRADE[lm.piece];
+    if (lm.expired && lm.expired.length) s += '. Upgrade wore off: ' + (lm.ex || []).map(function (t) { return NAMES[t]; }).join(', ');
     return s;
   }
 
@@ -348,7 +365,7 @@
     newGame: newGame, legalMoves: legalMoves, pieceMoves: pieceMoves, applyMove: applyMove, shotTargets: shotTargets,
     material: material, findFlagship: findFlagship, flagshipThreatened: flagshipThreatened,
     pliesToPulse: pliesToPulse, pulseAfterSide: pulseAfterSide, displayRound: displayRound, lancerThreats: lancerThreats, pieceMarkers: pieceMarkers, dangerSquares: dangerSquares, flagshipExposedByPulse: flagshipExposedByPulse, exposesFlagship: exposesFlagship, newlyExposesFlagship: newlyExposesFlagship,
-    mirrorCell: mirrorCell, incomingNebula: incomingNebula, destroyed: destroyed, BUDGET: BUDGET, FLEET_SIZE: FLEET_SIZE, TYPE_MAX: TYPE_MAX, COST: COST, DEFAULT_FLEET: DEFAULT_FLEET, fleetCost: fleetCost, fleetValid: fleetValid, allFleets: allFleets, fleetKey: fleetKey, placeFleet: placeFleet, lancerRange: lancerRange, UPGRADE: UPGRADE, pulsePly: pulsePly, genNebula: genNebula, nebulaWarning: nebulaWarning, isNebula: isNebula,
+    VARIANT: VARIANT, mirrorCell: mirrorCell, incomingNebula: incomingNebula, pulseUnjamsThreat: pulseUnjamsThreat, destroyed: destroyed, BUDGET: BUDGET, FLEET_SIZE: FLEET_SIZE, TYPE_MAX: TYPE_MAX, COST: COST, DEFAULT_FLEET: DEFAULT_FLEET, fleetCost: fleetCost, fleetValid: fleetValid, allFleets: allFleets, fleetKey: fleetKey, placeFleet: placeFleet, lancerRange: lancerRange, UPGRADE: UPGRADE, UPGRADE_TURNS: UPGRADE_TURNS, pulsePly: pulsePly, genNebula: genNebula, nebulaWarning: nebulaWarning, isNebula: isNebula,
     coord: coord, rc: rc, idx: idx, describeMove: describeMove, nextRand: nextRand
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.SG = api;

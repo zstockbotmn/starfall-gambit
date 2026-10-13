@@ -6,29 +6,30 @@
 
   var LEVELS = {
     easy:   { kind: 'greedy', blunder: 0.35 },   // grabs captures most of the time, otherwise wanders
-    medium: { kind: 'search', depth: 2 },        // TODO Milestone 2: tune
-    hard:   { kind: 'search', depth: 4 }         // TODO Milestone 2: tune + move ordering / time limit
+    medium: { kind: 'search', depth: 2, bySide: [2, 2.1] },   // second mover searches 1 ply deeper on 10% of moves: standard vs standard 50.0% Red (800 games; was 33.5%)
+    hard:   { kind: 'search', depth: 4, bySide: [4, 4.2] }   // second mover 1 ply deeper on 20% of moves (160-game probe: 46.9% Red, was 40.6%)
   };
 
+  var TUNE = { urgDiv: 40, press: 1, hit: .7, hitM: .7 };
   function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 
   // Static evaluation from the perspective of `side` (used by search levels; light use in easy).
   function evaluate(st, side) {
-    if (st.winner !== null) return st.winner === side ? 10000 : st.winner === -1 ? 0 : -10000;
+    if (st.winner !== null) return st.winner === side ? 10000 - st.ply : st.winner === -1 ? 0 : -10000 + st.ply;   // prefer the fastest win and the slowest loss (a lost position must not hand the Flagship over at once)
     var score = SG.material(st, side) - SG.material(st, 1 - side);
-    // capture upgrades are worth keeping (and denying): ~1 point each, an unused Flagship 2-square move a little more
-    for (var i = 0; i < 36; i++) { var p = st.board[i]; if (p && p.up) score += (p.s === side ? 1 : -1) * (p.t === 'F' ? (p.dbl ? .6 : .2) : .9); }
+    // capture upgrades are worth keeping (and denying), scaled by turns left (ut/3); an unused Flagship 2-square move a little more
+    for (var i = 0; i < 36; i++) { var p = st.board[i]; if (p && p.up) { var w = p.t === 'F' ? (p.dbl ? .6 : .2) : .9; if (typeof p.ut === 'number') w *= p.ut / SG.UPGRADE_TURNS; score += (p.s === side ? 1 : -1) * w; } }
     // small mobility term
     var mine = SG.legalMoves(st, side), theirs = SG.legalMoves(st, 1 - side);
     score += 0.05 * (mine.length - theirs.length);
     // Press for the kill (M4): attackers close to the enemy Flagship and direct threats on it count, more so as the game
     // goes on, so searches stop drifting to round 40.
-    var urg = 1 + st.ply / 40;
-    score += urg * (pressure(st, side) - pressure(st, 1 - side));
+    var urg = 1 + st.ply / TUNE.urgDiv;
+    score += (TUNE.pressBySide ? TUNE.pressBySide[rootSide] : TUNE.press) * urg * (pressure(st, side) - pressure(st, 1 - side));
     var fE = SG.findFlagship(st, 1 - side), fM = SG.findFlagship(st, side), hitE = 0, hitM = 0;
     for (var k = 0; k < mine.length; k++) if (mine[k].to === fE) hitE++;
     for (k = 0; k < theirs.length; k++) if (theirs[k].to === fM) hitM++;
-    score += urg * (0.7 * Math.min(2, hitE) - 0.7 * Math.min(2, hitM));
+    score += urg * (TUNE.hit * Math.min(2, hitE) - TUNE.hitM * Math.min(2, hitM));
     return score;
   }
 
@@ -51,7 +52,8 @@
     return best;
   }
 
-  function searchMove(st, depth) {
+  var rootSide = 0;
+  function searchMove(st, depth) { rootSide = st.turn;
     var moves = SG.legalMoves(st), best = [], bestV = -Infinity;
     for (var k = 0; k < moves.length; k++) {
       var ch = SG.applyMove(st, moves[k]), v = ch.turn === st.turn ? negamax(ch, depth - 1, -Infinity, Infinity) : -negamax(ch, depth - 1, -Infinity, Infinity);
@@ -88,7 +90,9 @@
 
   function chooseMove(st, level) {
     var cfg = LEVELS[level] || LEVELS.easy;
-    return cfg.kind === 'search' ? searchMove(st, cfg.depth) : greedyMove(st, cfg);
+    if (cfg.kind !== 'search') return greedyMove(st, cfg);
+    var d = (cfg.bySide && cfg.bySide[st.turn]) || cfg.depth, fl = Math.floor(d);   // fractional depth: one ply deeper on that share of moves
+    return searchMove(st, fl + (Math.random() < d - fl ? 1 : 0));
   }
 
   // Never throws, never returns null while a legal move exists: falls back to a random legal move.
@@ -106,6 +110,6 @@
   function pickFleet(level) { var all = SG.allFleets(); if (level === 'easy') return pick(all);
     var pref = FLEET_PREF[level] || FLEET_PREF.medium, f = all.filter(function (x) { return pref.indexOf(SG.fleetKey(x)) >= 0; });
     return Object.assign({}, pick(f.length ? f : all)); }
-  var api = { pickFleet: pickFleet, chooseMove: chooseMove, safeChooseMove: safeChooseMove, evaluate: evaluate, LEVELS: LEVELS };
+  var api = { pickFleet: pickFleet, chooseMove: chooseMove, safeChooseMove: safeChooseMove, evaluate: evaluate, LEVELS: LEVELS, TUNE: TUNE };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.SGAI = api;
 })(typeof self !== 'undefined' ? self : this);

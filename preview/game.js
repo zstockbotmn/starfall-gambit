@@ -6,7 +6,7 @@
   var DEBUG = /[?&]debug(=|&|$)/.test(location.search);
   // test harness only: ?aidelay=ms stretches Red's think time so scripted taps fit inside it on a slow software renderer
   (function (m) { if (m) AI_DELAY = Math.min(5000, +m[1]); })(location.search.match(/[?&]aidelay=(\d+)/));
-  var st, sel = null, insp = null, marks = null, danger = [], opts = [], exposed = [];
+  var st, sel = null, insp = null, marks = null, danger = [], opts = [], exposed = [], shiftWarn = false;
   var busy = false, aiTimer = null, overTimer = null, gameId = 0, hintMsg = '', overShown = false;
   var $ = function (id) { return document.getElementById(id); };
   var boardEl = $('board'), wrapEl = $('boardWrap'), infoEl = document.querySelector('.info'), cells = [], cache = [];
@@ -14,7 +14,7 @@
     F: 'Flagship: 1 square any direction. Keep it safe!',
     D: 'Drone: jumps in an L, even over ships and nebula.',
     L: 'Lancer: steps 1 square, or fires along its lanes (up to 3).',
-    S: 'Shield: 1 square straight. Immune to Lancer shots.'
+    S: 'Shield: 1 square straight. Stops Lancer shots, protecting ships behind it, but can be shot itself.'
   };
   var START_HINT = 'Tap one of your blue ships to begin.';
   var FIRST_TIP = 'Tip: Lancers fire up to 3 squares. Tap or hold a Red ship to see its range.';
@@ -101,8 +101,9 @@
   function pinchGeo() { var ids = Object.keys(touches); if (ids.length < 2) return null; var a = touches[ids[0]], b = touches[ids[1]];
     return { d: Math.hypot(a.x - b.x, a.y - b.y), x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }; }
   function zoomUi() { var z = window.SGView && SGView.zoom ? SGView.zoom().z : 1; $('btnZoomReset').classList.toggle('hidden', !(z > 1.001)); }
+  var isHud = function (t) { return !!(t && t.closest && t.closest('button, a, input, select, .modal, header')) && !wrapEl.contains(t); };   // HUD controls never feed the board's gesture/press handling
   document.addEventListener('pointerdown', function (e) {
-    if (e.pointerType !== 'touch' || !(window.SGView && SGView.zoomTo)) return;
+    if (e.pointerType !== 'touch' || !(window.SGView && SGView.zoomTo) || isHud(e.target)) return;
     touches[e.pointerId] = { x: e.clientX, y: e.clientY };
     if (Object.keys(touches).length === 2) { if (down) cancelPress('second finger'); pinch = pinchGeo(); quietUntil = Infinity; dlog('ok', 'pinch start'); }
   }, true);
@@ -116,9 +117,20 @@
     if (pinch && Object.keys(touches).length === 0) { pinch = null; quietUntil = performance.now() + SKIP_QUIET_MS; dlog('ok', 'pinch end (zoom ' + SGView.zoom().z.toFixed(2) + ')'); } }
   document.addEventListener('pointerup', liftTouch, true); document.addEventListener('pointercancel', liftTouch, true);
   document.addEventListener('gesturestart', function (e) { e.preventDefault(); });   // iOS: the board pinch must not zoom the page
-  $('btnZoomReset').onclick = function () { if (window.SGView && SGView.resetZoom) SGView.resetZoom(); zoomUi(); dlog('ok', 'zoom reset'); };
+  // Desktop: mouse wheel / trackpad pinch (ctrl+wheel) zooms the 3D board about the pointer; never selects or moves
+  document.addEventListener('wheel', function (e) { if (!(window.SGView && SGView.zoomTo) || isHud(e.target) || (e.target.closest && e.target.closest('.modal, .taplogbox'))) return;
+    e.preventDefault(); var z = SGView.zoom().z; SGView.zoomTo(z * Math.exp(-e.deltaY * (e.ctrlKey ? .01 : .0015)), e.clientX, e.clientY); zoomUi(); }, { passive: false });
+  function resetZoomNow(src) { if (!(window.SGView && SGView.resetZoom) || SGView.zoom().z <= 1.001) return; SGView.resetZoom(); zoomUi(); dlog('ok', 'zoom reset (' + src + ')'); }
+  // A HUD button press runs its action on pointerup and swallows the follow-up (compatibility) click wherever it lands for
+  // 600 ms, so a click can never fall through to the board (e.g. once Reset zoom has hidden itself, onto the square under it).
+  var hudSwallow = { until: -1e9, el: null };
+  $('btnZoomReset').addEventListener('pointerup', function (e) { if (e.pointerType === 'mouse' && e.button !== 0) return; hudSwallow = { until: performance.now() + 600, el: this }; resetZoomNow(e.pointerType); });
+  $('btnZoomReset').onclick = function (e) { if (e.detail === 0) resetZoomNow('keyboard'); };   // pointer presses already acted on pointerup
+  document.addEventListener('click', function (e) { if (performance.now() < hudSwallow.until && e.detail !== 0) { hudSwallow.until = -1e9;
+    if (hudSwallow.el && hudSwallow.el.contains(e.target)) return; e.stopPropagation(); e.preventDefault(); dlog('ignored', 'click after a HUD button press'); } }, true);
   // listen on the document: in 3D the board's near corners can project a few px outside #boardWrap's box
   document.addEventListener('pointerdown', function (e) {
+    if (isHud(e.target)) return;   // HUD buttons (Reset zoom, header) handle their own click
     if (!wrapEl.contains(e.target) && (!(window.SGView && SGView.pick) || (e.target.closest && e.target.closest('button, a, input, select, .modal, header')))) { if (DEBUG && e.target.closest && !e.target.closest('.modal')) dlog('ignored', 'press outside board on ' + (e.target.id || e.target.className || e.target.tagName)); return; }
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     if (e.pointerType !== 'touch') lastTouchEnd = -1e9;          // a real mouse/pen press after a touch: its click is genuine
@@ -254,7 +266,7 @@
     if (window.SGView && SGView.afterDraw && !SGView.battling()) { SGView.afterDraw(put); setTimeout(put, 250); } else put();
   }
 
-  function clearSel() { sel = null; insp = null; marks = null; danger = []; opts = []; exposed = []; }
+  function clearSel() { sel = null; insp = null; marks = null; danger = []; opts = []; exposed = []; shiftWarn = false; }
 
   function inspect(i) {
     var pc = st.board[i];
@@ -286,15 +298,27 @@
       // '!' only for moves that NEWLY expose the Flagship; if it is already under attack, the single
       // "Flagship under attack" warning line covers it instead of badges.
       exposed = opts.filter(function (m) { return SG.newlyExposesFlagship(st, m); }).map(function (m) { return m.to; });
+      // the shift my move triggers can expose my OTHER ships (a lane opens, a jammed enemy is freed): hatch them too
+      if (SG.pliesToPulse(st) === 1 && SG.pulseAfterSide(st) === HUMAN) { var nowHit = SG.legalMoves(Object.assign({}, st, { turn: 1 - HUMAN }), 1 - HUMAN).filter(function (x) { return x.cap; }).map(function (x) { return x.to; });
+        for (var j = 0; j < 36; j++) { var q = st.board[j]; if (j !== i && q && q.s === HUMAN && danger.indexOf(j) < 0 && nowHit.indexOf(j) < 0 && SG.pulseUnjamsThreat(st, j, HUMAN)) danger.push(j); } }
+      if (danger.some(function (j) { return j !== i && st.board[j] && st.board[j].s === HUMAN; })) shiftWarn = true;
     }
     hintMsg = !opts.length ? 'That ship has no moves right now.' : SHIP_HINT[pc.t] +
-      (exposed.length ? ' \u26A0 ! = leaves your Flagship open.' : '');
+      (exposed.length ? ' \u26A0 ! = leaves your Flagship open.' : '') + (shiftWarn ? ' \u26A0 Hatched: the shift after your move exposes those ships.' : '');
   }
 
   // A brief message that falls back to the previous hint unless something else replaced it meanwhile.
   // It is shown on top of the normal hint for FLASH_MS (>= 1.2s) even if Red moves meanwhile; the normal
   // hint (possibly updated underneath) comes back afterwards.
   var redMovedAt = 0, inputTime = null;
+  var UPTAG = { L: 'R4', D: '+1', S: '\u2197', F: '2\u00d7' };
+  // Popup toast (never takes taps) + one-time tips (remembered in localStorage sg_tips)
+  var toastQ = [], toastBusy = false;
+  function toast(msg, kind, ms) { toastQ.push([msg, kind || '', ms || 2200]); if (!toastBusy) nextToast(); }
+  function nextToast() { var t = toastQ.shift(), el = $('toast'); if (!t || !el) { toastBusy = false; return; } toastBusy = true;
+    el.textContent = t[0]; el.className = 'toast show ' + t[1]; setTimeout(function () { el.className = 'toast ' + t[1]; setTimeout(nextToast, 250); }, t[2]); }
+  function tipOnce(key, msg) { var seen = {}; try { seen = JSON.parse(localStorage.getItem('sg_tips') || '{}'); } catch (e) {} if (seen[key]) return;
+    seen[key] = 1; try { localStorage.setItem('sg_tips', JSON.stringify(seen)); } catch (e) {} toast(msg, 'tip', 4200); }
   var FLASH_MS = 1500, flashMsg = '', flashUntil = 0;
   function flashHint(msg) {
     flashMsg = msg; flashUntil = Date.now() + FLASH_MS; render();
@@ -362,7 +386,10 @@
     var upAt = st.lastMove && st.lastMove.up;
     if (upAt !== null && upAt !== undefined) { var upId = gameId, upPly = st.ply, upPc = st.lastMove.piece, upSide = st.lastMove.side;
       afterView(function () { if (upId !== gameId) return; fxDel(upAt, 'upfx'); void cells[upAt].offsetWidth; fxAdd(upAt, 'upfx', 1300);
-        if (st.ply === upPly || upSide === HUMAN) { flashMsg = '\u2605 ' + (upSide === HUMAN ? 'Your ' : 'Red ') + SG.NAMES[upPc] + ' upgraded: ' + SG.UPGRADE[upPc] + '!'; flashUntil = Date.now() + 2500; render(); } }); }
+        if (st.ply === upPly || upSide === HUMAN) { flashMsg = '\u2605 ' + (upSide === HUMAN ? 'Your ' : 'Red ') + SG.NAMES[upPc] + ' upgraded: ' + SG.UPGRADE[upPc] + '!'; flashUntil = Date.now() + 2500; render(); }
+        toast('\u2605 ' + (upSide === HUMAN ? '' : 'Red ') + SG.NAMES[upPc] + ' upgraded: ' + SG.UPGRADE[upPc], upSide === HUMAN ? 'blue' : 'red');
+        tipOnce('up', 'Tip: a capture by a non-upgraded ship upgrades it for 3 of your own turns. The \u2605 tag counts down, then the upgrade wears off. A ship can earn it again with a later capture. An unused Flagship 2-square move is lost when it wears off.');
+        if (upPc === 'F' && upSide === HUMAN) tipOnce('dbl', 'Tip: your Flagship now has ONE 2-square straight move (\u2605 2\u00d7). Its middle square must be empty. Unused, that move is lost when the upgrade wears off.'); }); }
     if (st.winner !== null) {
       var id = gameId;
       afterView(function () { if (id !== gameId) return; overTimer = setTimeout(function () { overTimer = null; if (id === gameId && st.winner !== null) gameOver(); }, OVER_DELAY); });
@@ -393,18 +420,18 @@
     var lm = st.lastMove, foe = insp !== null ? ' foe' : '';
     for (var i = 0; i < 36; i++) {
       var c = cells[i], pc = st.board[i], p = SG.rc(i);
-      var cls = 'cell' + ((p[0] + p[1]) % 2 ? ' alt' : '') + (SG.isNebula(st, i) ? ' nebula' : '');
-      var html = '';
+      var cls = 'cell' + ((p[0] + p[1]) % 2 ? ' alt' : '') + (SG.isNebula(st, i) ? ' nebula' : '') + (has(lm && lm.expired, i) ? ' upgone' : '');
+      var html = '', utn = pc && pc.up ? (pc.ut != null ? pc.ut : SG.UPGRADE_TURNS) : 0;
       if (has(danger, i)) html += '<i class="ov threat"></i>';
       if (lm && (lm.from === i || lm.to === i)) html += '<i class="ov last"></i>';
       if (warn && incoming.indexOf(i) >= 0) html += '<i class="ov forecast"></i>';
       if (sel === i || insp === i) html += '<i class="ov sel' + foe + '"></i>';
       if (pc) {
         html += shipHTML(pc.s === SG.BLUE ? 'b' : 'r', pc.t, (SG.isNebula(st, i) ? ' jam' : '') + (i === flagDanger ? ' danger' : '') + (pc.up ? ' up' : ''));
-        if (pc.up) html += '<i class="mk upb' + (pc.t === 'F' && !pc.dbl ? ' spent' : '') + '" aria-hidden="true">\u2605</i>';   // capture upgrade badge
+        if (pc.up) html += '<i class="mk upb' + (pc.t === 'F' && !pc.dbl ? ' spent' : '') + '" aria-hidden="true">\u2605' + UPTAG[pc.t] + '\u00b7' + utn + '</i>';   // capture upgrade tag: star + what it gained + turns left
         if (SG.isNebula(st, i)) html += '<i class="mk lock"><svg aria-hidden="true"><use href="#i-lock"/></svg></i>';   // jammed
       }
-      var label = SG.coord(i) + (pc ? ' ' + SG.SIDE_NAMES[pc.s] + ' ' + SG.NAMES[pc.t] + (pc.up ? ' (upgraded: ' + (pc.t === 'F' && !pc.dbl ? '2-square move used' : SG.UPGRADE[pc.t]) + ')' : '') : '') + (SG.isNebula(st, i) ? (pc ? ', jammed in nebula' : ', nebula') : '');
+      var label = SG.coord(i) + (pc ? ' ' + SG.SIDE_NAMES[pc.s] + ' ' + SG.NAMES[pc.t] + (pc.up ? ' (upgraded: ' + (pc.t === 'F' && !pc.dbl ? '2-square move used' : SG.UPGRADE[pc.t]) + ', ' + utn + ' turns left)' : '') : '') + (SG.isNebula(st, i) ? (pc ? ', jammed in nebula' : ', nebula') : '');
       if (marks) {
         var mv = has(marks.moves, i), ln = has(marks.lanes, i), cp = has(marks.caps, i);
         if (ln) html += '<i class="mk lane' + (mv ? ' withmove' : '') + '"></i>';
@@ -428,6 +455,7 @@
     var ni = $('nebulaInfo'), plies = SG.pliesToPulse(st);
     if (over) ni.textContent = '';
     else if (warn) ni.textContent = '\u26A0 Shift after ' + (SG.pulseAfterSide(st) === HUMAN ? 'your move' : 'Red\u2019s move');
+    if (warn && !over && SG.pulseAfterSide(st) === HUMAN && st.turn === HUMAN) tipOnce('shift', 'Tip: the nebula shifts right after your move. Hatched squares show ships the shift would expose.');
     else ni.textContent = 'Nebula in ' + plies + ' moves';
     ni.className = 'neb' + (warn ? ' warn' : '');
     // Warning line has its own slot above everything else in the info area, so it is never clipped.
@@ -487,7 +515,10 @@
     [].forEach.call(document.querySelectorAll('#newModal .frow[data-t]'), function (r) { var t = r.dataset.t; r.querySelector('.fcount').textContent = fpick[t];
       r.querySelector('[data-d="-1"]').disabled = fpick[t] <= 0; r.querySelector('[data-d="1"]').disabled = fpick[t] >= SG.TYPE_MAX || n >= SG.FLEET_SIZE || cost + SG.COST[t] > SG.BUDGET; });
     $('fleetPts').textContent = cost + ' / ' + SG.BUDGET + ' pts \u00b7 ' + (n + 1) + ' / ' + (SG.FLEET_SIZE + 1) + ' ships'; $('fleetPts').className = ok ? '' : 'bad';
-    $('btnStdFleet').setAttribute('aria-pressed', isStd(fpick) ? 'true' : 'false');
+    var std = isStd(fpick), pl = function (k, w) { return fpick[k] + ' ' + w + (fpick[k] === 1 ? '' : 's'); };
+    $('btnStdFleet').setAttribute('aria-pressed', std ? 'true' : 'false');
+    $('btnStdFleet').innerHTML = std ? 'Standard fleet <small>2 Lancers · 2 Drones · 2 Shields</small>'
+      : 'Custom fleet <small>' + pl('L', 'Lancer') + ' · ' + pl('D', 'Drone') + ' · ' + pl('S', 'Shield') + ' — tap for Standard</small>';
     $('fleetNote').textContent = ok ? '7 ships: the Flagship + 6 more, max 3 of a type, ' + SG.BUDGET + ' points. Red picks its fleet too.' : 'Pick ' + (SG.FLEET_SIZE - n) + ' more ship' + (SG.FLEET_SIZE - n === 1 ? '' : 's') + ' (7 in all).';
     $('btnStart').disabled = !ok; }
   [].forEach.call(document.querySelectorAll('#newModal .frow[data-t] .step'), function (b) { b.onclick = function () { var t = b.closest('.frow').dataset.t; fpick[t] = Math.max(0, fpick[t] + +b.dataset.d); showFleet(); }; });
