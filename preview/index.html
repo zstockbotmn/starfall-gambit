@@ -160,8 +160,8 @@
     <ul class="pieces">
       <li><span class="pair"><span class="pc mini b F"><svg class="shp"><use href="#sb-F"/></svg></span><span class="pc mini r F"><svg class="shp"><use href="#sr-F"/></svg></span></span><div><b>Flagship ×1</b>: moves 1 square in any direction and captures by moving onto an enemy. If it's destroyed, you lose.</div></li>
       <li><span class="pair"><span class="pc mini b D"><svg class="shp"><use href="#sb-D"/></svg></span><span class="pc mini r D"><svg class="shp"><use href="#sr-D"/></svg></span></span><div><b>Drone ×2</b>: jumps in an L shape like a chess knight and captures where it lands. It can jump over ships and over nebula, but it can't land on nebula.</div></li>
-      <li><span class="pair"><span class="pc mini b L"><svg class="shp"><use href="#sb-L"/></svg></span><span class="pc mini r L"><svg class="shp"><use href="#sr-L"/></svg></span></span><div><b>Lancer ×2</b>: moves 1 square in any direction but <b>can't capture by moving</b>. Instead it can <b>fire</b> up, down, left or right, up to <b>3 squares</b>, and the Lancer doesn't move. The shot stops at the first ship in the line. If that ship is an enemy, it's destroyed. <b>Your own ships block your shots</b>, and so do nebula and Shields (an enemy Shield is hit, and stops the shot).</div></li>
-      <li><span class="pair"><span class="pc mini b S"><svg class="shp"><use href="#sb-S"/></svg></span><span class="pc mini r S"><svg class="shp"><use href="#sr-S"/></svg></span></span><div><b>Shield ×2</b>: moves 1 square up, down, left or right and captures by moving. Lancer shots <b>stop at the first Shield</b> in their lane, so ships behind it are protected; the Shield itself can still be shot. Park them in front of your Flagship.</div></li>
+      <li><span class="pair"><span class="pc mini b L"><svg class="shp"><use href="#sb-L"/></svg></span><span class="pc mini r L"><svg class="shp"><use href="#sr-L"/></svg></span></span><div><b>Lancer ×2</b>: moves 1 square in any direction but <b>can't capture by moving</b>. Instead it can <b>fire</b> up, down, left or right, up to <b>3 squares</b>, and the Lancer doesn't move. The shot stops at the first ship in the line. If that ship is an enemy, it's destroyed, Shields included. <b>Your own ships block your shots</b>, and so does nebula. A Shield in front protects what's behind it, and the Shield itself can still be shot.</div></li>
+      <li><span class="pair"><span class="pc mini b S"><svg class="shp"><use href="#sb-S"/></svg></span><span class="pc mini r S"><svg class="shp"><use href="#sr-S"/></svg></span></span><div><b>Shield ×2</b>: moves 1 square up, down, left or right and captures by moving. A Lancer shot stops at the <b>first ship</b> in its lane, so a Shield in front protects the ships behind it; the Shield itself can still be shot. Park them in front of your Flagship.</div></li>
     </ul>
     <p class="small">Starting setup: each back row is Lancer, Drone, Shield, Flagship, Drone, Lancer, with the second Shield just in front of the Flagship. Red's setup is Blue's mirrored top-to-bottom.</p>
     <h3>Fleet pick</h3>
@@ -241,6 +241,7 @@
   </div>
 </div>
 
+<script src="dist/build-hash.js"></script>
 <script src="engine.js?v=10"></script>
 <script src="ai.js?v=10"></script>
 <script src="game.js?v=12"></script>

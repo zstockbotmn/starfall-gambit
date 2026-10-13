@@ -280,11 +280,15 @@
   }
   // Markers for any ship (either side): where it can MOVE (empty squares), what it can ATTACK (squares where it
   // would capture: melee captures, or Lancer shot targets), and for Lancers the full firing LANES (empty squares
-  // in range up to the first ship or nebula). Jammed ships have none.
+  // in range up to the first ship or nebula). A nebula square is never a move or a lane; the only mark on it is a
+  // capture (Drone or Shield taking a jammed enemy). Jammed ships have none.
   function pieceMarkers(st, i) {
     var pc = st.board[i], res = { moves: [], caps: [], lanes: [] };
     if (!pc || isNebula(st, i)) return res;
-    pieceMoves(st, i).forEach(function (m) { (m.cap ? res.caps : res.moves).push(m.to); });
+    pieceMoves(st, i).forEach(function (m) {
+      if (isNebula(st, m.to)) { if (m.cap) res.caps.push(m.to); return; }
+      (m.cap ? res.caps : res.moves).push(m.to);
+    });
     if (pc.t === 'L') {
       var p = rc(i);
       for (var d = 0; d < 4; d++) {
@@ -292,7 +296,7 @@
           var r = p[0] + ORTHO[d][0] * k, c = p[1] + ORTHO[d][1] * k;
           if (!inB(r, c)) break;
           var j = idx(r, c);
-          if (isNebula(st, j) || st.board[j]) break;
+          if (isNebula(st, j) || st.board[j]) break;   // stop before nebula; that square is not a fire lane
           res.lanes.push(j);
         }
       }

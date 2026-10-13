@@ -14,7 +14,7 @@
     F: 'Flagship: 1 square any direction. Keep it safe!',
     D: 'Drone: jumps in an L, even over ships and nebula.',
     L: 'Lancer: steps 1 square, or fires along its lanes (up to 3).',
-    S: 'Shield: 1 square straight. Stops Lancer shots, protecting ships behind it, but can be shot itself.'
+    S: 'Shield: 1 square straight. A Lancer shot stops at the first ship, so a Shield in front protects ships behind it, but can be shot itself.'
   };
   var START_HINT = 'Tap one of your blue ships to begin.';
   var FIRST_TIP = 'Tip: Lancers fire up to 3 squares. Tap or hold a Red ship to see its range.';
@@ -35,14 +35,21 @@
     dbgBtn.onclick = function () { var c = dbgBox.classList.toggle('collapsed'); dbgBtn.textContent = c ? 'log \u25B8' : 'log \u25BE'; };
     dbgBox.appendChild(dbgBtn); dbgBox.appendChild(dbgEl);
     var stRow = document.querySelector('.status'); stRow.insertBefore(dbgBox, stRow.querySelector('.meta'));   // in the status row: never over the title
+    paintDbg();
   }
   var pressAt = null;   // debug: where the press landed (CSS px, and offset from the square's centre in square widths)
+  // Build id (service worker V, injected into dist/build-hash.js) stays the first line; events follow, newest first.
+  function paintDbg() {
+    if (!dbgEl) return;
+    var b = window.SG_BUILD || '';
+    dbgEl.textContent = b ? (dbgLines.length ? b + '\n' + dbgLines.join('\n') : b) : dbgLines.join('\n');
+  }
   function dlog(kind, msg) {
     if (kind === 'ignored') { stats.ignored++; stats.reasons[msg] = (stats.reasons[msg] || 0) + 1; }
     if (!DEBUG) return;
     dbgLines.unshift(new Date().toISOString().slice(17, 23) + ' ' + kind + ': ' + msg + (pressAt || ''));
     dbgLines.length = Math.min(dbgLines.length, 5);
-    dbgEl.textContent = dbgLines.join('\n');
+    paintDbg();
   }
 
   // ---- Input. Pointer events are the single source of taps; a click is only used when no pointer tap
@@ -246,13 +253,14 @@
   function viewSkip() { if (window.SGView && SGView.battling()) SGView.skip(); }
   window.SGGame = { render: function () { if (st) render(); } };
 
-  function fleetText(f) { return ['L', 'D', 'S'].filter(function (t) { return f[t]; }).map(function (t) { return f[t] + ' ' + SG.NAMES[t] + (f[t] > 1 ? 's' : ''); }).join(', '); }
+  function fleetText(f) { return ['L', 'D', 'S'].filter(function (t) { return f[t]; }).map(function (t) { return f[t] + ' ' + SG.NAMES[t] + (f[t] > 1 ? 's' : ''); }).join(', ') + ' (' + SG.fleetCost(f) + '/' + SG.BUDGET + ' pts)'; }
   function start() {
     viewSkip(); clearTimeout(aiTimer); clearTimeout(overTimer); aiTimer = overTimer = null; movedAt = null; flashUntil = 0; fxClear();
     gameId++;
     var redFleet = SGAI.pickFleet(LEVEL);
     st = SG.newGame(null, { fleets: [FLEET, redFleet] }); clearSel(); busy = false; overShown = false;
     hide('overModal');
+    redFleet = st.fleets[AI_SIDE];   // the fleet newGame seated (an invalid pick falls back to standard)
     $('lastMove').textContent = 'New game. You\u2019re Blue and you move first.' + (isStd(redFleet) && isStd(FLEET) ? '' : ' Red\u2019s fleet: ' + fleetText(redFleet) + '.');
     hintMsg = firstGame() ? FIRST_TIP : START_HINT;
     render();
@@ -377,12 +385,16 @@
         hintMsg = 'Your selected ' + SG.NAMES[keepType] + ' was captured.';
       }
     }
-    setStatus(SG.describeMove(st.lastMove) + '.');
+    var lm = st.lastMove, wore = [];
+    if (lm && lm.expired && lm.expired.length) for (var wi = 0; wi < lm.expired.length; wi++) wore.push(SG.SIDE_NAMES[lm.side] + ' ' + SG.NAMES[(lm.ex || [])[wi]] + ' upgrade wore off');
+    setStatus(SG.describeMove(lm) + '.' + (wore.length ? ' ' + wore.join('. ') + '.' : ''));
     if (st.pulsed) hintMsg = 'The nebula shifted! ' + hintMsg;
     if (st.skipped) hintMsg = st.skipped.map(function (sd) { return sd === HUMAN ? 'You have no legal move: your turn is skipped.' : 'Red has no legal move: its turn is skipped.'; }).join(' ') + (hintMsg ? ' ' + hintMsg : '');
     if (!redMove) stats.moves++;
     render();
     if (wasShot || m.cap) flash(target);
+    if (wore.length) { var woreId = gameId, woreKind = lm.side === HUMAN ? 'blue' : 'red';
+      afterView(function () { if (woreId !== gameId) return; wore.forEach(function (line) { toast(line, woreKind); }); }); }
     var upAt = st.lastMove && st.lastMove.up;
     if (upAt !== null && upAt !== undefined) { var upId = gameId, upPly = st.ply, upPc = st.lastMove.piece, upSide = st.lastMove.side;
       afterView(function () { if (upId !== gameId) return; fxDel(upAt, 'upfx'); void cells[upAt].offsetWidth; fxAdd(upAt, 'upfx', 1300);
@@ -420,7 +432,7 @@
     var lm = st.lastMove, foe = insp !== null ? ' foe' : '';
     for (var i = 0; i < 36; i++) {
       var c = cells[i], pc = st.board[i], p = SG.rc(i);
-      var cls = 'cell' + ((p[0] + p[1]) % 2 ? ' alt' : '') + (SG.isNebula(st, i) ? ' nebula' : '') + (has(lm && lm.expired, i) ? ' upgone' : '');
+      var cls = 'cell' + ((p[0] + p[1]) % 2 ? ' alt' : '') + (SG.isNebula(st, i) ? ' nebula' : '') + (pc && pc.up ? ' upring' : '') + (has(lm && lm.expired, i) ? ' upgone' : '');
       var html = '', utn = pc && pc.up ? (pc.ut != null ? pc.ut : SG.UPGRADE_TURNS) : 0;
       if (has(danger, i)) html += '<i class="ov threat"></i>';
       if (lm && (lm.from === i || lm.to === i)) html += '<i class="ov last"></i>';
@@ -428,12 +440,14 @@
       if (sel === i || insp === i) html += '<i class="ov sel' + foe + '"></i>';
       if (pc) {
         html += shipHTML(pc.s === SG.BLUE ? 'b' : 'r', pc.t, (SG.isNebula(st, i) ? ' jam' : '') + (i === flagDanger ? ' danger' : '') + (pc.up ? ' up' : ''));
-        if (pc.up) html += '<i class="mk upb' + (pc.t === 'F' && !pc.dbl ? ' spent' : '') + '" aria-hidden="true">\u2605' + UPTAG[pc.t] + '\u00b7' + utn + '</i>';   // capture upgrade tag: star + what it gained + turns left
+        if (pc.up) html += '<i class="mk upb' + (pc.t === 'F' && !pc.dbl ? ' spent' : '') + '" aria-hidden="true">\u2605' + UPTAG[pc.t] + '\u00b7<span class="upn">' + utn + '</span></i>';   // capture upgrade tag: star + what it gained + turns left (.upn)
         if (SG.isNebula(st, i)) html += '<i class="mk lock"><svg aria-hidden="true"><use href="#i-lock"/></svg></i>';   // jammed
       }
       var label = SG.coord(i) + (pc ? ' ' + SG.SIDE_NAMES[pc.s] + ' ' + SG.NAMES[pc.t] + (pc.up ? ' (upgraded: ' + (pc.t === 'F' && !pc.dbl ? '2-square move used' : SG.UPGRADE[pc.t]) + ', ' + utn + ' turns left)' : '') : '') + (SG.isNebula(st, i) ? (pc ? ', jammed in nebula' : ', nebula') : '');
       if (marks) {
-        var mv = has(marks.moves, i), ln = has(marks.lanes, i), cp = has(marks.caps, i);
+        // Nebula blocks moves and shots. A Drone or Shield may still capture a jammed enemy there, so only that mark stays.
+        var neb = SG.isNebula(st, i);
+        var mv = has(marks.moves, i) && !neb, ln = has(marks.lanes, i) && !neb, cp = has(marks.caps, i);
         if (ln) html += '<i class="mk lane' + (mv ? ' withmove' : '') + '"></i>';
         if (mv) html += '<i class="mk move' + foe + (has(exposed, i) ? ' withexpose' : '') + '"></i>';
         if (cp) html += '<i class="mk cap' + (has(exposed, i) ? ' withexpose' : '') + '"></i>';
@@ -533,6 +547,15 @@
   document.querySelectorAll('.modal').forEach(function (m) {
     m.addEventListener('click', function (e) { if (e.target === m) hide(m.id); });
   });
+  // Escape clears a selection or inspection the same way a tap on an empty square does.
+  // An open modal owns the key: this does not close it (no Escape-to-close handler exists) and does not clear underneath it.
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape') return;
+    if (document.querySelector('.modal:not(.hidden)')) return;
+    var had = sel !== null || insp !== null;
+    clearSel(); hintMsg = ''; render();
+    if (had) dlog('ok', 'clear [Escape]');
+  }, true);
   document.addEventListener('gesturestart', function (e) { e.preventDefault(); });
   document.addEventListener('touchstart', function () {}, { passive: true });   // enables :active on iOS buttons
 
